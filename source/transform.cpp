@@ -286,6 +286,28 @@ ampfftStatus FFTPlan::AllocateWriteBuffers ()
           std::cout<<" const_buffer["<<i<<"] "<<(*const_buffer)[i]<<std::endl;
 	return AMPFFT_SUCCESS;
 }
+
+ampfftStatus FFTPlan::ReleaseBuffers ()
+{
+	ampfftStatus result = AMPFFT_SUCCESS;
+
+	if( NULL != const_buffer )
+	{
+                delete const_buffer;
+	}
+
+	if( NULL != intBuffer )
+	{
+                delete intBuffer;
+	}
+
+	if( NULL != intBufferRC )
+	{
+                delete intBufferRC;
+	}
+
+	return	AMPFFT_SUCCESS;
+}
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------FFTRepo--------------------------------------------------------------------------------*/

@@ -226,6 +226,8 @@ public:
   ampfftStatus SetEnvelope ();
 
   ampfftStatus AllocateWriteBuffers ();
+
+  ampfftStatus ReleaseBuffers ();
 };
 
 
