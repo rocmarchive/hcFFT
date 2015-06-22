@@ -253,5 +253,6 @@ class FFTRepo
 
   ~FFTRepo( )
   {
+    releaseResources();
   }
 };
