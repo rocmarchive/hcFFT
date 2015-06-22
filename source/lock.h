@@ -98,5 +98,41 @@ class lockRAII
 		}
 };
 
+//	Class used to make sure that we enter and leave critical sections in pairs
+//	The template logic logs our CRITICAL_SECTION actions; if the template parameter is false,
+//	the branch is constant and the compiler will optimize the branch out
+template< bool debugPrint >
+class scopedLock
+{
+	lockRAII< debugPrint >* sLock;
+	string sLockName;
+	stringstream tstream;
+
+	public:
+		scopedLock( lockRAII< debugPrint >& lock, const string& name ): sLock( &lock ), sLockName( name )
+		{
+			if( debugPrint )
+			{
+				tstream.str( _T( "" ) );
+				tstream << _T( "Entering scopedLock( " ) << sLockName << _T( " )" ) << std::endl << std::endl;
+				std::cout << tstream.str( );
+			}
+
+			sLock->enter( );
+		}
+
+		~scopedLock( )
+		{
+			sLock->leave( );
+
+			if( debugPrint )
+			{
+				tstream.str( _T( "" ) );
+				tstream << _T( "Left scopedLock( " ) << sLockName << _T( " )" ) << std::endl << std::endl;
+				std::cout << tstream.str( );
+			}
+		}
+};
 //	Convenience macro to enable/disable debugging print statements
 #define lockRAII lockRAII< false >
+#define scopedLock scopedLock< false >
