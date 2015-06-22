@@ -24,6 +24,13 @@ ampfftStatus FFTPlan::SetEnvelope ()
 	return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::GetEnvelope (const FFTEnvelope ** ppEnvelope) const
+{
+	if(&envelope == NULL) assert(false);
+	*ppEnvelope = &envelope;
+	return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftCreateDefaultPlan (ampfftPlanHandle* plHandle,ampfftDim dimension, const size_t *length)
 {
   if( length == NULL )

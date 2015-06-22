@@ -205,6 +205,8 @@ public:
 
   ampfftStatus executePlan(FFTPlan*);
 
+  ampfftStatus GetEnvelope (const FFTEnvelope **) const;
+
   ampfftStatus SetEnvelope ();
 
 };
