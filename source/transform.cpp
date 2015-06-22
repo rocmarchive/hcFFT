@@ -164,4 +164,33 @@ ampfftStatus FFTRepo::getProgramCode( const ampfftGenerators gen, const ampfftPl
         kernel = pos->second.ProgramString;
 	return	AMPFFT_SUCCESS;
 }
+
+ampfftStatus FFTRepo::releaseResources( )
+{
+	scopedLock sLock( lockRepo, _T( "releaseResources" ) );
+
+	//	Free all memory allocated in the repoPlans; represents cached plans that were not destroyed by the client
+	//
+	for( repoPlansType::iterator iter = repoPlans.begin( ); iter != repoPlans.end( ); ++iter )
+	{
+		FFTPlan* plan	= iter->second.first;
+		lockRAII* lock	= iter->second.second;
+		if( plan != NULL )
+		{
+			delete plan;
+		}
+		if( lock != NULL )
+		{
+			delete lock;
+		}
+	}
+
+	//	Reset the plan count to zero because we are guaranteed to have destroyed all plans
+	planCount	= 1;
+
+	//	Release all strings
+	mapFFTs.clear( );
+
+	return	AMPFFT_SUCCESS;
+}
 /*------------------------------------------------FFTRepo----------------------------------------------------------------------------------*/
