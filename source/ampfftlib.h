@@ -196,6 +196,8 @@ class FFTRepo
     return fftRepo;
   };
 
+  ampfftStatus createPlan( ampfftPlanHandle* plHandle, FFTPlan*& fftPlan );
+
   ~FFTRepo( )
   {
   }
