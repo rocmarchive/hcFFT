@@ -3,6 +3,7 @@
 #include <amp.h>
 #include <amp_math.h>
 #include <amp_short_vectors.h>
+#include <complex>
 #include "lock.h"
 
 using namespace Concurrency;
@@ -228,6 +229,8 @@ public:
   ampfftStatus AllocateWriteBuffers ();
 
   ampfftStatus ReleaseBuffers ();
+
+  size_t ElementSize() const;
 };
 
 

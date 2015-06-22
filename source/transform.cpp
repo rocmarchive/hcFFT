@@ -308,6 +308,11 @@ ampfftStatus FFTPlan::ReleaseBuffers ()
 
 	return	AMPFFT_SUCCESS;
 }
+
+size_t FFTPlan::ElementSize() const
+{
+  return ((precision == AMPFFT_DOUBLE) ? sizeof(std::complex<double> ) : sizeof(std::complex<float>));
+}
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------FFTRepo--------------------------------------------------------------------------------*/
