@@ -59,6 +59,32 @@ typedef enum ampfftGenerators_
 	Copy,
 }ampfftGenerators;
 
+//	The "envelope" is a set of limits imposed by the hardware
+//	This will depend on the GPU(s) in the OpenCL context.
+//	If there are multiple devices, this should be the least
+//	common denominators.
+//
+struct FFTEnvelope {
+	cl_ulong   limit_LocalMemSize;
+	           //  this is the minimum of CL_DEVICE_LOCAL_MEM_SIZE
+	size_t     limit_Dimensions;
+	           //  this is the minimum of CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS
+	size_t     limit_Size[8];
+	           //  these are the minimima of CL_DEVICE_MAX_WORK_ITEM_SIZES[0..n]
+	size_t     limit_WorkGroupSize;
+	           //  this is the minimum of CL_DEVICE_MAX_WORK_GROUP_SIZE
+
+	// ??  CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE
+
+	FFTEnvelope ()
+	:	limit_LocalMemSize (0)
+	,	limit_Dimensions (0)
+	,	limit_WorkGroupSize (0)
+	{
+		::memset (& limit_Size, 0, sizeof (limit_Size));
+	}
+};
+
 struct FFTKernelGenKeyParams {
 	/*
 	 *	This structure distills a subset of the fftPlan data,
@@ -120,6 +146,9 @@ public:
   bool baked;
   ampfftGenerators gen;
 
+  //	Hardware Limits
+  FFTEnvelope envelope;
+
   ampfftPlanHandle planX;
   ampfftPlanHandle planY;
   ampfftPlanHandle planZ;
@@ -172,9 +201,10 @@ public:
 
   ampfftStatus ampfftCreateDefaultPlan(ampfftPlanHandle* plHandle,ampfftDim dimension, const size_t *length);
 
-  ampfftStatus	ampfftDestroyPlan(ampfftPlanHandle* plHandle);
+  ampfftStatus ampfftDestroyPlan(ampfftPlanHandle* plHandle);
 
   ampfftStatus executePlan(FFTPlan*);
+
 };
 
 
