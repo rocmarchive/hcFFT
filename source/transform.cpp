@@ -3,6 +3,102 @@
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 ampfftStatus FFTPlan::ampfftCreateDefaultPlan (ampfftPlanHandle* plHandle,ampfftDim dimension, const size_t *length)
 {
+  if( length == NULL )
+    return AMPFFT_ERROR;
+
+  size_t lenX = 1, lenY = 1, lenZ = 1;
+  switch( dimension )
+  {
+    case AMPFFT_1D:
+    {
+      if( length[ 0 ] == 0 )
+	return AMPFFT_ERROR;
+      lenX = length[ 0 ];
+    }
+    break;
+
+    case AMPFFT_2D:
+    {
+      if( length[ 0 ] == 0 || length[ 1 ] == 0 )
+	return AMPFFT_ERROR;
+      lenX = length[ 0 ];
+      lenY = length[ 1 ];
+    }
+    break;
+
+    case AMPFFT_3D:
+    {
+      if( length[ 0 ] == 0 || length[ 1 ] == 0 || length[ 2 ] == 0 )
+	return AMPFFT_ERROR;
+      lenX = length[ 0 ];
+      lenY = length[ 1 ];
+      lenZ = length[ 2 ];
+    }
+    break;
+
+    default:
+      return AMPFFT_ERROR;
+    break;
+  }
+
+  FFTPlan* fftPlan = NULL;
+  FFTRepo& fftRepo = FFTRepo::getInstance( );
+  fftRepo.createPlan( plHandle, fftPlan );
+  fftPlan->baked = false;
+  fftPlan->dimension = dimension;
+  fftPlan->location = AMPFFT_INPLACE;
+  fftPlan->ipLayout = AMPFFT_COMPLEX;
+  fftPlan->opLayout = AMPFFT_COMPLEX;
+  fftPlan->precision = AMPFFT_SINGLE;
+  fftPlan->forwardScale	= 1.0;
+  fftPlan->backwardScale = 1.0 / static_cast< double >( lenX * lenY * lenZ );
+  fftPlan->batchSize = 1;
+
+  fftPlan->gen = Stockham; //default setting
+
+  fftPlan->SetEnvelope();
+
+  switch( dimension )
+  {
+    case AMPFFT_1D:
+    {
+      fftPlan->length.push_back( lenX );
+      fftPlan->inStride.push_back( 1 );
+      fftPlan->outStride.push_back( 1 );
+      fftPlan->iDist		= lenX;
+      fftPlan->oDist		= lenX;
+    }
+    break;
+
+    case AMPFFT_2D:
+    {
+      fftPlan->length.push_back( lenX );
+      fftPlan->length.push_back( lenY );
+      fftPlan->inStride.push_back( 1 );
+      fftPlan->inStride.push_back( lenX );
+      fftPlan->outStride.push_back( 1 );
+      fftPlan->outStride.push_back( lenX );
+      fftPlan->iDist		= lenX*lenY;
+      fftPlan->oDist		= lenX*lenY;
+    }
+    break;
+
+    case AMPFFT_3D:
+    {
+      fftPlan->length.push_back( lenX );
+      fftPlan->length.push_back( lenY );
+      fftPlan->length.push_back( lenZ );
+      fftPlan->inStride.push_back( 1 );
+      fftPlan->inStride.push_back( lenX );
+      fftPlan->inStride.push_back( lenX*lenY );
+      fftPlan->outStride.push_back( 1 );
+      fftPlan->outStride.push_back( lenX );
+      fftPlan->outStride.push_back( lenX*lenY );
+      fftPlan->iDist		= lenX*lenY*lenZ;
+      fftPlan->oDist		= lenX*lenY*lenZ;
+    }
+    break;
+  }
   return AMPFFT_SUCCESS;
 }
 
