@@ -53,4 +53,33 @@ ampfftStatus FFTRepo::getPlan( ampfftPlanHandle plHandle, FFTPlan*& fftPlan, loc
 
 	return	AMPFFT_SUCCESS;
 }
+
+ampfftStatus FFTRepo::deletePlan( ampfftPlanHandle* plHandle )
+{
+	scopedLock sLock( lockRepo, _T( "deletePlan" ) );
+
+	//	First, check if we have already created a plan with this exact same FFTPlan
+	repoPlansType::iterator iter	= repoPlans.find( *plHandle );
+	if( iter == repoPlans.end( ) )
+		return	AMPFFT_ERROR;
+
+	//	We lock the plan object while we are in the process of deleting it
+	{
+		scopedLock sLock( *iter->second.second, _T( "ampfftDestroyPlan" ) );
+
+		//	Delete the FFTPlan
+		delete iter->second.first;
+	}
+
+		//	Delete the lockRAII
+	delete iter->second.second;
+
+	//	Remove entry from our map object
+	repoPlans.erase( iter );
+
+	//	Clear the client's handle to signify that the plan is gone
+	*plHandle = 0;
+
+	return	AMPFFT_SUCCESS;
+}
 /*------------------------------------------------FFTRepo----------------------------------------------------------------------------------*/
