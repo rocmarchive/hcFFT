@@ -135,3 +135,29 @@ public:
 
   ampfftStatus executePlan(FFTPlan*);
 };
+
+
+class FFTRepo
+{
+  // Private constructor to stop explicit instantiation
+  FFTRepo( )
+  {}
+
+  // Private copy constructor to stop implicit instantiation
+  FFTRepo( const FFTRepo& );
+
+  // Private operator= to assure only 1 copy of singleton
+  FFTRepo& operator=( const FFTRepo& );
+
+  public:
+  //	Everybody who wants to access the Repo calls this function to get a repo reference
+  static FFTRepo& getInstance( )
+  {
+    static FFTRepo fftRepo;
+    return fftRepo;
+  };
+
+  ~FFTRepo( )
+  {
+  }
+};
