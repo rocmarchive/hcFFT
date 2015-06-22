@@ -97,4 +97,35 @@ ampfftStatus FFTRepo::setProgramEntryPoints( const ampfftGenerators gen, const a
 
 	return	AMPFFT_SUCCESS;
 }
+
+ampfftStatus FFTRepo::getProgramEntryPoint( const ampfftGenerators gen, const ampfftPlanHandle& handle,
+                                            const FFTKernelGenKeyParams& fftParam, ampfftDirection dir,
+                                            std::string& kernel)
+{
+	scopedLock sLock( lockRepo, _T( "getProgramEntryPoint" ) );
+
+	fftRepoKey key = std::make_pair( gen, handle );
+
+	fftRepo_iterator pos = mapFFTs.find( key );
+
+	if( pos == mapFFTs.end( ) )
+		return	AMPFFT_ERROR;
+
+	switch (dir) {
+	case AMPFFT_FORWARD:
+		kernel = pos->second.EntryPoint_fwd;
+		break;
+	case AMPFFT_BACKWARD:
+		kernel = pos->second.EntryPoint_back;
+		break;
+	default:
+		assert (false);
+		return AMPFFT_ERROR;
+	}
+
+	if (0 == kernel.size())
+		return	AMPFFT_ERROR;
+
+	return	AMPFFT_SUCCESS;
+}
 /*------------------------------------------------FFTRepo----------------------------------------------------------------------------------*/

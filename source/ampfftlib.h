@@ -243,6 +243,8 @@ class FFTRepo
   ampfftStatus setProgramEntryPoints( const ampfftGenerators gen, const ampfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, 
                                       const char * kernel_fwd, const char * kernel_back);
 
+  ampfftStatus getProgramEntryPoint( const ampfftGenerators gen, const ampfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, ampfftDirection dir, std::string& kernel);
+
   ~FFTRepo( )
   {
   }
