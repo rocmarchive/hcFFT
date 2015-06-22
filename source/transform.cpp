@@ -82,4 +82,19 @@ ampfftStatus FFTRepo::deletePlan( ampfftPlanHandle* plHandle )
 
 	return	AMPFFT_SUCCESS;
 }
+
+ampfftStatus FFTRepo::setProgramEntryPoints( const ampfftGenerators gen, const ampfftPlanHandle& handle,
+                                             const FFTKernelGenKeyParams& fftParam, const char * kernel_fwd,
+                                             const char * kernel_back)
+{
+	scopedLock sLock( lockRepo, _T( "setProgramEntryPoints" ) );
+
+	fftRepoKey key = std::make_pair( gen, handle );
+
+	fftRepoValue& fft = mapFFTs[ key ];
+	fft.EntryPoint_fwd  = kernel_fwd;
+	fft.EntryPoint_back = kernel_back;
+
+	return	AMPFFT_SUCCESS;
+}
 /*------------------------------------------------FFTRepo----------------------------------------------------------------------------------*/
