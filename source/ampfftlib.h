@@ -140,6 +140,37 @@ public:
 
 class FFTRepo
 {
+  //	All plans that the user creates over the course of using the library are stored here.
+  //	Plans can be arbitrarily created and destroyed at anytime by the user, in arbitrary order, so vector
+  //	does not seem appropriate, so a map was chosen because of the O(log N) search properties
+  //	A lock object is created for each plan, such that any getter/setter can lock the 'plan' object before
+  //	reading/writing its values.  The lock object is kept seperate from the plan object so that the lock
+  //	object can be held the entire time a plan is getting destroyed in ampfftDestroyPlan.
+  typedef pair< FFTPlan*, lockRAII* > repoPlansValue;
+  typedef map< ampfftPlanHandle, repoPlansValue > repoPlansType;
+  repoPlansType repoPlans;
+
+  //	Structure containing all the data we need to remember for a specific invokation of a kernel
+  //	generator
+  struct fftRepoValue {
+    std::string ProgramString;
+    std::string EntryPoint_fwd;
+    std::string EntryPoint_back;
+
+    fftRepoValue ()
+    {}
+  };
+
+  typedef std::pair< ampfftGenerators, ampfftPlanHandle> fftRepoKey;
+  typedef std::map< fftRepoKey, fftRepoValue > fftRepoType;
+  typedef fftRepoType::iterator fftRepo_iterator;
+
+  fftRepoType	mapFFTs;
+
+  //	Static count of how many plans we have generated; always incrementing during the life of the library
+  //	This is used as a unique identifier for plans
+  static size_t planCount;
+
   // Private constructor to stop explicit instantiation
   FFTRepo( )
   {}
