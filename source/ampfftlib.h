@@ -247,6 +247,8 @@ class FFTRepo
 
   ampfftStatus setProgramCode( const ampfftGenerators gen, const ampfftPlanHandle& handle, const FFTKernelGenKeyParams&, const std::string& kernel);
 
+  ampfftStatus getProgramCode( const ampfftGenerators gen, const ampfftPlanHandle& handle, const FFTKernelGenKeyParams&, std::string& kernel);
+
   ~FFTRepo( )
   {
   }

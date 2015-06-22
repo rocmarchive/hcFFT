@@ -150,4 +150,18 @@ ampfftStatus FFTRepo::setProgramCode( const ampfftGenerators gen, const ampfftPl
 
 	return	AMPFFT_SUCCESS;
 }
+
+ampfftStatus FFTRepo::getProgramCode( const ampfftGenerators gen, const ampfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, std::string& kernel)
+{
+
+	scopedLock sLock( lockRepo, _T( "getProgramCode" ) );
+	fftRepoKey key = std::make_pair( gen, handle );
+
+	fftRepo_iterator pos = mapFFTs.find( key);
+	if( pos == mapFFTs.end( ) )
+		return	AMPFFT_ERROR;
+
+        kernel = pos->second.ProgramString;
+	return	AMPFFT_SUCCESS;
+}
 /*------------------------------------------------FFTRepo----------------------------------------------------------------------------------*/
