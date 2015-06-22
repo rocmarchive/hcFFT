@@ -59,6 +59,44 @@ typedef enum ampfftGenerators_
 	Copy,
 }ampfftGenerators;
 
+struct FFTKernelGenKeyParams {
+	/*
+	 *	This structure distills a subset of the fftPlan data,
+	 *	including all information that is used to generate the OpenCL kernel.
+	 *	This structure can be used as a key to reusing kernels that have already
+	 *	been compiled.
+	 */
+	size_t                   fft_DataDim;       // Dimensionality of the data
+	size_t                   fft_N[5];          // [0] is FFT size, e.g. 1024
+	                                            // This must be <= size of LDS!
+	size_t                   fft_inStride [5];  // input strides
+	size_t                   fft_outStride[5];  // output strides
+
+	ampfftResLocation   fft_placeness;
+	ampfftIpLayout           fft_inputLayout;
+	ampfftOpLayout           fft_outputLayout;
+	ampfftPrecision        fft_precision;
+	double                   fft_fwdScale;
+	double                   fft_backScale;
+
+	size_t                   fft_SIMD;          // Assume this SIMD/workgroup size
+	size_t                   fft_LDSsize;       // Limit the use of LDS to this many bytes.
+	size_t                   fft_R;             // # of complex values to keep in working registers
+	                                            // SIMD size * R must be <= size of LDS!
+	size_t                   fft_MaxRadix;      // Limit the radix to this value.
+	size_t			fft_MaxWorkGroupSize; // Limit for work group size
+	bool                     fft_LdsComplex;    // If true, store complex values in LDS memory
+	                                            // If false, store scalare values in LDS.
+	                                            // Generally, false will provide more efficient kernels,
+	                                            // but not always.
+	                                            // see FFTPlan::bLdsComplex and ARBITRARY::LDS_COMPLEX
+	bool                     fft_ldsPadding;    // default padding is false
+	bool                     fft_3StepTwiddle;  // This is one pass of the "3-step" algorithm;
+	                                            // so extra twiddles are applied on output.
+	bool                     fft_UseFMA;        // *** TODO
+	bool                     fft_RCsimple;
+};
+
 class FFTPlan
 {
 public:
