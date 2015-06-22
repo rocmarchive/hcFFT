@@ -128,4 +128,26 @@ ampfftStatus FFTRepo::getProgramEntryPoint( const ampfftGenerators gen, const am
 
 	return	AMPFFT_SUCCESS;
 }
+
+ampfftStatus FFTRepo::setProgramCode( const ampfftGenerators gen, const ampfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, const std::string& kernel)
+{
+	scopedLock sLock( lockRepo, _T( "setProgramCode" ) );
+
+	fftRepoKey key = std::make_pair( gen, handle );
+
+	// Prefix copyright statement at the top of generated kernels
+	std::stringstream ss;
+	ss <<
+		"/* ************************************************************************\n"
+		" * Copyright 2013 MCW, Inc.\n"
+		" *\n"
+		" * ************************************************************************/"
+	<< std::endl << std::endl;
+
+	std::string prefixCopyright = ss.str();
+
+	mapFFTs[ key ].ProgramString = prefixCopyright + kernel;
+
+	return	AMPFFT_SUCCESS;
+}
 /*------------------------------------------------FFTRepo----------------------------------------------------------------------------------*/
