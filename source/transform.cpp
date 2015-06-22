@@ -1,6 +1,29 @@
 #include "ampfftlib.h"
 
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
+
+//	This routine will query the OpenCL context for it's devices
+//	and their hardware limitations, which we synthesize into a
+//	hardware "envelope".
+//	We only query the devices the first time we're called after
+//	the object's context is set.  On 2nd and subsequent calls,
+//	we just return the pointer.
+//
+ampfftStatus FFTPlan::SetEnvelope ()
+{
+
+	// TODO  The caller has already acquired the lock on *this
+	//	However, we shouldn't depend on it.
+
+        envelope.limit_LocalMemSize = 32768;
+        envelope.limit_WorkGroupSize = 256;
+        envelope.limit_Dimensions = 3;
+        for(int i = 0 ;i < envelope.limit_Dimensions; i++)
+          envelope.limit_Size[i] = 256;
+
+	return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftCreateDefaultPlan (ampfftPlanHandle* plHandle,ampfftDim dimension, const size_t *length)
 {
   if( length == NULL )
