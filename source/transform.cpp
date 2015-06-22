@@ -109,6 +109,41 @@ ampfftStatus FFTPlan::executePlan(FFTPlan* fftPlan)
 
   return AMPFFT_SUCCESS;
 }
+
+ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
+{
+  FFTRepo& fftRepo	= FFTRepo::getInstance( );
+  FFTPlan* fftPlan	= NULL;
+  lockRAII* planLock	= NULL;
+
+  fftRepo.getPlan( *plHandle, fftPlan, planLock );
+
+  //	Recursively destroy subplans, that are used for higher dimensional FFT's
+  if( fftPlan->planX )
+    ampfftDestroyPlan( &fftPlan->planX );
+
+  if( fftPlan->planY )
+    ampfftDestroyPlan( &fftPlan->planY );
+
+   if( fftPlan->planZ )
+    ampfftDestroyPlan( &fftPlan->planZ );
+
+   if( fftPlan->planTX )
+    ampfftDestroyPlan( &fftPlan->planTX );
+
+   if( fftPlan->planTY )
+    ampfftDestroyPlan( &fftPlan->planTY );
+
+   if( fftPlan->planTZ )
+    ampfftDestroyPlan( &fftPlan->planTZ );
+
+   if( fftPlan->planRCcopy )
+    ampfftDestroyPlan( &fftPlan->planRCcopy );
+
+  fftRepo.deletePlan( plHandle );
+
+  return AMPFFT_SUCCESS;
+}
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------FFTRepo--------------------------------------------------------------------------------*/

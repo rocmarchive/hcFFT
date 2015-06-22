@@ -172,6 +172,8 @@ public:
 
   ampfftStatus ampfftCreateDefaultPlan(ampfftPlanHandle* plHandle,ampfftDim dimension, const size_t *length);
 
+  ampfftStatus	ampfftDestroyPlan(ampfftPlanHandle* plHandle);
+
   ampfftStatus executePlan(FFTPlan*);
 };
 
