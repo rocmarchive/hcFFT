@@ -1,5 +1,19 @@
 #include <iostream>
-using namespace std;
+#include <stdio.h>
+#include <amp.h>
+#include <amp_math.h>
+#include <amp_short_vectors.h>
+
+using namespace Concurrency;
+using namespace Concurrency::graphics;
+
+typedef size_t ampfftPlanHandle;
+
+typedef enum ampfftPrecision_
+{
+	AMPFFT_SINGLE	= 1,
+	AMPFFT_DOUBLE,
+}ampfftPrecision;
 
 typedef enum ampfftDim_
 {
@@ -37,16 +51,12 @@ typedef enum ampfftStatus_ {
   AMPFFT_ERROR = -2
 } ampfftStatus;
 
-struct fftReal
+typedef enum ampfftGenerators_
 {
-  float data;
-};
-
-struct fftComplex
-{
-  float real;
-  float img;
-};
+	Stockham = 1,
+	Transpose,
+	Copy,
+}ampfftGenerators;
 
 class FFTPlan
 {
@@ -57,20 +67,71 @@ public:
   ampfftDirection direction;
   ampfftResLocation location;
   ampfftResTransposed transposeType;
+  ampfftPrecision precision;
   void* input;
   void* output;
-  int *inStride;
-  int *outStride;
-  int *length;
-  int batchSize;
-  int iDist;
-  int oDist;
+  std::vector< size_t >	length;
+  std::vector< size_t >	inStride, outStride;
+  size_t batchSize;
+  size_t iDist;
+  size_t oDist;
+  double forwardScale;
+  double backwardScale;
 
-  ampfftStatus createDefaultPlan(FFTPlan* fftPlan, ampfftDim dimension, ampfftIpLayout ipLayout,
-                                 ampfftOpLayout opLayout, ampfftDirection direction,
-                                 ampfftResLocation location, ampfftResTransposed_ transposeType,
-                                 void* input, void* output, int *inStride, int *outStride, int *length,
-                                 int batchSize, int iDist, int oDist);
+  bool baked;
+  ampfftGenerators gen;
+
+  ampfftPlanHandle planX;
+  ampfftPlanHandle planY;
+  ampfftPlanHandle planZ;
+
+  ampfftPlanHandle planTX;
+  ampfftPlanHandle planTY;
+  ampfftPlanHandle planTZ;
+
+  ampfftPlanHandle planRCcopy;
+  //	Performance Tuning parameters
+  bool bLdsComplex;
+  unsigned uLdsFraction;
+  bool ldsPadding;
+
+  size_t  large1D_Xfactor;
+
+  size_t tmpBufSize;
+  Concurrency::array_view<float ,1> *intBuffer;
+
+  size_t tmpBufSizeRC;
+  Concurrency::array_view<float ,1> *intBufferRC;
+
+  size_t  tmpBufSizeC2R;
+  Concurrency::array_view<float ,1> *intBufferC2R;
+
+  bool transflag;
+
+  size_t  large1D;
+  bool  large2D;
+  size_t  cacheSize;
+
+  Concurrency::array_view<float ,1> *const_buffer;
+
+  // Real-Complex simple flag
+  // if this is set we do real to-and-from full complex using simple algorithm
+  // where imaginary of input is set to zero in forward and imaginary not written in backward
+  bool RCsimple;
+
+  FFTPlan() : dimension (AMPFFT_1D), ipLayout (AMPFFT_COMPLEX),
+              opLayout (AMPFFT_COMPLEX), location (AMPFFT_INPLACE),
+              transposeType (AMPFFT_NOTRANSPOSE), precision (AMPFFT_SINGLE),
+              batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0),
+              baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
+              planTX(0), planTY(0), planTZ(0), planRCcopy(0), bLdsComplex(false),
+              uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
+	      intBuffer( NULL ), tmpBufSizeRC(0), intBufferRC(NULL), tmpBufSizeC2R(0),
+	      intBufferC2R(NULL), transflag(false),large1D(0), large2D(false),
+              const_buffer(NULL)
+  {};
+
+  ampfftStatus ampfftCreateDefaultPlan(ampfftPlanHandle* plHandle,ampfftDim dimension, const size_t *length);
 
   ampfftStatus executePlan(FFTPlan*);
 };
