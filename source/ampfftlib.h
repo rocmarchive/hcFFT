@@ -198,6 +198,8 @@ class FFTRepo
 
   ampfftStatus createPlan( ampfftPlanHandle* plHandle, FFTPlan*& fftPlan );
 
+  ampfftStatus getPlan( ampfftPlanHandle plHandle, FFTPlan*& fftPlan, lockRAII*& planLock );
+
   ~FFTRepo( )
   {
   }

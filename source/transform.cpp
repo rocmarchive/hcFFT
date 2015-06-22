@@ -1,5 +1,6 @@
 #include "ampfftlib.h"
 
+/*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 ampfftStatus FFTPlan::ampfftCreateDefaultPlan (ampfftPlanHandle* plHandle,ampfftDim dimension, const size_t *length)
 {
   return AMPFFT_SUCCESS;
@@ -12,7 +13,7 @@ ampfftStatus FFTPlan::executePlan(FFTPlan* fftPlan)
 
   return AMPFFT_SUCCESS;
 }
-
+/*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------FFTRepo--------------------------------------------------------------------------------*/
 ampfftStatus FFTRepo::createPlan( ampfftPlanHandle* plHandle, FFTPlan*& fftPlan )
@@ -36,3 +37,20 @@ ampfftStatus FFTRepo::createPlan( ampfftPlanHandle* plHandle, FFTPlan*& fftPlan 
 	return	AMPFFT_SUCCESS;
 }
 
+
+ampfftStatus FFTRepo::getPlan( ampfftPlanHandle plHandle, FFTPlan*& fftPlan, lockRAII*& planLock )
+{
+	scopedLock sLock( lockRepo, _T( "getPlan" ) );
+
+	//	First, check if we have already created a plan with this exact same FFTPlan
+	repoPlansType::iterator iter	= repoPlans.find( plHandle );
+	if( iter == repoPlans.end( ) )
+		return	AMPFFT_ERROR;
+
+	//	If plan is valid, return fill out the output pointers
+	fftPlan		= iter->second.first;
+	planLock	= iter->second.second;
+
+	return	AMPFFT_SUCCESS;
+}
+/*------------------------------------------------FFTRepo----------------------------------------------------------------------------------*/
