@@ -9,6 +9,7 @@ MESSAGE(STATUS "PROJECT NAME    : ${PROJECT_NAME}")
 
 #Setting a variable for source files
 SET (SRCS
+    lock.h
     ampfftlib.h 
     transform.cpp
     )

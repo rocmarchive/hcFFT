@@ -3,6 +3,7 @@
 #include <amp.h>
 #include <amp_math.h>
 #include <amp_short_vectors.h>
+#include "lock.h"
 
 using namespace Concurrency;
 using namespace Concurrency::graphics;
@@ -150,6 +151,13 @@ class FFTRepo
   FFTRepo& operator=( const FFTRepo& );
 
   public:
+
+  //	Used to make the FFTRepo struct thread safe; STL is not thread safe by default
+  //	Optimally, we could use a lock object per STL struct, as two different STL structures
+  //	can be modified at the same time, but a single lock object is easier and performance should
+  //	still be good
+  static lockRAII lockRepo;
+
   //	Everybody who wants to access the Repo calls this function to get a repo reference
   static FFTRepo& getInstance( )
   {
