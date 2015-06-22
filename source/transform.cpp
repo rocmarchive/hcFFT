@@ -174,6 +174,118 @@ ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 
   return AMPFFT_SUCCESS;
 }
+
+ampfftStatus FFTPlan::AllocateWriteBuffers ()
+{
+	ampfftStatus status = AMPFFT_SUCCESS;
+
+	assert (NULL == const_buffer);
+
+	assert(4 == sizeof(int));
+
+	//	Construct the constant buffer and call clEnqueueWriteBuffer
+	float ConstantBufferParams[AMPFFT_CB_SIZE];
+	memset (& ConstantBufferParams, 0, sizeof (ConstantBufferParams));
+
+	float nY = 1;
+	float nZ = 0;
+	float nW = 0;
+	float n5 = 0;
+
+	switch( length.size() )
+	{
+	case 1:
+		nY = (float)batchSize;
+		break;
+
+	case 2:
+		nY = (float)length[1];
+		nZ = (float)batchSize;
+		break;
+
+	case 3:
+		nY = (float)length[1];
+		nZ = (float)length[2];
+		nW = (float)batchSize;
+		break;
+
+	case 4:
+		nY = (float)length[1];
+		nZ = (float)length[2];
+		nW = (float)length[3];
+		n5 = (float)batchSize;
+		break;
+	}
+	ConstantBufferParams[AMPFFT_CB_NY ] = nY;
+	ConstantBufferParams[AMPFFT_CB_NZ ] = nZ;
+	ConstantBufferParams[AMPFFT_CB_NW ] = nW;
+	ConstantBufferParams[AMPFFT_CB_N5 ] = n5;
+
+	assert (/*fftPlan->*/inStride.size() == /*fftPlan->*/outStride.size());
+
+        std::cout<<" inStride.size() "<<inStride.size() << " outStride.size() "<<outStride.size() <<std::endl;
+	switch (/*fftPlan->*/inStride.size()) {
+	case 1:
+		ConstantBufferParams[AMPFFT_CB_ISX] = (float)inStride[0];
+		ConstantBufferParams[AMPFFT_CB_ISY] = (float)iDist;
+		break;
+
+	case 2:
+		ConstantBufferParams[AMPFFT_CB_ISX] = (float)inStride[0];
+		ConstantBufferParams[AMPFFT_CB_ISY] = (float)inStride[1];
+		ConstantBufferParams[AMPFFT_CB_ISZ] = (float)iDist;
+		break;
+
+	case 3:
+		ConstantBufferParams[AMPFFT_CB_ISX] = (float)inStride[0];
+		ConstantBufferParams[AMPFFT_CB_ISY] = (float)inStride[1];
+		ConstantBufferParams[AMPFFT_CB_ISZ] = (float)inStride[2];
+		ConstantBufferParams[AMPFFT_CB_ISW] = (float)iDist;
+		break;
+
+	case 4:
+		ConstantBufferParams[AMPFFT_CB_ISX] = (float)inStride[0];
+		ConstantBufferParams[AMPFFT_CB_ISY] = (float)inStride[1];
+		ConstantBufferParams[AMPFFT_CB_ISZ] = (float)inStride[2];
+		ConstantBufferParams[AMPFFT_CB_ISW] = (float)inStride[3];
+		ConstantBufferParams[AMPFFT_CB_IS5] = (float)iDist;
+		break;
+	}
+
+	switch (/*fftPlan->*/outStride.size()) {
+	case 1:
+		ConstantBufferParams[AMPFFT_CB_OSX] = (float)outStride[0];
+		ConstantBufferParams[AMPFFT_CB_OSY] = (float)oDist;
+		break;
+
+	case 2:
+		ConstantBufferParams[AMPFFT_CB_OSX] = (float)outStride[0];
+		ConstantBufferParams[AMPFFT_CB_OSY] = (float)outStride[1];
+		ConstantBufferParams[AMPFFT_CB_OSZ] = (float)oDist;
+		break;
+
+	case 3:
+		ConstantBufferParams[AMPFFT_CB_OSX] = (float)outStride[0];
+		ConstantBufferParams[AMPFFT_CB_OSY] = (float)outStride[1];
+		ConstantBufferParams[AMPFFT_CB_OSZ] = (float)outStride[2];
+		ConstantBufferParams[AMPFFT_CB_OSW] = (float)oDist;
+		break;
+
+	case 4:
+		ConstantBufferParams[AMPFFT_CB_OSX] = (float)outStride[0];
+		ConstantBufferParams[AMPFFT_CB_OSY] = (float)outStride[1];
+		ConstantBufferParams[AMPFFT_CB_OSZ] = (float)outStride[2];
+		ConstantBufferParams[AMPFFT_CB_OSW] = (float)outStride[3];
+		ConstantBufferParams[AMPFFT_CB_OS5] = (float)oDist;
+		break;
+	}
+
+        Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(AMPFFT_CB_SIZE), ConstantBufferParams);
+        const_buffer = new Concurrency::array_view<float>(arr);
+        for(int i = 0 ; i < 32 ; i++)
+          std::cout<<" const_buffer["<<i<<"] "<<(*const_buffer)[i]<<std::endl;
+	return AMPFFT_SUCCESS;
+}
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------FFTRepo--------------------------------------------------------------------------------*/

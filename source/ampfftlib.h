@@ -8,6 +8,22 @@
 using namespace Concurrency;
 using namespace Concurrency::graphics;
 
+#define AMPFFT_CB_NY 0
+#define	AMPFFT_CB_NZ 1
+#define	AMPFFT_CB_NW 2
+#define	AMPFFT_CB_N5 3
+#define	AMPFFT_CB_ISX 4
+#define	AMPFFT_CB_ISY 5
+#define	AMPFFT_CB_ISZ 6
+#define	AMPFFT_CB_ISW 7
+#define	AMPFFT_CB_IS5 8
+#define	AMPFFT_CB_OSX 9
+#define	AMPFFT_CB_OSY 10
+#define	AMPFFT_CB_OSZ 11
+#define	AMPFFT_CB_OSW 12
+#define	AMPFFT_CB_OS5 13
+
+#define AMPFFT_CB_SIZE 32
 typedef size_t ampfftPlanHandle;
 
 typedef enum ampfftPrecision_
@@ -209,6 +225,7 @@ public:
 
   ampfftStatus SetEnvelope ();
 
+  ampfftStatus AllocateWriteBuffers ();
 };
 
 
