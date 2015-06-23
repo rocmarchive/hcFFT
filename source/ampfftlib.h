@@ -258,6 +258,8 @@ public:
 
   ampfftStatus	ampfftSetLayout(ampfftPlanHandle plHandle, ampfftIpLayout iLayout, ampfftOpLayout oLayout );
 
+  ampfftStatus	ampfftGetResultLocation(const ampfftPlanHandle plHandle, ampfftResLocation* placeness );
+
   ampfftStatus GetEnvelope (const FFTEnvelope **) const;
 
   ampfftStatus SetEnvelope ();

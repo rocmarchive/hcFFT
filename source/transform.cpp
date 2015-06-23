@@ -716,6 +716,19 @@ ampfftStatus FFTPlan::ampfftSetLayout(  ampfftPlanHandle plHandle,  ampfftIpLayo
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftGetResultLocation( const  ampfftPlanHandle plHandle,  ampfftResLocation* placeness )
+{
+  FFTRepo& fftRepo	= FFTRepo::getInstance( );
+  FFTPlan* fftPlan	= NULL;
+  lockRAII* planLock	= NULL;
+
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock( *planLock, _T( " ampfftGetResultLocation" ) );
+
+  *placeness	= fftPlan->location;
+  return	AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
