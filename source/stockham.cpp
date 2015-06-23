@@ -2347,7 +2347,6 @@ namespace StockhamGenerator
 
 				double scale = fwd ? params.fft_fwdScale : params.fft_backScale;
 				bool tw3Step = false;
-                                std::cout<<" fwd "<<fwd<<std::endl;
 
 				for(p = passes.begin(); p != passes.end(); p++)
 				{
@@ -2398,7 +2397,6 @@ namespace StockhamGenerator
 				// Function attributes
 				if(params.fft_placeness == AMPFFT_INPLACE)
 				{
-                                        std::cout<<" INPLACE "<<std::endl;
 					if(r2c2r)
 					{
 						if(outInterleaved)
@@ -2783,7 +2781,7 @@ namespace StockhamGenerator
 				{
 					if(params.fft_placeness == AMPFFT_INPLACE)
 					{
-						if(inInterleaved)	{ std::cout<<"gb, iOffset,"<<std::endl; inBuf = "gb, iOffset, "; outBuf = "gb, iOffset"; }
+						if(inInterleaved)	{ inBuf = "gb, iOffset, "; outBuf = "gb, iOffset"; }
 						else				{ inBuf = "gbRe, iOffset, gbIm, "; outBuf = "gbRe, oOffset, gbIm, "; }
 					}
 					else
@@ -2918,7 +2916,6 @@ ampfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & para
 
     ::memset( &params, 0, sizeof( params ) );
     params.fft_precision    = this->precision;
-    std::cout<< " this location "<<this->location<<std::endl;
     params.fft_placeness    = this->location;
     params.fft_inputLayout  = this->ipLayout;
     params.fft_MaxWorkGroupSize = this->envelope.limit_WorkGroupSize;
@@ -3113,7 +3110,6 @@ ampfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const ampfftPlanHandle plHandl
 {
     FFTKernelGenKeyParams params;
     this->GetKernelGenKeyPvt<Stockham> (params);
-    std::cout<<" in GenerateKernelPvt params.fft_placeness "<< params.fft_placeness<< std::endl;
     vector< size_t > gWorkSize;
     vector< size_t > lWorkSize;
     this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);

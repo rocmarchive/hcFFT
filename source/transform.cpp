@@ -46,7 +46,6 @@ ampfftStatus WriteKernel( const ampfftPlanHandle plHandle, const ampfftGenerator
 ampfftStatus CompileKernels(const ampfftPlanHandle plHandle, const ampfftGenerators gen, FFTPlan* fftPlan )
 {
 	FILE *fp = fopen("kernel_program_code.cl", "w+");
-	cl_int status = 0;
 
 	FFTRepo& fftRepo	= FFTRepo::getInstance( );
 
@@ -2716,7 +2715,6 @@ ampfftStatus FFTPlan::AllocateWriteBuffers ()
 
 	assert (/*fftPlan->*/inStride.size() == /*fftPlan->*/outStride.size());
 
-        std::cout<<" inStride.size() "<<inStride.size() << " outStride.size() "<<outStride.size() <<std::endl;
 	switch (/*fftPlan->*/inStride.size()) {
 	case 1:
 		ConstantBufferParams[AMPFFT_CB_ISX] = (float)inStride[0];
@@ -2775,8 +2773,6 @@ ampfftStatus FFTPlan::AllocateWriteBuffers ()
 
         Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(AMPFFT_CB_SIZE), ConstantBufferParams);
         const_buffer = new Concurrency::array_view<float>(arr);
-        for(int i = 0 ; i < 32 ; i++)
-          std::cout<<" const_buffer["<<i<<"] "<<(*const_buffer)[i]<<std::endl;
 	return AMPFFT_SUCCESS;
 }
 
