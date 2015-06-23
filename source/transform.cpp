@@ -612,6 +612,21 @@ ampfftStatus FFTPlan::ampfftSetPlanOutStride(  ampfftPlanHandle plHandle, const 
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftGetPlanDistance( const  ampfftPlanHandle plHandle, size_t* iDist, size_t* oDist )
+{
+  FFTRepo& fftRepo	= FFTRepo::getInstance( );
+  FFTPlan* fftPlan	= NULL;
+  lockRAII* planLock	= NULL;
+
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock( *planLock, _T( " ampfftGetPlanDistance" ) );
+
+  *iDist = fftPlan->iDist;
+  *oDist = fftPlan->oDist;
+
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );

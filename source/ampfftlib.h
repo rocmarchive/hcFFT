@@ -250,6 +250,8 @@ public:
 
   ampfftStatus	ampfftSetPlanOutStride(ampfftPlanHandle plHandle, const ampfftDim dim, size_t* clStrides );
 
+  ampfftStatus	ampfftGetPlanDistance(const ampfftPlanHandle plHandle, size_t* iDist, size_t* oDist );
+
   ampfftStatus GetEnvelope (const FFTEnvelope **) const;
 
   ampfftStatus SetEnvelope ();
