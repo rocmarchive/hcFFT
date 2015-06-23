@@ -569,6 +569,49 @@ ampfftStatus FFTPlan::ampfftGetPlanOutStride( const  ampfftPlanHandle plHandle, 
     return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftSetPlanOutStride(  ampfftPlanHandle plHandle, const  ampfftDim dim, size_t* clStrides )
+{
+  FFTRepo& fftRepo	= FFTRepo::getInstance( );
+  FFTPlan* fftPlan	= NULL;
+  lockRAII* planLock	= NULL;
+
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock( *planLock, _T( " ampfftSetPlanOutStride" ) );
+
+  if( clStrides == NULL )
+    return AMPFFT_ERROR;
+
+  switch( dim )
+  {
+    case AMPFFT_1D:
+    {
+      fftPlan->outStride[0] = clStrides[0];
+    }
+    break;
+    case AMPFFT_2D:
+    {
+      fftPlan->outStride[0] = clStrides[0];
+      fftPlan->outStride[1] = clStrides[1];
+    }
+    break;
+    case AMPFFT_3D:
+    {
+      fftPlan->outStride[0] = clStrides[0];
+      fftPlan->outStride[1] = clStrides[1];
+      fftPlan->outStride[2] = clStrides[2];
+    }
+    break;
+    default:
+      return AMPFFT_ERROR;
+      break;
+  }
+
+  //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
+  fftPlan->baked	= false;
+
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
