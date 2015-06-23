@@ -31,6 +31,51 @@ using namespace Concurrency::graphics;
 #define ARG_CHECK(_proposition)	\
 { bool btmp = (_proposition);	assert (btmp); if (! btmp)	return AMPFFT_ERROR; }
 
+static inline bool IsPo2 (size_t u) {
+	return (u != 0) &&  (0 == (u & (u-1)));
+}
+
+inline void BSF( unsigned long* index, size_t& mask )
+{
+       //_BitScanForward( index, mask );
+}
+
+template<typename T>
+static inline T DivRoundingUp (T a, T b) {
+	return (a + (b-1)) / b;
+}
+
+static inline size_t BitScanF (size_t n) {
+	assert (n != 0);
+	unsigned long tmp = 0;
+	BSF (& tmp, n);
+	return (size_t) tmp;
+}
+
+//	Find the smallest power of 2 that is >= n; return its power of 2 factor
+//	e.g., CeilPo2 (7) returns 3 : (2^3 >= 7)
+inline size_t CeilPo2 (size_t n)
+{
+  size_t v = 1, t = 0;
+  while(v < n)
+  {
+    v <<= 1;
+    t++;
+  }
+  return t;
+}
+
+inline size_t FloorPo2 (size_t n)
+//	return the largest power of 2 that is <= n.
+//	e.g., FloorPo2 (7) returns 4.
+// *** TODO use x86 BSR instruction, using compiler intrinsics.
+{
+  size_t tmp;
+  while (0 != (tmp = n & (n-1)))
+    n = tmp;
+    return n;
+}
+
 typedef size_t ampfftPlanHandle;
 
 typedef enum ampfftPrecision_
