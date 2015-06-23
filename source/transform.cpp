@@ -219,6 +219,21 @@ ampfftStatus FFTPlan::ampfftGetPlanBatchSize( const  ampfftPlanHandle plHandle, 
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftSetPlanBatchSize( ampfftPlanHandle plHandle, size_t batchsize )
+{
+ FFTRepo& fftRepo = FFTRepo::getInstance( );
+ FFTPlan* fftPlan = NULL;
+ lockRAII* planLock = NULL;
+
+ fftRepo.getPlan(plHandle, fftPlan, planLock );
+ scopedLock sLock(*planLock, _T( " ampfftSetPlanBatchSize" ) );
+
+  //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
+  fftPlan->baked = false;
+  fftPlan->batchSize = batchsize;
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
