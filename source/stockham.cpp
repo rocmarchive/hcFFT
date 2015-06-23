@@ -1,4 +1,4 @@
-#include "ampfftlib.h"
+#include "stockham.h"
 
 template<>
 ampfftStatus FFTPlan::GetMax1DLengthPvt<Stockham> (size_t * longest) const
