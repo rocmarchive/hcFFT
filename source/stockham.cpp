@@ -485,6 +485,144 @@ namespace StockhamGenerator
 			twStr += ss.str();
 		}
     };
+
+    // A pass inside an FFT kernel
+    template <Precision PR>
+    class Pass
+    {
+		size_t position;					// Position in the kernel
+
+		size_t algL;						// 'L' value from fft algorithm
+		size_t algLS;						// 'LS' value
+		size_t algR;						// 'R' value
+
+		size_t length;						// Length of FFT
+        size_t radix;						// Base radix
+		size_t cnPerWI;						// Complex numbers per work-item
+
+		size_t workGroupSize;				// size of the workgroup = (length / cnPerWI)
+											// this number is essentially number of work-items needed to compute 1 transform
+											// this number will be different from the kernel class workGroupSize if there
+											// are multiple transforms per workgroup
+
+		size_t numButterfly;				// Number of basic FFT butterflies = (cnPerWI / radix)
+		size_t numB1, numB2, numB4;			// number of different types of butterflies
+
+		bool r2c;							// real to complex transform
+		bool c2r;							// complex to real transform
+		bool rcFull;
+		bool rcSimple;
+
+		bool enableGrouping;
+		bool linearRegs;
+		Pass<PR> *nextPass;
+
+		inline void RegBase(size_t regC, std::string &str) const
+		{
+			str += "B";
+			str += SztToStr(regC);
+		}
+
+		inline void RegBaseAndCount(size_t num, std::string &str) const
+		{
+			str += "C";
+			str += SztToStr(num);
+		}
+
+		inline void RegBaseAndCountAndPos(const std::string &RealImag, size_t radPos, std::string &str) const
+		{
+			str += RealImag;
+			str += SztToStr(radPos);
+		}
+
+		void RegIndex(size_t regC, size_t num, const std::string &RealImag, size_t radPos, std::string &str) const
+		{
+			RegBase(regC, str);
+			RegBaseAndCount(num, str);
+			RegBaseAndCountAndPos(RealImag, radPos, str);
+		}
+
+		void DeclareRegs(const std::string &regType, size_t regC, size_t numB, std::string &passStr) const
+		{
+			std::string regBase;
+			RegBase(regC, regBase);
+
+			if(linearRegs)
+			{
+				assert(regC == 1);
+				assert(numB == numButterfly);
+			}
+
+			for(size_t i=0; i<numB; i++)
+			{
+				passStr += "\n\t";
+				passStr += regType;
+				passStr += " ";
+
+				std::string regBaseCount = regBase;
+				RegBaseAndCount(i, regBaseCount);
+
+				for(size_t r=0; ; r++)
+				{
+					if(linearRegs)
+					{
+						std::string regIndex = "R";
+						RegBaseAndCountAndPos("", i*radix + r, regIndex);
+
+						passStr += regIndex;
+					}
+					else
+					{
+						std::string regRealIndex(regBaseCount), regImagIndex(regBaseCount);
+
+						RegBaseAndCountAndPos("R", r, regRealIndex); // real
+						RegBaseAndCountAndPos("I", r, regImagIndex); // imaginary
+
+						passStr += regRealIndex; passStr += ", ";
+						passStr += regImagIndex;
+					}
+
+					if(r == radix-1)
+					{
+						passStr += ";";
+						break;
+					}
+					else
+					{
+						passStr += ", ";
+					}
+				}
+			}
+		}
+
+		inline std::string IterRegArgs() const
+		{
+			std::string str = "";
+
+			if(linearRegs)
+			{
+				std::string regType = RegBaseType<PR>(2);
+
+				for(size_t i=0; i<cnPerWI; i++)
+				{
+					if(i != 0) str += ", ";
+					str += regType; str += " *R";
+					str += SztToStr(i);
+				}
+			}
+
+			return str;
+		}
+
+#define SR_READ			1
+#define SR_TWMUL		2
+#define SR_TWMUL_3STEP	3
+#define SR_WRITE		4
+
+#define SR_COMP_REAL 0 // real
+#define SR_COMP_IMAG 1 // imag
+#define SR_COMP_BOTH 2 // real & imag
+     };
 }
 
 template<>

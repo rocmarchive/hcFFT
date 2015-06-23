@@ -11,6 +11,7 @@ MESSAGE(STATUS "PROJECT NAME    : ${PROJECT_NAME}")
 SET (SRCS
     lock.h
     ampfftlib.h
+    stockham.h
     stockham.cpp 
     transform.cpp
     )
