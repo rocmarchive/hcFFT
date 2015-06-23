@@ -2139,6 +2139,128 @@ namespace StockhamGenerator
 
 			return str;
 		}
+
+    public:
+        Kernel( const FFTKernelGenKeyParams &paramsVal) :
+					r2c2r(false), params(paramsVal)
+
+        {
+			length = params.fft_N[0];
+			workGroupSize = params.fft_SIMD;
+			numTrans = (workGroupSize * params.fft_R) / length;
+
+			r2c = false;
+			c2r = false;
+			// Check if it is R2C or C2R transform
+			if(params.fft_inputLayout == AMPFFT_REAL)  r2c = true;
+			if(params.fft_outputLayout == AMPFFT_REAL) c2r = true;
+			r2c2r = (r2c || c2r);
+
+                        rcFull = false;
+
+			rcSimple = params.fft_RCsimple;
+
+			// Set half lds only for power-of-2 problem sizes & interleaved data
+			halfLds = ( (params.fft_inputLayout == AMPFFT_COMPLEX) &&
+						(params.fft_outputLayout == AMPFFT_COMPLEX) ) ? true : false;
+			halfLds = halfLds ? ((length & (length-1)) ? false : true) : false;
+			//halfLds = false;
+
+			// Set half lds for real transforms
+			halfLds = r2c2r ? true : halfLds;
+
+			bool linearRegs = halfLds ? true : false;
+
+			assert( ((length*numTrans)%workGroupSize) == 0 );
+			cnPerWI = (numTrans * length) / workGroupSize;
+			workGroupSizePerTrans = workGroupSize/numTrans;
+
+			// !!!! IMPORTANT !!!! Keep these assertions unchanged, algorithm depend on these to be true
+			assert( (cnPerWI * workGroupSize) == (numTrans * length) );
+			assert( cnPerWI <= length ); // Don't do more than 1 fft per work-item
+
+			// Breakdown into passes
+
+			size_t LS = 1;
+			size_t L;
+			size_t R = length;
+			size_t pid = 0;
+
+			// See if we can get radices from the lookup table
+			const size_t *pRadices = NULL;
+			size_t nPasses;
+			KernelCoreSpecs<PR> kcs;
+			kcs.GetRadices(length, nPasses, pRadices);
+			if((params.fft_MaxWorkGroupSize >= 256) && (pRadices != NULL))
+			{
+				for(size_t i=0; i<nPasses; i++)
+				{
+					size_t rad = pRadices[i];
+					L = LS * rad;
+					R /= rad;
+
+					radices.push_back(rad);
+					passes.push_back(Pass<PR>(i, length, rad, cnPerWI, L, LS, R, linearRegs, r2c, c2r, rcFull, rcSimple));
+
+					LS *= rad;
+				}
+				assert(R == 1); // this has to be true for correct radix composition of the length
+				numPasses = nPasses;
+			}
+			else
+			{
+				// Possible radices
+				size_t cRad[] = {10,8,6,5,4,3,2,1}; // Must be in descending order
+				size_t cRadSize = (sizeof(cRad)/sizeof(cRad[0]));
+
+				while(true)
+				{
+					size_t rad;
+
+					assert(cRadSize >= 1);
+					for(size_t r=0; r<cRadSize; r++)
+					{
+						rad = cRad[r];
+
+						if( (rad == 16) && !linearRegs ) continue; // temporary - fix this !!!
+						if((rad > cnPerWI) || (cnPerWI%rad))
+							continue;
+
+						if(!(R % rad))
+							break;
+					}
+
+					assert((cnPerWI%rad) == 0);
+
+					L = LS * rad;
+					R /= rad;
+					radices.push_back(rad);
+					passes.push_back(Pass<PR>(pid, length, rad, cnPerWI, L, LS, R, linearRegs, r2c, c2r, rcFull, rcSimple));
+
+					pid++;
+					LS *= rad;
+
+					assert(R >= 1);
+					if(R == 1)
+						break;
+				}
+				numPasses = pid;
+			}
+
+			assert(numPasses == passes.size());
+			assert(numPasses == radices.size());
+
+
+			// Grouping read/writes ok?
+			bool grp = IsGroupedReadWritePossible();
+			for(size_t i=0; i < numPasses; i++)
+				passes[i].SetGrouping(grp);
+
+			// Store the next pass-object pointers
+			if(numPasses > 1)
+				for(size_t i=0; i < (numPasses - 1); i++)
+					passes[i].SetNextPass(&passes[i+1]);
+		}
        };
 }
 
