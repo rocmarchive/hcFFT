@@ -236,6 +236,8 @@ public:
 
   ampfftStatus	ampfftGetPlanDim(const ampfftPlanHandle plHandle, ampfftDim* dim, int* size );
 
+  ampfftStatus	ampfftSetPlanDim(ampfftPlanHandle plHandle, const ampfftDim dim );
+
   ampfftStatus GetEnvelope (const FFTEnvelope **) const;
 
   ampfftStatus SetEnvelope ();

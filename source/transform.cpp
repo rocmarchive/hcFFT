@@ -269,6 +269,51 @@ ampfftStatus FFTPlan::ampfftGetPlanDim( const ampfftPlanHandle plHandle,  ampfft
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftSetPlanDim(  ampfftPlanHandle plHandle, const  ampfftDim dim )
+{
+  FFTRepo& fftRepo = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock = NULL;
+
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock( *planLock, _T( " ampfftGetPlanDim" ) );
+
+  // We resize the vectors in the plan to keep their sizes consistent with the value of the dimension
+  switch( dim )
+  {
+    case AMPFFT_1D:
+    {
+      fftPlan->length.resize( 1 );
+      fftPlan->inStride.resize( 1 );
+      fftPlan->outStride.resize( 1 );
+    }
+    break;
+    case AMPFFT_2D:
+    {
+      fftPlan->length.resize( 2 );
+      fftPlan->inStride.resize( 2 );
+      fftPlan->outStride.resize( 2 );
+    }
+    break;
+    case AMPFFT_3D:
+    {
+      fftPlan->length.resize( 3 );
+      fftPlan->inStride.resize( 3 );
+      fftPlan->outStride.resize( 3 );
+    }
+    break;
+    default:
+      return AMPFFT_ERROR;
+      break;
+  }
+
+  //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
+  fftPlan->baked = false;
+  fftPlan->dimension = dim;
+
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
