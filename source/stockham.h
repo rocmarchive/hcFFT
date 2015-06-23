@@ -1307,5 +1307,14 @@ namespace StockhamGenerator
 
 			bflyStr += "\n}\n";
 		}
+	public:
+		Butterfly(size_t radixVal, size_t countVal, bool fwdVal, bool cRegVal) : radix(radixVal), count(countVal), fwd(fwdVal), cReg(cRegVal) {}
+
+		void GenerateButterfly(std::string &bflyStr) const
+		{
+			assert(count <= 4);
+			if(count > 0)
+				GenerateButterflyStr(bflyStr);
+		}
        };
 }
