@@ -84,4 +84,19 @@ namespace StockhamGenerator
                        "using namespace Concurrency;\n"
                        "using namespace Concurrency::graphics;\n";
 	}
+
+	template <Precision PR>
+	inline std::string FloatSuffix()
+	{
+		// Suffix for constants
+		std::string sfx;
+		switch(PR)
+		{
+		case P_SINGLE: sfx = "f"; break;
+		case P_DOUBLE: sfx = "";  break;
+		default: assert(false);
+		}
+
+		return sfx;
+	}
 }
