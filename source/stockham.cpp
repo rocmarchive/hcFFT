@@ -292,6 +292,87 @@ namespace StockhamGenerator
 			assert(workGroupSize <= MAX_WGS);
 		}
 	}
+	// Twiddle factors table
+       class TwiddleTable
+       {
+                size_t N; // length
+	        double *wc, *ws; // cosine, sine arrays
+
+	public:
+		TwiddleTable(size_t length) : N(length)
+		{
+			// Allocate memory for the tables
+			// We compute twiddle factors in double precision for both P_SINGLE and P_DOUBLE
+			wc = new double[N];
+			ws = new double[N];
+		}
+
+		~TwiddleTable()
+		{
+			// Free
+			delete[] wc;
+			delete[] ws;
+		}
+
+		template <Precision PR>
+		void GenerateTwiddleTable(const std::vector<size_t> &radices, std::string &twStr)
+		{
+			const double TWO_PI = -6.283185307179586476925286766559;
+
+			// Make sure the radices vector sums up to N
+			size_t sz = 1;
+			for(std::vector<size_t>::const_iterator i = radices.begin();
+				i != radices.end(); i++)
+			{
+				sz *= (*i);
+			}
+			assert(sz == N);
+			// Generate the table
+			size_t L = 1;
+			size_t nt = 0;
+			for(std::vector<size_t>::const_iterator i = radices.begin();
+				i != radices.end(); i++)
+			{
+				size_t radix = *i;
+
+				L *= radix;
+
+				// Twiddle factors
+				for(size_t k=0; k<(L/radix); k++)
+				{
+					double theta = TWO_PI * ((double)k)/((double)L);
+
+					for(size_t j=1; j<radix; j++)
+					{
+						double c = cos(((double)j) * theta);
+						double s = sin(((double)j) * theta);
+
+						//if (fabs(c) < 1.0E-12)	c = 0.0;
+						//if (fabs(s) < 1.0E-12)	s = 0.0;
+
+						wc[nt]   = c;
+						ws[nt++] = s;
+					}
+				}
+			}
+
+			std::string sfx = FloatSuffix<PR>();
+
+			// Stringize the table
+			std::stringstream ss;
+			for(size_t i = 0; i < (N-1); i++)
+			{
+				ss << "("; ss << RegBaseType<PR>(2); ss << ")(";
+
+				char cv[64], sv[64];
+				sprintf(cv, "%036.34lf", wc[i]);
+				sprintf(sv, "%036.34lf", ws[i]);
+				ss << cv; ss << sfx; ss << ", ";
+				ss << sv; ss << sfx; ss << "),\n";
+			}
+			twStr += ss.str();
+		}
+    };
 }
 
 template<>
