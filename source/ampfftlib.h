@@ -234,6 +234,8 @@ public:
 
   ampfftStatus	ampfftSetPlanBatchSize(ampfftPlanHandle plHandle, size_t batchSize );
 
+  ampfftStatus	ampfftGetPlanDim(const ampfftPlanHandle plHandle, ampfftDim* dim, int* size );
+
   ampfftStatus GetEnvelope (const FFTEnvelope **) const;
 
   ampfftStatus SetEnvelope ();

@@ -234,6 +234,41 @@ ampfftStatus FFTPlan::ampfftSetPlanBatchSize( ampfftPlanHandle plHandle, size_t 
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftGetPlanDim( const ampfftPlanHandle plHandle,  ampfftDim* dim, int* size )
+{
+  FFTRepo& fftRepo = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock = NULL;
+
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock( *planLock, _T( " ampfftGetPlanDim" ) );
+
+  *dim = fftPlan->dimension;
+
+  switch( fftPlan->dimension )
+  {
+    case AMPFFT_1D:
+    {
+      *size = 1;
+    }
+    break;
+    case AMPFFT_2D:
+    {
+      *size = 2;
+    }
+    break;
+    case AMPFFT_3D:
+    {
+      *size = 3;
+    }
+    break;
+    default:
+      return AMPFFT_ERROR;
+      break;
+  }
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
