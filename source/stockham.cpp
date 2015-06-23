@@ -952,6 +952,317 @@ namespace StockhamGenerator
 
 			assert(butterflyIndex <= numButterfly);
 		}
+
+		// Special SweepRegs function to carry out some R-C/C-R specific operations
+		void SweepRegsRC(	size_t flag, bool fwd, bool interleaved, size_t stride, size_t component,
+							double scale, bool setZero, bool batch2, bool oddt,
+							const std::string &bufferRe, const std::string &bufferIm, const std::string &offset,
+							std::string &passStr) const
+		{
+			assert( (flag == SR_READ ) ||
+					(flag == SR_WRITE) );
+
+
+			// component: 0 - real, 1 - imaginary, 2 - both
+			size_t cStart, cEnd;
+			switch(component)
+			{
+			case SR_COMP_REAL:	cStart = 0; cEnd = 1; break;
+			case SR_COMP_IMAG:	cStart = 1; cEnd = 2; break;
+			case SR_COMP_BOTH:	cStart = 0; cEnd = 2; break;
+			default:	assert(false);
+			}
+
+			std::string rType  = RegBaseType<PR>(1);
+
+			assert(r2c || c2r);
+			assert(linearRegs);
+			bool singlePass = ((position == 0) && (nextPass == NULL));
+
+			size_t numCR = numButterfly * radix;
+			if(!(numCR%2)) assert(!oddt);
+
+			size_t rStart = 0;
+			size_t rEnd = numCR;
+
+			bool oddp = ((numCR%2) && (numCR > 1) && !setZero);
+			if(oddp)
+			{
+				if(oddt)	{ rStart = numCR-1; rEnd = numCR+1; }
+				else		{ rStart = 0;		rEnd = numCR-1; }
+			}
+
+			if(!oddp) assert(!oddt);
+
+			for(size_t r=rStart; r<rEnd; r++)
+			{
+				for(size_t c=cStart; c<cEnd; c++) // component loop: 0 - real, 1 - imaginary
+				{
+					if(flag == SR_READ) // read operation
+					{
+
+						std::string tail, tail2;
+						std::string regIndex = "(R";
+						std::string buffer;
+
+						if(c == 0)
+						{
+							RegBaseAndCountAndPos("", r, regIndex); regIndex += "[0]).x";
+							buffer = bufferRe;
+							tail  = interleaved ? ".x;" : ";";
+							tail2 = interleaved ? ".y;" : ";";
+						}
+						else
+						{
+							RegBaseAndCountAndPos("", r, regIndex); regIndex += "[0]).y";
+							buffer = bufferIm;
+							tail  = interleaved ? ".y;" : ";";
+							tail2 = interleaved ? ".x;" : ";";
+						}
+
+
+						size_t bid = numCR/2;
+						bid = bid ? bid : 1;
+						size_t cid, lid;
+
+						if(oddt)
+						{
+							cid = r%2;
+							lid = 1 + (numCR/2);
+						}
+						else
+						{
+							cid = r/bid;
+							lid = 1 + r%bid;
+						}
+
+						std::string oddpadd = oddp ? " (me/2) + " : " ";
+
+						std::string idxStr, idxStrRev;
+						idxStr += SztToStr(bid); idxStr += "*me +"; idxStr += oddpadd; idxStr += SztToStr(lid);
+						idxStrRev += SztToStr(length); idxStrRev += " - ("; idxStrRev += idxStr; idxStrRev += " )";
+
+						bool act = ( fwd || ((cid == 0) && (!batch2)) || ((cid != 0) && batch2) );
+						if(act)
+						{
+							passStr += "\n\t";
+							passStr += regIndex;
+							passStr += " = ";
+						}
+
+						if(setZero)
+						{
+							if(act) passStr += "0;";
+						}
+						else
+						{
+							if(act)
+							{
+								passStr += buffer;
+								passStr += "["; passStr += offset; passStr += " + ( ";
+							}
+
+							if(fwd)
+							{
+								if(cid == 0)	passStr += idxStr;
+								else			passStr += idxStrRev;
+							}
+							else
+							{
+								if(cid == 0)	{ if(!batch2) passStr += idxStr; }
+								else			{ if(batch2)  passStr += idxStr; }
+							}
+
+							if(act)
+							{
+								passStr += " )*"; passStr += SztToStr(stride); passStr += "]";
+
+								if(fwd) { passStr += tail; }
+								else	{ if(!batch2) passStr += tail; else passStr += tail2; }
+							}
+						}
+					}
+					else // write operation
+					{
+
+						std::string tail;
+						std::string regIndex = "(R";
+						std::string regIndexPair = "(R";
+						std::string buffer;
+
+						// Write real & imag at once
+						if(interleaved && (component == SR_COMP_BOTH))
+						{
+							assert(bufferRe.compare(bufferIm) == 0); // Make sure Real & Imag buffer strings are same for interleaved data
+							buffer = bufferRe;
+						}
+						else
+						{
+							if(c == 0)
+							{
+								buffer = bufferRe;
+								tail = interleaved ? ".x" : "";
+							}
+							else
+							{
+								buffer = bufferIm;
+								tail = interleaved ? ".y" : "";
+							}
+						}
+
+
+						size_t bid, cid, lid;
+						if(singlePass && fwd)
+						{
+							bid = 1 + radix/2;
+							lid = r;
+							cid = r/bid;
+
+							RegBaseAndCountAndPos("", r, regIndex); regIndex += "[0])";
+							RegBaseAndCountAndPos("", (radix - r)%radix , regIndexPair); regIndexPair += "[0])";
+						}
+						else
+						{
+							bid = numCR/2;
+
+							if(oddt)
+							{
+								cid = r%2;
+								lid = 1 + (numCR/2);
+
+								RegBaseAndCountAndPos("", r, regIndex); regIndex += "[0])";
+								RegBaseAndCountAndPos("", r + 1, regIndexPair); regIndexPair += "[0])";
+							}
+							else
+							{
+								cid = r/bid;
+								lid = 1 + r%bid;
+
+								RegBaseAndCountAndPos("", r, regIndex); regIndex += "[0])";
+								RegBaseAndCountAndPos("", r + bid, regIndexPair); regIndexPair += "[0])";
+							}
+						}
+
+
+						if(!cid)
+						{
+							std::string oddpadd = oddp ? " (me/2) + " : " ";
+
+							std::string sclStr = "";
+							if(scale != 1.0f) { sclStr += " * "; sclStr += FloatToStr(scale); sclStr += FloatSuffix<PR>(); }
+
+							if(fwd)
+							{
+								std::string idxStr, idxStrRev;
+								idxStr += SztToStr(length/(2*workGroupSize)); idxStr += "*me +"; idxStr += oddpadd; idxStr += SztToStr(lid);
+								idxStrRev += SztToStr(length); idxStrRev += " - ("; idxStrRev += idxStr; idxStrRev += " )";
+
+								std::string val1Str, val2Str;
+
+								val1Str += "\n\t";
+								val1Str += buffer; val1Str += "["; val1Str += offset; val1Str += " + ( ";
+								val1Str += idxStr; val1Str += " )*"; val1Str += SztToStr(stride); val1Str += "]";
+								val1Str += tail; val1Str += " = ";
+
+								val2Str += "\n\t";
+								val2Str += buffer; val2Str += "["; val2Str += offset; val2Str += " + ( ";
+								val2Str += idxStrRev; val2Str += " )*"; val2Str += SztToStr(stride); val2Str += "]";
+								val2Str += tail; val2Str += " = ";
+
+								std::string real1, imag1, real2, imag2;
+
+								real1 +=  "("; real1 += regIndex; real1 += ".x + "; real1 += regIndexPair; real1 += ".x)*0.5";
+								imag1 +=  "("; imag1 += regIndex; imag1 += ".y - "; imag1 += regIndexPair; imag1 += ".y)*0.5";
+								real2 +=  "("; real2 += regIndex; real2 += ".y + "; real2 += regIndexPair; real2 += ".y)*0.5";
+								imag2 += "(-"; imag2 += regIndex; imag2 += ".x + "; imag2 += regIndexPair; imag2 += ".x)*0.5";
+
+								if(interleaved && (component == SR_COMP_BOTH))
+								{
+									val1Str += RegBaseType<PR>(2); val1Str += "( ";
+									val2Str += RegBaseType<PR>(2); val2Str += "( ";
+
+									if(!batch2) { val1Str += real1; val1Str += ", "; val1Str += "+"; val1Str += imag1;
+												  val2Str += real1; val2Str += ", "; val2Str += "-"; val2Str += imag1; }
+									else		{ val1Str += real2; val1Str += ", "; val1Str += "+"; val1Str += imag2;
+												  val2Str += real2; val2Str += ", "; val2Str += "-"; val2Str += imag2; }
+
+									val1Str += " )";
+									val2Str += " )";
+								}
+								else
+								{
+									val1Str += " (";
+									val2Str += " (";
+									if(c == 0)
+									{
+										if(!batch2) { val1Str += real1;
+													  val2Str += real1; }
+										else		{ val1Str += real2;
+													  val2Str += real2; }
+									}
+									else
+									{
+										if(!batch2) { val1Str += "+"; val1Str += imag1;
+													  val2Str += "-"; val2Str += imag1; }
+										else		{ val1Str += "+"; val1Str += imag2;
+													  val2Str += "-"; val2Str += imag2; }
+									}
+									val1Str += " )";
+									val2Str += " )";
+								}
+
+								val1Str += sclStr;
+								val2Str += sclStr;
+
+												passStr += val1Str; passStr += ";";
+								if(rcFull)	{	passStr += val2Str; passStr += ";"; }
+							}
+							else
+							{
+								std::string idxStr, idxStrRev;
+								idxStr += SztToStr(bid); idxStr += "*me +"; idxStr += oddpadd; idxStr += SztToStr(lid);
+								idxStrRev += SztToStr(length); idxStrRev += " - ("; idxStrRev += idxStr; idxStrRev += " )";
+
+								passStr += "\n\t";
+								passStr += buffer; passStr += "["; passStr += offset; passStr += " + ( ";
+
+								if(!batch2)	passStr += idxStr;
+								else		passStr += idxStrRev;
+
+								passStr += " )*"; passStr += SztToStr(stride); passStr += "]";
+								passStr += tail; passStr += " = ";
+
+								passStr += "( ";
+								if(c == 0)
+								{
+									regIndex += ".x"; regIndexPair += ".x";
+
+									if(!batch2)	{ passStr += regIndex; passStr += " - "; passStr += regIndexPair; }
+									else		{ passStr += regIndex; passStr += " + "; passStr += regIndexPair; }
+								}
+								else
+								{
+									regIndex += ".y"; regIndexPair += ".y";
+
+									if(!batch2)	{					passStr += regIndex; passStr += " + "; passStr += regIndexPair; }
+									else		{ passStr += " - "; passStr += regIndex; passStr += " + "; passStr += regIndexPair; }
+								}
+								passStr += " )";
+								passStr += sclStr;
+								passStr += ";";
+							}
+
+
+
+							// Since we write real & imag at once, we break the loop
+							if(interleaved && (component == SR_COMP_BOTH))
+								break;
+						}
+					}
+				}
+			}
+
+		}
      };
 }
 
