@@ -1310,6 +1310,43 @@ namespace StockhamGenerator
 				}
 			}
 		}
+          public:
+		Pass(	size_t positionVal, size_t lengthVal, size_t radixVal, size_t cnPerWIVal,
+				size_t L, size_t LS, size_t R, bool linearRegsVal, bool r2cVal, bool c2rVal, bool rcFullVal, bool rcSimpleVal) :
+			position(positionVal), length(lengthVal), radix(radixVal), cnPerWI(cnPerWIVal),
+			algL(L), algLS(LS), algR(R), linearRegs(linearRegsVal),
+			r2c(r2cVal), c2r(c2rVal), rcFull(rcFullVal), rcSimple(rcSimpleVal),
+			enableGrouping(true),
+			numB1(0), numB2(0), numB4(0),
+			nextPass(NULL)
+		{
+			assert(radix <= length);
+			assert(length%radix == 0);
+
+			numButterfly = cnPerWI/radix;
+			workGroupSize = length/cnPerWI;
+
+			// Total number of butterflies (over all work-tems) must be divisible by LS
+			assert( ((numButterfly*workGroupSize)%algLS) == 0 );
+
+			// All butterflies in one work-item should always be part of no more than 1 FFT transform.
+			// In other words, there should not be more than 1 FFT transform per work-item.
+			assert(cnPerWI <= length);
+
+			// Calculate the different types of Butterflies needed
+			if(linearRegs || r2c || c2r)
+			{
+				numB1 = numButterfly;
+			}
+			else
+			{
+				numB4 = numButterfly/4;
+				numB2 = (numButterfly%4)/2; // can be 0 or 1
+				numB1 = (numButterfly%2); // can be 0 or 1
+
+				assert(numButterfly == (numB4*4 + numB2*2 + numB1));
+			}
+		}
      };
 }
 
