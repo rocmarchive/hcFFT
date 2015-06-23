@@ -2261,6 +2261,621 @@ namespace StockhamGenerator
 				for(size_t i=0; i < (numPasses - 1); i++)
 					passes[i].SetNextPass(&passes[i+1]);
 		}
+
+        void GenerateKernel(std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize)
+		{
+			std::string twType = RegBaseType<PR>(2);
+			std::string rType  = RegBaseType<PR>(1);
+			std::string r2Type  = RegBaseType<PR>(2);
+
+			bool inInterleaved;  // Input is interleaved format
+			bool outInterleaved; // Output is interleaved format
+			inInterleaved  = (params.fft_inputLayout == AMPFFT_COMPLEX)  ? true : false;
+			outInterleaved = (params.fft_outputLayout == AMPFFT_COMPLEX) ? true : false;
+
+			bool inReal;  // Input is real format
+			bool outReal; // Output is real format
+			inReal  = (params.fft_inputLayout == AMPFFT_REAL) ? true : false;
+			outReal = (params.fft_outputLayout == AMPFFT_REAL) ? true : false;
+
+			size_t large1D = params.fft_N[0] * params.fft_N[1];
+
+			// Pragma
+			str += ampHeader();
+
+			std::string sfx = FloatSuffix<PR>();
+
+			// Vector type
+			str += "#define fvect2 "; str += RegBaseType<PR>(2); str += "\n\n";
+
+			//constants
+			str += "#define C8Q  0.70710678118654752440084436210485"; str += sfx; str += "\n";
+
+			str += "#define C5QA 0.30901699437494742410229341718282"; str += sfx; str += "\n";
+			str += "#define C5QB 0.95105651629515357211643933337938"; str += sfx; str += "\n";
+			str += "#define C5QC 0.50000000000000000000000000000000"; str += sfx; str += "\n";
+			str += "#define C5QD 0.58778525229247312916870595463907"; str += sfx; str += "\n";
+			str += "#define C5QE 0.80901699437494742410229341718282"; str += sfx; str += "\n";
+
+			str += "#define C3QA 0.50000000000000000000000000000000"; str += sfx; str += "\n";
+			str += "#define C3QB 0.86602540378443864676372317075294"; str += sfx; str += "\n";
+			str += "\n";
+
+			bool cReg = halfLds ? true : false;
+
+			// Generate butterflies for all unique radices
+			std::list<size_t> uradices;
+			for(std::vector<size_t>::const_iterator r = radices.begin(); r != radices.end(); r++)
+				uradices.push_back(*r);
+
+			uradices.sort();
+			uradices.unique();
+
+			typename std::vector< Pass<PR> >::const_iterator p;
+			if(length > 1)
+			{
+				for(std::list<size_t>::const_iterator r = uradices.begin(); r != uradices.end(); r++)
+				{
+					size_t rad = *r;
+					p = passes.begin();
+					while(p->GetRadix() != rad) p++;
+
+					for(size_t d=0; d<2; d++)
+					{
+						bool fwd = d ? false : true;
+
+						if(p->GetNumB1()) { Butterfly<PR> bfly(rad, 1, fwd, cReg); bfly.GenerateButterfly(str); str += "\n"; }
+						if(p->GetNumB2()) { Butterfly<PR> bfly(rad, 2, fwd, cReg); bfly.GenerateButterfly(str); str += "\n"; }
+						if(p->GetNumB4()) { Butterfly<PR> bfly(rad, 4, fwd, cReg); bfly.GenerateButterfly(str); str += "\n"; }
+					}
+				}
+			}
+
+			// Generate passes
+			for(size_t d=0; d<2; d++)
+			{
+				bool fwd;
+
+				if(r2c2r)
+				{
+					fwd = r2c;
+				}
+				else
+				{
+					fwd = d ? false : true;
+				}
+
+				double scale = fwd ? params.fft_fwdScale : params.fft_backScale;
+				bool tw3Step = false;
+                                std::cout<<" fwd "<<fwd<<std::endl;
+
+				for(p = passes.begin(); p != passes.end(); p++)
+				{
+					double s = 1.0;
+					size_t ins = 1, outs = 1;
+					bool gIn = false, gOut = false;
+					bool inIlvd = false, outIlvd = false;
+					bool inRl = false, outRl = false;
+					if(p == passes.begin())		{ inIlvd  = inInterleaved;  inRl  = inReal;  gIn  = true; ins  = params.fft_inStride[0];  }
+					if((p+1) == passes.end())	{ outIlvd = outInterleaved; outRl = outReal; gOut = true; outs = params.fft_outStride[0]; s = scale; tw3Step = params.fft_3StepTwiddle; }
+					p->GeneratePass(fwd, str, tw3Step, inIlvd, outIlvd, inRl, outRl, ins, outs, s, lWorkSize[0], gIn, gOut);
+				}
+
+				// if real transform we do only 1 direction
+				if(r2c2r)
+					break;
+			}
+
+			// TODO : address this kludge
+
+			for(size_t d=0; d<2; d++)
+			{
+                                int arg = 0;
+				bool fwd;
+
+				if(r2c2r)
+				{
+					fwd = inReal ? true : false;
+				}
+				else
+				{
+					fwd = d ? false : true;
+				}
+
+				// FFT kernel begin
+                                str += "extern \"C\" {";
+                                str += "\nvoid ";
+
+				// Function name
+				if(fwd) str += "fft_fwd";
+				else	str += "fft_back";
+				str += "( std::map<int, void*> vectArr )\n\t{\n\t";
+
+			        str += "array_view<float,1> *cbP = (array_view<float,1> *)vectArr["; str += SztToStr(arg); str += "];\n";
+				str += "array_view<float,1> &cb = *cbP;\n";
+			        arg++;
+
+				// Function attributes
+				if(params.fft_placeness == AMPFFT_INPLACE)
+				{
+                                        std::cout<<" INPLACE "<<std::endl;
+					if(r2c2r)
+					{
+						if(outInterleaved)
+						{
+							str += "const array_view<"; str += r2Type; str += ",1> *gbP = (";
+							str += "const array_view<"; str += r2Type; str += ",1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += r2Type; str += ",1> &gb = *gbP;";
+                                                        arg++;
+						}
+						else
+						{
+							str += "const array_view<"; str += rType; str += ",1> *gbP = (";
+							str += "const array_view<"; str += rType; str += ",1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += rType; str += ",1> &gb = *gbP;";
+                                                        arg++;
+						}
+					}
+					else
+					{
+						assert(inInterleaved == outInterleaved);
+						assert(params.fft_inStride[1] == params.fft_outStride[1]);
+						assert(params.fft_inStride[0] == params.fft_outStride[0]);
+
+						if(inInterleaved)
+						{
+							str += "const array_view<"; str += r2Type; str += ",1> *gbP = (";
+							str += "const array_view<"; str += r2Type; str += ",1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += r2Type; str += ",1> &gb = *gbP;";
+                                                        arg++;
+						}
+						else
+						{
+							str += "const array_view<"; str += rType; str += ",1> *gbReP = (";
+							str += "const array_view<"; str += rType; str += ",1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += rType; str += ",1> &gbRe = *gbReP;";
+                                                        arg++;
+							str += "const array_view<"; str += rType; str += ",1> *gbImP = (";
+							str += "const array_view<"; str += rType; str += ",1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+							str += "const array_view<"; str += rType; str += ",1> &gbIm = *gbImP;";
+                                                        //Dereferencing the pointer
+                                                        arg++;
+						}
+					}
+				}
+				else
+				{
+					if(r2c2r)
+					{
+						if(inInterleaved)
+						{
+							str += "const array_view<"; str += r2Type; str += " ,1> *gbInP = (";
+							str += "const array_view<"; str += r2Type; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += r2Type; str += " ,1> &gbIn = *gbInP;";
+                                                        arg++;
+						}
+						else if(inReal)
+						{
+							str += "const array_view<"; str += rType; str += " ,1> *gbInP = (";
+							str += "const array_view<"; str += rType; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += rType; str += " ,1> &gbIn = *gbInP;";
+                                                        arg++;
+						}
+						else
+						{
+							str += "const array_view<"; str += rType; str += " ,1> *gbInReP = (";
+							str += "const array_view<"; str += rType; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += rType; str += " ,1> &gbInRe = *gbInReP;";
+                                                        arg++;
+
+							str += "const array_view<"; str += rType; str += " ,1> *gbInImP = (";
+							str += "const array_view<"; str += rType; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += rType; str += " ,1> &gbInIm = *gbInImP;";
+                                                        arg++;
+						}
+
+						if(outInterleaved)
+						{
+							str += "const array_view<"; str += r2Type; str += " ,1> *gbOutP = (";
+							str += "const array_view<"; str += r2Type; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += r2Type; str += " ,1> &gbOut = *gbOutP;";
+                                                        arg++;
+						}
+						else if(outReal)
+						{
+							str += "const array_view<"; str += rType; str += " ,1> *gbOutP = (";
+							str += "const array_view<"; str += rType; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += rType; str += " ,1> &gbOut = *gbOutP;";
+                                                        arg++;
+						}
+						else
+						{
+							str += "const array_view<"; str += rType; str += " ,1> *gbOutReP = (";
+							str += "const array_view<"; str += rType; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += rType; str += " ,1> &gbOutRe = *gbOutReP;";
+                                                        arg++;
+
+							str += "const array_view<"; str += rType; str += " ,1> *gbOutImP = (";
+							str += "const array_view<"; str += rType; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += rType; str += " ,1> &gbOutIm = *gbOutImP;";
+                                                        arg++;
+						}
+					}
+					else
+					{
+						if(inInterleaved)
+						{
+							str += "const array_view<"; str += r2Type; str += " ,1> *gbInP = (";
+							str += "const array_view<"; str += r2Type; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += r2Type; str += " ,1> &gbIn = *gbInP;";
+                                                        arg++;
+						}
+						else
+						{
+							str += "const array_view<"; str += rType; str += " ,1> *gbInReP = (";
+							str += "const array_view<"; str += rType; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += rType; str += " ,1> &gbInRe = *gbInReP;";
+                                                        arg++;
+
+							str += "const array_view<"; str += rType; str += " ,1> *gbInImP = (";
+							str += "const array_view<"; str += rType; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += rType; str += " ,1> &gbInIm = *gbInImP;";
+                                                        arg++;
+						}
+
+						if(outInterleaved)
+						{
+							str += "const array_view<"; str += r2Type; str += " ,1> *gbOutP = (";
+							str += "const array_view<"; str += r2Type; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += r2Type; str += " ,1> &gbOut = *gbOutP;";
+                                                        arg++;
+						}
+						else
+						{
+							str += "const array_view<"; str += rType; str += " ,1> *gbOutReP = (";
+							str += "const array_view<"; str += rType; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += rType; str += " ,1> &gbOutRe = *gbOutReP;";
+                                                        arg++;
+
+							str += "const array_view<"; str += rType; str += " ,1> *gbOutImP = (";
+							str += "const array_view<"; str += rType; str += " ,1> *) vectArr[";
+                                                        str += SztToStr(arg); str += "];\n";
+                                                        //Dereferencing the pointer
+							str += "const array_view<"; str += rType; str += " ,1> &gbOutIm = *gbOutImP;";
+                                                        arg++;
+						}
+					}
+				}
+
+                                // Twiddle table
+				if(length > 1)
+				{
+				  TwiddleTable twTable(length);
+
+				  str += "\n\n";
+				  str += twType; str += " twiddlev";
+				  str += "["; str += SztToStr(length-1); str += "] = {\n";
+				  twTable.GenerateTwiddleTable<PR>(radices, str);
+				  str += "};\n\n";
+
+                                  // Construct array view from twiddle array
+                                  str += "const array_view<";
+                                  str += twType;
+                                  str += ",1> &";
+                                  str += TwTableName();
+                                  str += " = array_view<";
+                                  str += twType;
+                                  str += ",1>(";
+                                  str += SztToStr(length-1);
+                                  str += ", twiddlev);";
+			        }
+				str += "\n";
+
+				// twiddle factors for 1d-large 3-step algorithm
+				if(params.fft_3StepTwiddle)
+				{
+				  TwiddleTableLarge twLarge(large1D);
+				  twLarge.GenerateTwiddleTable<PR>(str);
+				}
+
+                                str += "\tConcurrency::extent<2> grdExt( ";
+                                str += SztToStr(gWorkSize[0]);
+                                str += ", 1 ); \n";
+                                str += "\tConcurrency::tiled_extent< ";
+                                str += SztToStr(lWorkSize[0]);
+                                str += ", 1> t_ext(grdExt);\n";
+
+                                str += "\tConcurrency::parallel_for_each(t_ext, [=] (Concurrency::tiled_index<";
+                                str += SztToStr(lWorkSize[0]);
+                                str += ", 1> tidx) restrict(amp)\n\t { ";
+
+				// Initialize
+				str += "\t";
+				str += "unsigned int me = tidx.local[0];\n\t";
+				str += "unsigned int batch = tidx.tile[0];";
+				str += "\n";
+
+				// Allocate LDS
+				size_t ldsSize = halfLds ? length*numTrans : 2*length*numTrans;
+				if(numPasses > 1)
+				{
+					str += "\n\t";
+					str += "tile_static "; str += rType; str += " lds[";
+					str += SztToStr(ldsSize); str += "];\n";
+				}
+
+				// Declare memory pointers
+				str += "\n\t";
+				if(r2c2r)
+				{
+					str += "unsigned int iOffset;\n\t";
+					str += "unsigned int oOffset;\n\n\t";
+					if(!rcSimple)
+					{
+						str += "unsigned int iOffset2;\n\t";
+						str += "unsigned int oOffset2;\n\n\t";
+					}
+
+                                }
+				else
+				{
+					if(params.fft_placeness == AMPFFT_INPLACE)
+					{
+						str += "unsigned int iOffset;\n\t";
+
+					}
+					else
+					{
+						str += "unsigned int iOffset;\n\t";
+						str += "unsigned int oOffset;\n\t";
+
+					}
+				}
+
+				// Setup registers if needed
+				if(halfLds)
+				{
+					str += "\t"; str += RegBaseType<PR>(2);
+					str += " "; str += IterRegs("", false);
+					str += ";\n\n";
+				}
+
+				// Calculate total transform count
+				std::string totalBatch = "(";
+				size_t i = 0;
+				while(i < (params.fft_DataDim - 2))
+				{
+					totalBatch += SztToStr(params.fft_N[i+1]); totalBatch += " * ";
+					i++;
+				}
+				totalBatch += "cb["; totalBatch += SztToStr(i); totalBatch += "])";
+
+				// Conditional read-write ('rw') for arbitrary batch number
+				if(r2c2r && !rcSimple)
+				{
+					str += "\tunsigned int thisvar = "; str += totalBatch; str += " - batch*";
+					str +=  SztToStr(2*numTrans); str += ";\n";
+					str += "\tunsigned int rw = (me < ((thisvar+1)/2)*"; str += SztToStr(workGroupSizePerTrans);
+					str += ") ? (thisvar - 2*(me/"; str += SztToStr(workGroupSizePerTrans); str += ")) : 0;\n\n";
+				}
+				else
+				{
+					if(numTrans > 1)
+					{
+						str += "\tunsigned int rw = (me < ("; str += totalBatch;
+						str += " - batch*"; str += SztToStr(numTrans); str += ")*";
+						str += SztToStr(workGroupSizePerTrans); str += ") ? 1 : 0;\n\n";
+					}
+				}
+
+				// Transform index for 3-step twiddles
+				if(params.fft_3StepTwiddle)
+				{
+					if(numTrans == 1)
+					{
+						str += "\tunsigned int b = batch%";
+					}
+					else
+					{
+						str += "\tunsigned int b = (batch*"; str += SztToStr(numTrans); str += " + (me/";
+						str += SztToStr(workGroupSizePerTrans); str += "))%";
+					}
+
+					str += SztToStr(params.fft_N[1]); str += ";\n\n";
+				}
+				else
+				{
+					str += "\tunsigned int b = 0;\n\n";
+				}
+
+				// Setup memory pointers
+				if(r2c2r)
+				{
+					str += OffsetCalc("iOffset", true);
+					str += OffsetCalc("oOffset", false);
+					if(!rcSimple) { str += OffsetCalc("iOffset2",  true, true); }
+					if(!rcSimple) { str += OffsetCalc("oOffset2", false, true); }
+
+					str += "\n\t";
+				}
+				else
+				{
+					if(params.fft_placeness == AMPFFT_INPLACE)
+					{
+						str += OffsetCalc("iOffset", true);
+
+						str += "\t";
+					}
+					else
+					{
+						str += OffsetCalc("iOffset", true);
+						str += OffsetCalc("oOffset", false);
+
+						str += "\t";
+					}
+				}
+
+				// Set rw and 'me' per transform
+				// rw string also contains 'b'
+				std::string rw, me;
+
+				if(r2c2r && !rcSimple)	rw = "rw, b, ";
+				else					rw = (numTrans > 1) ? "rw, b, " : "1, b, ";
+
+				if(numTrans > 1)	{ me += "me%"; me += SztToStr(workGroupSizePerTrans); me += ", "; }
+				else				{ me += "me, "; }
+
+				// Buffer strings
+				std::string inBuf, outBuf;
+				if(r2c2r)
+				{
+					if(rcSimple)
+					{
+						if(inInterleaved || inReal)		inBuf  = "gbIn, iOffset, ";
+						else							inBuf  = "gbInRe, iOffset, gbInIm,";
+						if(outInterleaved || outReal)	outBuf = "gbOut, oOffset";
+						else							outBuf = "gbOutRe, oOffset, gbOutIm";
+					}
+					else
+					{
+						if(inInterleaved || inReal)		inBuf  = "gbIn, iOffset, iOffset2,";
+						else							inBuf  = "gbInRe, iOffset , iOffset2, gbInIm ";
+						if(outInterleaved || outReal)	outBuf = "gbOut, oOffset, oOffset2";
+						else							outBuf = "gbOutRe, oOffset, oOffset2, gbOutIm";
+					}
+				}
+				else
+				{
+					if(params.fft_placeness == AMPFFT_INPLACE)
+					{
+						if(inInterleaved)	{ std::cout<<"gb, iOffset,"<<std::endl; inBuf = "gb, iOffset, "; outBuf = "gb, iOffset"; }
+						else				{ inBuf = "gbRe, iOffset, gbIm, "; outBuf = "gbRe, oOffset, gbIm, "; }
+					}
+					else
+					{
+						if(inInterleaved)	inBuf  = "gbIn, iOffset, ";
+						else				inBuf  = "gbInRe,iOffset, gbInIm, ";
+						if(outInterleaved)	outBuf = "gbOut, oOffset";
+						else				outBuf = "gbOutRe, oOffset, gbOutIm";
+					}
+				}
+
+				// Call passes
+				if(numPasses == 1)
+				{
+					str += "\t";
+					str += PassName(0, fwd);
+					str += "("; str += rw; str += me;
+					str += "0, 0, ";
+					str += inBuf; str += outBuf;
+					str += IterRegs("&");
+                                        str += ",";
+                                        str += TwTableName();
+					str += ",tidx);\n";
+				}
+				else
+				{
+					for(typename std::vector<Pass<PR> >::const_iterator p = passes.begin(); p != passes.end(); p++)
+					{
+						str += "\t";
+						str += PassName(p->GetPosition(), fwd);
+						str += "(";
+
+						std::string ldsOff;
+						if(numTrans > 1)
+						{
+							ldsOff += "(me/"; ldsOff += SztToStr(workGroupSizePerTrans);
+							ldsOff += ")*"; ldsOff += SztToStr(length);
+						}
+						else
+						{
+							ldsOff += "0";
+						}
+
+						std::string ldsArgs;
+						if(halfLds) { ldsArgs += "lds, lds"; }
+						else		{ ldsArgs += "lds, lds + "; ldsArgs += SztToStr(length*numTrans); }
+
+						str += rw; str += me;
+						if(p == passes.begin()) // beginning pass
+						{
+							str += "0, ";
+							str += ldsOff;
+							str += ", ";
+							str += inBuf;
+							str += ldsArgs; str += IterRegs("&");
+                                                        str += ",";
+                                                        str += TwTableName(); str += ",tidx);\n";
+							if(!halfLds) str += "\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
+						}
+						else if((p+1) == passes.end()) // ending pass
+						{
+							str += ldsOff;
+							str += ", ";
+							str += "0, ";
+							str += ldsArgs; str += ", ";
+							str += outBuf;
+							str += IterRegs("&");
+                                                        str += ",";
+                                                        str += TwTableName();
+                                                        str += ",tidx);\n";
+						}
+						else // intermediate pass
+						{
+							str += ldsOff;
+							str += ", ";
+							str += ldsOff;
+							str += ", ";
+							str += ldsArgs; str += ", ";
+							str += ldsArgs; str += IterRegs("&"); str += ",";
+                                                        str += TwTableName(); str += ",tidx);\n";
+							if(!halfLds) str += "\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
+						}
+					}
+				}
+
+				str += " });\n}}\n\n";
+
+				if(r2c2r)
+					break;
+			}
+		}
+
        };
 }
 
