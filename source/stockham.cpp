@@ -3073,3 +3073,37 @@ ampfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & para
     params.fft_backScale = this->backwardScale;
     return AMPFFT_SUCCESS;
 }
+
+template<>
+ampfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS, std::vector<size_t> & localWS) const
+{
+    //    How many complex numbers in the input mutl-dimensional array?
+    //
+    unsigned long long count = 1;
+    for (unsigned u = 0; u < length.size(); ++u) {
+        count *= std::max<size_t> (1, this->length[ u ]);
+    }
+    count *= this->batchSize;
+
+
+    FFTKernelGenKeyParams fftParams;
+    //    Translate the user plan into the structure that we use to map plans to clPrograms
+    this->GetKernelGenKeyPvt<Stockham>( fftParams );
+
+    count = DivRoundingUp<unsigned long long> (count, fftParams.fft_R);      // count of WorkItems
+    count = DivRoundingUp<unsigned long long> (count, fftParams.fft_SIMD);   // count of WorkGroups
+
+	// for real transforms we only need half the work groups since we do twice the work in 1 work group
+	if( !(fftParams.fft_RCsimple) && ((fftParams.fft_inputLayout == AMPFFT_REAL) || (fftParams.fft_outputLayout == AMPFFT_REAL)) )
+		count = DivRoundingUp<unsigned long long> (count, 2);
+
+    count = std::max<unsigned long long> (count, 1) * fftParams.fft_SIMD;
+        // .. count of WorkItems, rounded up to next multiple of fft_SIMD.
+
+	// 1 dimension work group size
+	globalWS.push_back( static_cast< size_t >( count ) );
+
+    localWS.push_back( fftParams.fft_SIMD );
+
+    return    AMPFFT_SUCCESS;
+}

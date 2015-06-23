@@ -786,6 +786,28 @@ ampfftStatus FFTPlan::GetMax1DLength (size_t *longest ) const
 	}
 }
 
+ampfftStatus  FFTPlan::GetKernelGenKey (FFTKernelGenKeyParams & params) const
+{
+	switch(gen)
+	{
+	case Stockham:
+          return GetKernelGenKeyPvt<Stockham>(params);
+	default:
+	  return AMPFFT_ERROR;
+	}
+}
+
+ampfftStatus  FFTPlan::GetWorkSizes (std::vector<size_t> & globalws, std::vector<size_t> & localws) const
+{
+	switch(gen)
+	{
+	case Stockham:
+	  return GetWorkSizesPvt<Stockham>(globalws, localws);
+	default:
+	  return AMPFFT_ERROR;
+	}
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );

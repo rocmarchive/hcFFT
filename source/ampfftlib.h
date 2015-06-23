@@ -377,7 +377,17 @@ public:
   template <ampfftGenerators G>
   ampfftStatus GetMax1DLengthPvt (size_t *longest ) const;
 
+  template <ampfftGenerators G>
+  ampfftStatus GetKernelGenKeyPvt (FFTKernelGenKeyParams & params) const;
+
+  template <ampfftGenerators G>
+  ampfftStatus GetWorkSizesPvt (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
+
   ampfftStatus GetMax1DLength (size_t *longest ) const;
+
+  ampfftStatus GetKernelGenKey (FFTKernelGenKeyParams & params) const;
+
+  ampfftStatus GetWorkSizes (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
 
   ampfftStatus AllocateWriteBuffers ();
 
