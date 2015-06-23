@@ -23,8 +23,14 @@ using namespace Concurrency::graphics;
 #define	AMPFFT_CB_OSZ 11
 #define	AMPFFT_CB_OSW 12
 #define	AMPFFT_CB_OS5 13
-
 #define AMPFFT_CB_SIZE 32
+
+#define BUG_CHECK(_proposition)	\
+	{ bool btmp = (_proposition);	assert (btmp); if (! btmp)	return AMPFFT_ERROR; }
+
+#define ARG_CHECK(_proposition)	\
+{ bool btmp = (_proposition);	assert (btmp); if (! btmp)	return AMPFFT_ERROR; }
+
 typedef size_t ampfftPlanHandle;
 
 typedef enum ampfftPrecision_
