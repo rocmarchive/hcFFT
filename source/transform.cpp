@@ -729,6 +729,22 @@ ampfftStatus FFTPlan::ampfftGetResultLocation( const  ampfftPlanHandle plHandle,
   return	AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftSetResultLocation(  ampfftPlanHandle plHandle,  ampfftResLocation placeness )
+{
+  FFTRepo& fftRepo	= FFTRepo::getInstance( );
+  FFTPlan* fftPlan	= NULL;
+  lockRAII* planLock	= NULL;
+
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock( *planLock, _T( " ampfftSetResultLocation" ) );
+
+  //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
+  fftPlan->baked		= false;
+  fftPlan->location	= placeness;
+
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );

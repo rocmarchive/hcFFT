@@ -260,6 +260,8 @@ public:
 
   ampfftStatus	ampfftGetResultLocation(const ampfftPlanHandle plHandle, ampfftResLocation* placeness );
 
+  ampfftStatus	ampfftSetResultLocation(ampfftPlanHandle plHandle, ampfftResLocation placeness );
+
   ampfftStatus GetEnvelope (const FFTEnvelope **) const;
 
   ampfftStatus SetEnvelope ();
