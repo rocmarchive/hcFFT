@@ -759,6 +759,22 @@ ampfftStatus FFTPlan::ampfftGetPlanTransposeResult( const  ampfftPlanHandle plHa
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftSetPlanTransposeResult(  ampfftPlanHandle plHandle,  ampfftResTransposed transposed )
+{
+  FFTRepo& fftRepo	= FFTRepo::getInstance( );
+  FFTPlan* fftPlan	= NULL;
+  lockRAII* planLock	= NULL;
+
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock( *planLock, _T( " ampfftSetResultLocation" ) );
+
+  //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
+  fftPlan->baked		= false;
+  fftPlan->transposeType	= transposed;
+
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
