@@ -224,6 +224,8 @@ public:
 
   ampfftStatus	ampfftGetPlanPrecision(const ampfftPlanHandle plHandle, ampfftPrecision* precision );
 
+  ampfftStatus	ampfftSetPlanPrecision(ampfftPlanHandle plHandle, ampfftPrecision precision );
+
   ampfftStatus GetEnvelope (const FFTEnvelope **) const;
 
   ampfftStatus SetEnvelope ();
