@@ -775,6 +775,17 @@ ampfftStatus FFTPlan::ampfftSetPlanTransposeResult(  ampfftPlanHandle plHandle, 
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::GetMax1DLength (size_t *longest ) const
+{
+	switch(gen)
+	{
+	case Stockham:
+          return GetMax1DLengthPvt<Stockham>(longest);
+	default:
+          return AMPFFT_ERROR;
+	}
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );

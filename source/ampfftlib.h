@@ -321,6 +321,11 @@ public:
 
   ampfftStatus SetEnvelope ();
 
+  template <ampfftGenerators G>
+  ampfftStatus GetMax1DLengthPvt (size_t *longest ) const;
+
+  ampfftStatus GetMax1DLength (size_t *longest ) const;
+
   ampfftStatus AllocateWriteBuffers ();
 
   ampfftStatus ReleaseBuffers ();
