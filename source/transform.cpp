@@ -517,6 +517,58 @@ ampfftStatus FFTPlan::ampfftSetPlanInStride(  ampfftPlanHandle plHandle, const  
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftGetPlanOutStride( const  ampfftPlanHandle plHandle, const  ampfftDim dim, size_t* clStrides )
+{
+  FFTRepo& fftRepo	= FFTRepo::getInstance( );
+  FFTPlan* fftPlan	= NULL;
+  lockRAII* planLock	= NULL;
+
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock( *planLock, _T( " ampfftGetPlanOutStride" ) );
+
+  if( clStrides == NULL )
+    return AMPFFT_ERROR;
+
+  switch( dim )
+  {
+    case AMPFFT_1D:
+    {
+      if( fftPlan->outStride.size() > 0 )
+        clStrides[0] = fftPlan->outStride[0];
+      else
+        return AMPFFT_ERROR;
+    }
+    break;
+    case AMPFFT_2D:
+    {
+      if( fftPlan->outStride.size() > 1 )
+      {
+        clStrides[0] = fftPlan->outStride[0];
+        clStrides[1] = fftPlan->outStride[1];
+      }
+      else
+        return AMPFFT_ERROR;
+     }
+     break;
+     case AMPFFT_3D:
+     {
+       if( fftPlan->outStride.size() > 2 )
+       {
+         clStrides[0] = fftPlan->outStride[0];
+         clStrides[1] = fftPlan->outStride[1];
+         clStrides[2] = fftPlan->outStride[2];
+       }
+       else
+         return AMPFFT_ERROR;
+     }
+     break;
+     default:
+       return AMPFFT_ERROR;
+       break;
+    }
+    return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );

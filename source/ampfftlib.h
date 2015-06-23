@@ -246,6 +246,8 @@ public:
 
   ampfftStatus	ampfftSetPlanInStride(ampfftPlanHandle plHandle, const ampfftDim dim, size_t* clStrides );
 
+  ampfftStatus	ampfftGetPlanOutStride(const ampfftPlanHandle plHandle, const ampfftDim dim, size_t* clStrides );
+
   ampfftStatus GetEnvelope (const FFTEnvelope **) const;
 
   ampfftStatus SetEnvelope ();
