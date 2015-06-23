@@ -1263,6 +1263,53 @@ namespace StockhamGenerator
 			}
 
 		}
+
+		void CallButterfly(const std::string &bflyName, size_t regC, size_t numB, std::string &passStr) const
+		{
+			std::string regBase;
+			RegBase(regC, regBase);
+
+			for(size_t i=0; i<numB; i++)
+			{
+				std::string regBaseCount = regBase;
+				RegBaseAndCount(i, regBaseCount);
+
+				passStr += "\n\t";
+				passStr += bflyName;
+				passStr += "(";
+
+				for(size_t r=0; ; r++)
+				{
+					if(linearRegs)
+					{
+						std::string regIndex = "R";
+						RegBaseAndCountAndPos("", i*radix + r, regIndex);
+
+						passStr += regIndex;
+					}
+					else
+					{
+						std::string regRealIndex(regBaseCount);
+						std::string regImagIndex(regBaseCount);
+						RegBaseAndCountAndPos("R", r, regRealIndex);
+						RegBaseAndCountAndPos("I", r, regImagIndex);
+
+						passStr += "&"; passStr += regRealIndex; passStr += ", ";
+						passStr += "&"; passStr += regImagIndex;
+					}
+
+					if(r == radix-1)
+					{
+						passStr += ");";
+						break;
+					}
+					else
+					{
+						passStr += ", ";
+					}
+				}
+			}
+		}
      };
 }
 
