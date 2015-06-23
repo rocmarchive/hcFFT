@@ -2,6 +2,79 @@
 
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
+//	Read the kernels that this plan uses from file, and store into the plan
+ampfftStatus WriteKernel( const ampfftPlanHandle plHandle, const ampfftGenerators gen, const FFTKernelGenKeyParams& fftParams)
+{
+	FFTRepo& fftRepo	= FFTRepo::getInstance( );
+
+	//	Logic to define a sensible filename
+	const std::string kernelPrefix( "ampfft.kernel." );
+	std::string generatorName;
+	std::stringstream kernelPath;
+
+	switch( gen )
+	{
+		case Stockham:		generatorName = "Stockham"; break;
+		case Transpose:		generatorName = "Transpose"; break;
+	}
+
+	kernelPath << kernelPrefix << generatorName << plHandle << ".cl";
+
+	//	Logic to write string contents out to file
+	tofstreamRAII kernelFile( kernelPath.str( ) );
+	if( !kernelFile.get( ) )
+	{
+		std::cerr << "Failed to open kernel file for writing: " << kernelPath.str( ) << std::endl;
+		return AMPFFT_ERROR;
+	}
+
+	std::string kernel;
+	fftRepo.getProgramCode( gen, plHandle, fftParams, kernel);
+
+	size_t written = fwrite(kernel.c_str(), kernel.size(), 1, kernelFile.get( ));// << kernel << std::endl;
+	return	AMPFFT_SUCCESS;
+}
+
+//	Compile the kernels that this plan uses, and store into the plan
+ampfftStatus CompileKernels(const ampfftPlanHandle plHandle, const ampfftGenerators gen, FFTPlan* fftPlan )
+{
+	FILE *fp = fopen("kernel_program_code.cl", "w+");
+	cl_int status = 0;
+
+	FFTRepo& fftRepo	= FFTRepo::getInstance( );
+
+	FFTKernelGenKeyParams fftParams;
+	fftPlan->GetKernelGenKey( fftParams );
+
+	WriteKernel( plHandle, gen, fftParams);
+
+	std::string programCode;
+	fftRepo.getProgramCode( gen, plHandle, fftParams, programCode);
+
+	const char* source = programCode.c_str();
+	fwrite(source,programCode.length(),1,fp);
+
+	// For real transforms we comppile either forward or backward kernel
+	bool r2c_transform = (fftParams.fft_inputLayout == AMPFFT_REAL);
+	bool c2r_transform = (fftParams.fft_outputLayout == AMPFFT_REAL);
+	bool real_transform = (gen == Copy) ? true : (r2c_transform || c2r_transform);
+	bool h2c = (gen == Copy) && ((fftParams.fft_inputLayout == AMPFFT_COMPLEX) || (fftParams.fft_inputLayout == AMPFFT_COMPLEX));
+	bool c2h = (gen == Copy) && ((fftParams.fft_outputLayout == AMPFFT_COMPLEX) || (fftParams.fft_outputLayout == AMPFFT_COMPLEX));
+
+	// get a kernel object handle for a kernel with the given name
+	if( (!real_transform) || r2c_transform || c2h )
+	{
+		std::string entryPoint;
+		fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, AMPFFT_FORWARD, entryPoint);
+	}
+
+	if( (!real_transform) || c2r_transform || h2c )
+	{
+		std::string entryPoint;
+		fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, AMPFFT_BACKWARD, entryPoint);
+	}
+}
+
 //	This routine will query the OpenCL context for it's devices
 //	and their hardware limitations, which we synthesize into a
 //	hardware "envelope".
