@@ -129,6 +129,37 @@ namespace ARBITRARY {
         };
 };
 
+class tofstreamRAII
+{
+	public:
+		FILE *outFile;
+		std::string fileName;
+		tofstreamRAII( const std::string& name ): fileName( name )
+		{
+			outFile = fopen(fileName.c_str( ), "w");
+		}
+
+		~tofstreamRAII( )
+		{
+			fclose( outFile);
+		}
+
+		std::string& getName( )
+		{
+			return fileName;
+		}
+
+		void setName( const std::string& name )
+		{
+			fileName = name;
+		}
+
+		FILE* get( )
+		{
+			return outFile;
+		}
+};
+
 typedef size_t ampfftPlanHandle;
 
 typedef enum ampfftPrecision_
