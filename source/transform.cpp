@@ -187,6 +187,25 @@ ampfftStatus FFTPlan::ampfftGetPlanScale( const  ampfftPlanHandle plHandle,  amp
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftSetPlanScale(  ampfftPlanHandle plHandle,  ampfftDirection dir, float scale )
+{
+  FFTRepo& fftRepo = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock = NULL;
+
+  fftRepo.getPlan(plHandle, fftPlan, planLock );
+  scopedLock sLock(*planLock, _T( " ampfftSetPlanScale" ) );
+
+  //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
+  fftPlan->baked = false;
+  if( dir == AMPFFT_FORWARD)
+    fftPlan->forwardScale = scale;
+  else
+    fftPlan->backwardScale = scale;
+
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );

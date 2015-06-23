@@ -228,6 +228,8 @@ public:
 
   ampfftStatus	ampfftGetPlanScale(const ampfftPlanHandle plHandle, ampfftDirection dir, float* scale );
 
+  ampfftStatus	ampfftSetPlanScale(ampfftPlanHandle plHandle, ampfftDirection dir, float scale );
+
   ampfftStatus GetEnvelope (const FFTEnvelope **) const;
 
   ampfftStatus SetEnvelope ();
