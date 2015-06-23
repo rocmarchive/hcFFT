@@ -256,6 +256,8 @@ public:
 
   ampfftStatus	ampfftGetLayout(const ampfftPlanHandle plHandle, ampfftIpLayout* iLayout, ampfftOpLayout* oLayout );
 
+  ampfftStatus	ampfftSetLayout(ampfftPlanHandle plHandle, ampfftIpLayout iLayout, ampfftOpLayout oLayout );
+
   ampfftStatus GetEnvelope (const FFTEnvelope **) const;
 
   ampfftStatus SetEnvelope ();

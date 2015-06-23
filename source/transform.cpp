@@ -659,6 +659,63 @@ ampfftStatus FFTPlan::ampfftGetLayout( const  ampfftPlanHandle plHandle,  ampfft
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftSetLayout(  ampfftPlanHandle plHandle,  ampfftIpLayout iLayout,  ampfftOpLayout oLayout )
+{
+  FFTRepo& fftRepo = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock = NULL;
+
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock( *planLock, _T( " ampfftSetLayout" ) );
+
+  //	We currently only support a subset of formats
+  switch( iLayout )
+  {
+    case AMPFFT_COMPLEX:
+    {
+      if( oLayout == AMPFFT_COMPLEX)
+	return AMPFFT_ERROR;
+    }
+    break;
+    case AMPFFT_REAL:
+    {
+      if(oLayout == AMPFFT_REAL)
+	return AMPFFT_ERROR;
+    }
+    break;
+    default:
+      return AMPFFT_ERROR;
+      break;
+  }
+
+  //	We currently only support a subset of formats
+  switch( oLayout )
+  {
+    case AMPFFT_COMPLEX:
+    {
+      if(iLayout == AMPFFT_COMPLEX)
+        return AMPFFT_ERROR;
+    }
+    break;
+
+    case AMPFFT_REAL:
+    {
+      if(iLayout == AMPFFT_REAL)
+        return AMPFFT_ERROR;
+    }
+    break;
+    default:
+      return AMPFFT_ERROR;
+      break;
+  }
+
+  //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
+  fftPlan->baked	= false;
+  fftPlan->ipLayout	= iLayout;
+  fftPlan->opLayout	= oLayout;
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
