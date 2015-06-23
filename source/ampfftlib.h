@@ -76,6 +76,59 @@ inline size_t FloorPo2 (size_t n)
     return n;
 }
 
+
+namespace ARBITRARY {
+	// TODO:  These arbitrary parameters should be tuned for the type of GPU
+	//	being used.  These values are probably OK for Radeon 58xx and 68xx.
+	enum {
+		MAX_DIMS  = 3,
+			//  The clEnqueuNDRangeKernel accepts a multi-dimensional domain array.
+			//  The # of dimensions is arbitrary, but limited by the OpenCL implementation
+			//  usually to 3 dimensions (CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS).
+			//  The kernel generator also assumes a limit on the # of dimensions.
+
+		SIMD_WIDTH = 64,
+			//  Workgroup size.  This is the # of work items that share
+			//  local data storage (LDS).  This # is best for Evergreen gpus,
+			//  but might change in the future.
+
+		LDS_BANK_BITS = 5,
+		LDS_BANK_SIZE = (1 << LDS_BANK_BITS),
+		LDS_PADDING   = false,//true,
+			//  On AMD hardware, the low-order bits of the local_id enumerate
+			//  the work items that access LDS in parallel.  Ideally, we will
+			//  pad our LDS arrays so that these work items access different banks
+			//  of the LDS.
+			//  2 ** LDS_BANK_BITS is the number of LDS banks.
+			//  If LDS_PADDING is non-zero, the kernel generator should pad the
+			//  LDS arrays to reduce or eliminate bank conflicts.
+
+		LDS_FRACTION_IDEAL = 6,    // i.e., 1/6th
+		LDS_FRACTION_MAX   = 4,    // i.e., 1/4
+			//  For best performance, each workgroup should use 1/IDEAL'th the amount of LDS
+			//  revealed by clGetDeviceInfo (.. CL_DEVICE_LOCAL_MEM_SIZE, ...)
+			//  However, we can use up to 1/MAX'th of LDS per workgroup when necessary to
+			//  perform the FFT in a single pass instead of multiple passes.
+			//  This tuning parameter is a good value for Evergreen gpus,
+			//  but might change in the future.
+
+		LDS_COMPLEX = false,
+			//  This is the default value for FFTKernelGenKeyParams::fft_LdsComplex.
+			//  The generated kernels require so many bytes of LDS for each single precision
+			//..complex number in the vector.
+			//  If LDS_COMPLEX, then we declare an LDS array of complex numbers (8 bytes each)
+			//  and swap data between workitems with a single barrier.
+			//  If ! LDS_COMPLEX, then we declare an LDS array or scalar numbers (4 bytes each)
+			//  and swap data between workitems in two phases, with extra barriers.
+			//  The former approach uses fewer instructions and barriers;
+			//  The latter uses half as much LDS space, so twice as many wavefronts can be run
+			//  in parallel.
+
+		TWIDDLE_DEE = 4,
+			//  4 bits per row of matrix.
+        };
+};
+
 typedef size_t ampfftPlanHandle;
 
 typedef enum ampfftPrecision_

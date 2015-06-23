@@ -44,6 +44,33 @@ namespace StockhamGenerator
 		return ss.str();
 	}
 
+        typedef std::pair<std::string,std::string> stringpair;
+	inline stringpair ComplexMul(const char *type, const char * a, const char * b, bool forward = true)
+	{
+		stringpair result;
+		result.first = "(";
+		result.first += type;
+		result.first += ") ((";
+		result.first += a;
+		result.first += ".x * ";
+		result.first += b;
+		result.first += (forward ? ".x - " : ".x + ");
+		result.first += a;
+		result.first += ".y * ";
+		result.first += b;
+		result.first += ".y),";
+		result.second = "(";
+		result.second += a;
+		result.second += ".y * ";
+		result.second += b;
+		result.second += (forward ? ".x + " : ".x - ");
+		result.second += a;
+		result.second += ".x * ";
+		result.second += b;
+		result.second += ".y))";
+		return result;
+	}
+
 	// Register data base types
 	template <Precision PR>
 	inline std::string RegBaseType(size_t count)
