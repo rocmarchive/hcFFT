@@ -359,6 +359,9 @@ public:
 
   ampfftStatus ampfftDestroyPlan(ampfftPlanHandle* plHandle);
 
+  ampfftStatus	ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDirection dir, Concurrency::array_view<float, 1> *inputBuffers,
+                                       Concurrency::array_view<float, 1> *outputBuffers, Concurrency::array_view<float, 1> *tmpBuffer);
+
   ampfftStatus executePlan(FFTPlan*);
 
   ampfftStatus	ampfftGetPlanPrecision(const ampfftPlanHandle plHandle, ampfftPrecision* precision );

@@ -211,6 +211,490 @@ ampfftStatus FFTPlan::ampfftCreateDefaultPlan (ampfftPlanHandle* plHandle,ampfft
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDirection dir, Concurrency::array_view<float, 1> *clInputBuffers,
+				             Concurrency::array_view<float, 1> *clOutputBuffers, Concurrency::array_view<float, 1> *clTmpBuffers)
+{
+	ampfftStatus status = AMPFFT_SUCCESS;
+
+        std::map<int, void*> vectArr;
+
+	FFTRepo& fftRepo	= FFTRepo::getInstance( );
+	FFTPlan* fftPlan	= NULL;
+	lockRAII* planLock	= NULL;
+
+	//	At this point, the user wants to enqueue a plan to execute.  We lock the plan down now, such that
+	//	after we finish baking the plan (if the user did not do that explicitely before), the plan cannot
+	//	change again through the action of other thread before we enqueue this plan for execution.
+	fftRepo.getPlan( plHandle, fftPlan, planLock );
+	scopedLock sLock( *planLock, _T( "ampfftGetPlanBatchSize" ) );
+
+	if( fftPlan->baked == false )
+	{
+		ampfftBakePlan( plHandle);
+	}
+
+	if (fftPlan->ipLayout == AMPFFT_REAL)
+	  dir = AMPFFT_FORWARD;
+	else if	(fftPlan->opLayout == AMPFFT_REAL)
+	  dir = AMPFFT_BACKWARD;
+
+        // we do not check the user provided buffer at this release
+	Concurrency::array_view<float, 1> *localIntBuffer = clTmpBuffers;
+
+	if( clTmpBuffers == NULL && fftPlan->tmpBufSize > 0 && fftPlan->intBuffer == NULL)
+	{
+		// create the intermediate buffers
+		// The intermediate buffer is always interleave and packed
+		// For outofplace operation, we have the choice not to create intermediate buffer
+		// input ->(col+Transpose) output ->(col) output
+                float *init = (float*)calloc(fftPlan->tmpBufSize, sizeof(float));
+                Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSize), init);
+		fftPlan->intBuffer = new Concurrency::array_view<float>(arr);
+	}
+
+	if( localIntBuffer == NULL && fftPlan->intBuffer != NULL )
+		localIntBuffer = fftPlan->intBuffer;
+
+	if( fftPlan->intBufferRC == NULL && fftPlan->tmpBufSizeRC > 0 )
+	{
+                float *init = (float*)calloc(fftPlan->tmpBufSizeRC, sizeof(float));
+                Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSizeRC), init);
+		fftPlan->intBufferRC = new Concurrency::array_view<float>(arr);
+	}
+
+	if( fftPlan->intBufferC2R == NULL && fftPlan->tmpBufSizeC2R > 0 )
+	{
+                float *init = (float*)calloc(fftPlan->tmpBufSizeC2R, sizeof(float));
+                Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSizeC2R), init);
+		fftPlan->intBufferC2R = new Concurrency::array_view<float>(arr);
+	}
+
+	//	The largest vector we can transform in a single pass
+	//	depends on the GPU caps -- especially the amount of LDS
+	//	available
+	//
+	size_t Large1DThreshold = 0;
+	fftPlan->GetMax1DLength (&Large1DThreshold);
+	BUG_CHECK (Large1DThreshold > 1);
+
+	if(fftPlan->gen != Copy)
+	switch( fftPlan->dimension )
+	{
+		case AMPFFT_1D:
+		{
+			if (fftPlan->length[0] <= Large1DThreshold)
+				break;
+
+			if( fftPlan->ipLayout == AMPFFT_REAL )
+			{
+				// First pass
+				ampfftEnqueueTransform( fftPlan->planX, AMPFFT_FORWARD, clInputBuffers, fftPlan->intBufferRC, localIntBuffer);
+
+				ampfftEnqueueTransform( fftPlan->planY, AMPFFT_FORWARD, fftPlan->intBufferRC, fftPlan->intBufferRC, localIntBuffer );
+
+				Concurrency::array_view<float, 1> *out_local;
+				out_local = (fftPlan->location==AMPFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
+
+				ampfftEnqueueTransform( fftPlan->planRCcopy, AMPFFT_FORWARD, fftPlan->intBufferRC, out_local, localIntBuffer );
+
+				return	AMPFFT_SUCCESS;
+
+			}
+			else if( fftPlan->opLayout == AMPFFT_REAL )
+			{
+				// copy from hermitian to full complex
+				ampfftEnqueueTransform( fftPlan->planRCcopy, AMPFFT_BACKWARD, clInputBuffers, fftPlan->intBufferRC, localIntBuffer );
+
+				// First pass
+				// column with twiddle first, INPLACE,
+				ampfftEnqueueTransform( fftPlan->planX, AMPFFT_BACKWARD, fftPlan->intBufferRC, fftPlan->intBufferRC, localIntBuffer);
+
+				Concurrency::array_view<float, 1> *out_local;
+				out_local = (fftPlan->location==AMPFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
+
+				// another column FFT output, OUTOFPLACE + transpose
+				ampfftEnqueueTransform( fftPlan->planY, AMPFFT_BACKWARD, fftPlan->intBufferRC, out_local, localIntBuffer );
+
+				return	AMPFFT_SUCCESS;
+			}
+			else
+			{
+				if (fftPlan->transflag)
+				{
+					//First transpose
+					// Input->tmp
+					ampfftEnqueueTransform( fftPlan->planTX, dir, clInputBuffers, localIntBuffer, NULL );
+
+					Concurrency::array_view<float, 1> *mybuffers;
+					if (fftPlan->location == AMPFFT_INPLACE)
+						mybuffers = clInputBuffers;
+					else
+						mybuffers = clOutputBuffers;
+
+					//First Row
+					//tmp->output
+					ampfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, mybuffers, NULL );
+
+					//Second Transpose
+					// output->tmp
+					ampfftEnqueueTransform( fftPlan->planTY, dir, mybuffers, localIntBuffer, NULL );
+
+					//Second Row
+					//tmp->tmp, inplace
+					ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
+
+					//Third Transpose
+					// tmp->output
+					ampfftEnqueueTransform( fftPlan->planTZ, dir, localIntBuffer, mybuffers, NULL );
+
+					return	AMPFFT_SUCCESS;
+				}
+
+				if (fftPlan->large1D == 0)
+				{
+					// First pass
+					// column with twiddle first, OUTOFPLACE, + transpose
+					ampfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, localIntBuffer, localIntBuffer);
+
+					//another column FFT output, OUTOFPLACE
+					if (fftPlan->location == AMPFFT_INPLACE)
+					{
+						ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clInputBuffers, localIntBuffer );
+
+					}
+					else
+					{
+						ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clOutputBuffers, localIntBuffer );
+
+					}
+				}
+				else
+				{
+					// second pass for huge 1D
+					// column with twiddle first, OUTOFPLACE, + transpose
+					ampfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, clOutputBuffers, localIntBuffer);
+
+					ampfftEnqueueTransform( fftPlan->planY, dir,clOutputBuffers, clOutputBuffers, localIntBuffer );
+
+				}
+
+				return	AMPFFT_SUCCESS;
+			}
+			break;
+		}
+		case AMPFFT_2D:
+		{
+			// if transpose kernel, we will fall below
+			if (fftPlan->transflag && !(fftPlan->planTX)) break;
+
+			//cl_event rowOutEvents = NULL;
+
+			if (fftPlan->transflag)
+			{//first time set up transpose kernel for 2D
+				//First row
+				ampfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, NULL );
+
+				Concurrency::array_view<float, 1> *mybuffers;
+
+				if (fftPlan->location==AMPFFT_INPLACE)
+					mybuffers = clInputBuffers;
+				else
+					mybuffers = clOutputBuffers;
+
+				bool xyflag = (fftPlan->length[0] == fftPlan->length[1]) ? false : true;
+
+				if (xyflag)
+				{
+					//First transpose
+					ampfftEnqueueTransform( fftPlan->planTX, dir, mybuffers, localIntBuffer, NULL );
+
+					if (fftPlan->transposeType == AMPFFT_NOTRANSPOSE)
+					{
+						//Second Row transform
+						ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
+
+						//Second transpose
+						ampfftEnqueueTransform( fftPlan->planTY, dir, localIntBuffer, mybuffers, NULL );
+
+					}
+					else
+					{
+						//Second Row transform
+						ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, mybuffers, NULL );
+					}
+				}
+				else
+				{
+					// First Transpose
+					ampfftEnqueueTransform( fftPlan->planTX, dir, mybuffers, NULL, NULL );
+
+					if (fftPlan->transposeType == AMPFFT_NOTRANSPOSE)
+					{
+						//Second Row transform
+						ampfftEnqueueTransform( fftPlan->planY, dir, mybuffers, NULL, NULL );
+
+						//Second transpose
+						ampfftEnqueueTransform( fftPlan->planTY, dir, mybuffers, NULL, NULL );
+					}
+					else
+					{
+						//Second Row transform
+						ampfftEnqueueTransform( fftPlan->planY, dir, mybuffers, NULL, NULL );
+					}
+				}
+
+				return AMPFFT_SUCCESS;
+			}
+
+			if ( (fftPlan->large2D || fftPlan->length.size()>2) &&
+				(fftPlan->ipLayout != AMPFFT_REAL) && (fftPlan->opLayout != AMPFFT_REAL))
+			{
+				if (fftPlan->location==AMPFFT_INPLACE)
+				{
+					//deal with row first
+					ampfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, NULL, localIntBuffer );
+
+					//deal with column
+					ampfftEnqueueTransform( fftPlan->planY, dir, clInputBuffers, NULL, localIntBuffer );
+				}
+				else
+				{
+					//deal with row first
+					ampfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, localIntBuffer );
+
+					//deal with column
+					ampfftEnqueueTransform( fftPlan->planY, dir, clOutputBuffers, NULL, localIntBuffer );
+				}
+			}
+			else
+			{
+				if(fftPlan->ipLayout == AMPFFT_REAL)
+				{
+					if (fftPlan->location==AMPFFT_INPLACE)
+					{
+						// deal with row
+						ampfftEnqueueTransform( fftPlan->planX, AMPFFT_FORWARD, clInputBuffers, NULL, localIntBuffer );
+
+						// deal with column
+						ampfftEnqueueTransform( fftPlan->planY, AMPFFT_FORWARD, clInputBuffers, NULL, localIntBuffer );
+					}
+					else
+					{
+						// deal with row
+						ampfftEnqueueTransform( fftPlan->planX, AMPFFT_FORWARD, clInputBuffers, clOutputBuffers, localIntBuffer );
+
+						// deal with column
+						ampfftEnqueueTransform( fftPlan->planY, AMPFFT_FORWARD, clOutputBuffers, NULL, localIntBuffer );
+					}
+				}
+				else if(fftPlan->opLayout == AMPFFT_REAL)
+				{
+					Concurrency::array_view<float, 1> *out_local, *int_local, *out_y;
+
+					if(fftPlan->length.size() > 2)
+					{
+						out_local = clOutputBuffers;
+						int_local = NULL;
+						out_y = clInputBuffers;
+					}
+					else
+					{
+						out_local = (fftPlan->location == AMPFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
+						int_local = fftPlan->tmpBufSizeC2R ? fftPlan->intBufferC2R : localIntBuffer;
+						out_y = int_local;
+					}
+
+					// deal with column
+					ampfftEnqueueTransform( fftPlan->planY, AMPFFT_BACKWARD, clInputBuffers, int_local, localIntBuffer );
+
+					// deal with row
+					ampfftEnqueueTransform( fftPlan->planX, AMPFFT_BACKWARD, out_y, out_local, localIntBuffer );
+
+				}
+				else
+				{
+					//deal with row first
+					ampfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, localIntBuffer, localIntBuffer );
+
+					if (fftPlan->location == AMPFFT_INPLACE)
+					{
+						//deal with column
+						ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clInputBuffers, localIntBuffer );
+					}
+					else
+					{
+						//deal with column
+						ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clOutputBuffers, localIntBuffer );
+					}
+				}
+			}
+
+			return	AMPFFT_SUCCESS;
+		}
+	}
+
+	FFTKernelGenKeyParams fftParams;
+	//	Translate the user plan into the structure that we use to map plans to clPrograms
+	fftPlan->GetKernelGenKey( fftParams );
+
+        std::string kernel;
+        fftRepo.getProgramCode( fftPlan->gen, plHandle, fftParams, kernel);
+
+        /* constant buffer */
+	unsigned int uarg = 0;
+	vectArr.insert(std::make_pair(uarg++,fftPlan->const_buffer));
+
+	//	Decode the relevant properties from the plan paramter to figure out how many input/output buffers we have
+	switch( fftPlan->ipLayout )
+	{
+		case AMPFFT_COMPLEX:
+		{
+			switch( fftPlan->opLayout )
+			{
+                                case AMPFFT_COMPLEX:
+				case AMPFFT_REAL:
+				{
+					if( fftPlan->location == AMPFFT_INPLACE )
+					{
+						vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+					}
+					else
+					{
+						vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+						vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
+					}
+					break;
+				}
+				default:
+				{
+					//	Don't recognize output layout
+					return AMPFFT_ERROR;
+				}
+			}
+
+			break;
+		}
+		case AMPFFT_REAL:
+		{
+			switch( fftPlan->opLayout )
+			{
+				case AMPFFT_COMPLEX:
+				{
+					if( fftPlan->location == AMPFFT_INPLACE )
+					{
+						vectArr.insert(std::make_pair(uarg++,clInputBuffers));
+					}
+					else
+					{
+						vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+						vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
+					}
+					break;
+				}
+			}
+
+			break;
+		}
+		default:
+		{
+			//	Don't recognize output layout
+			return AMPFFT_ERROR;
+		}
+	}
+
+        std::string filename;
+        filename = "../kernel" + std::to_string(plHandle) + ".cpp";
+        FILE *fp = fopen (filename.c_str(),"w");
+        if (!fp)
+        {
+          std::cout<<" File kernel.cpp open failed for writing "<<std::endl;
+          return AMPFFT_ERROR;
+        }
+
+	size_t written = fwrite(kernel.c_str(), kernel.size(), 1, fp);
+        if(!written)
+        {
+           std::cout<< "Kernel Write Failed "<<std::endl;
+           exit(1);
+        }
+
+        fflush(fp);
+        fclose(fp);
+
+	vector< size_t > gWorkSize;
+	vector< size_t > lWorkSize;
+	ampfftStatus result = fftPlan->GetWorkSizes (gWorkSize, lWorkSize);
+
+	if (AMPFFT_ERROR == result)
+	{
+		std::cout<<"Work size too large for clEnqueNDRangeKernel()"<<std::endl;
+	}
+	BUG_CHECK (gWorkSize.size() == lWorkSize.size());
+
+        char cwd[1024];
+        if (getcwd(cwd, sizeof(cwd)) != NULL)
+          std::cout << "Current working dir: "<<cwd<<std::endl;
+        else
+	  std::cout<< "getcwd() error"<<std::endl;
+
+        std::string pwd(cwd);
+        std::string kernellib = pwd + "/../libFFTKernel" + std::to_string(plHandle) + ".so";
+
+        char *compilerPath = (char*)calloc(100, 1);
+        compilerPath = getenv ("MCWCPPAMPROOT");
+        if(!compilerPath)
+          std::cout<<"No Compiler Path Variable found. Please export MCWCPPAMPROOT "<<std::endl;
+        else
+          std::cout<< "The Compiler path is: "<<compilerPath<<std::endl;
+
+        char *CLPath = (char*)calloc(100, 1);
+        CLPath = getenv ("AMDAPPSDKROOT");
+        if(!CLPath)
+          std::cout<<"No OpenCL path Variable found. Please export AMDAPPSDKROOT "<<std::endl;
+        else
+          std::cout<<"The  OpenCL path is: "<<CLPath<<std::endl;
+
+        string fftLibPath = pwd + "/../../Build/linux/";
+
+        std::string Path(compilerPath);
+        std::string OpenCLPath(CLPath);
+
+        std::string execCmd = Path + "/gmac_exp_build_cache/compiler/bin/clang++ `" + Path + "/gmac_exp_build_cache/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` -I/opt/AMDAPP/include  -L" + fftLibPath + " -lampfft "+ filename + " -o " + kernellib ;
+
+        system(execCmd.c_str());
+
+        void * kernelHandle = NULL;
+        typedef void (FUNC_FFTFwd)(std::map<int, void*> *vectArr);
+        FUNC_FFTFwd * FFTcall;
+
+        char *err = (char*) calloc(128,2);
+        kernelHandle = dlopen(kernellib.c_str(),RTLD_NOW);
+         if(!kernelHandle)
+        {
+          std::cout << "Failed to load Kernel: "<< kernellib.c_str()<<std::endl;
+          return AMPFFT_ERROR;
+        }
+        else
+        {
+          std::cout<<"Loaded Kernel: "<<kernellib.c_str()<<std::endl;
+        }
+
+        FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, "fft_fwd");
+        if (!FFTcall)
+          std::cout<<"Loading fft_fwd fails "<<std::endl;
+        err=dlerror();
+        if (err)
+        {
+          std::cout<<"failed to locate fft_fwd(): "<< err;
+          exit(1);
+        }
+
+        FFTcall(&vectArr);
+
+        dlclose(kernelHandle);
+        kernelHandle = NULL;
+}
+
 ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
