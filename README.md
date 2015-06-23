@@ -69,6 +69,9 @@ Prior to building the library the following environment variables need to be set
 * MCWCPPAMPROOT=<path to mcw_cppamp dir>
 
 Steps to build AMPFFT:
+
    * cd Build/linux/
+
    * sh build.sh
+
    * make
