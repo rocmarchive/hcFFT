@@ -622,6 +622,336 @@ namespace StockhamGenerator
 #define SR_COMP_REAL 0 // real
 #define SR_COMP_IMAG 1 // imag
 #define SR_COMP_BOTH 2 // real & imag
+
+		// SweepRegs is to iterate through the registers to do the three basic operations:
+		// reading, twiddle multiplication, writing
+		void SweepRegs(	size_t flag, bool fwd, bool interleaved, size_t stride, size_t component,
+						double scale,
+						const std::string &bufferRe, const std::string &bufferIm, const std::string &offset,
+						size_t regC, size_t numB, size_t numPrev, std::string &passStr) const
+		{
+			assert( (flag == SR_READ )			||
+					(flag == SR_TWMUL)			||
+					(flag == SR_TWMUL_3STEP)	||
+					(flag == SR_WRITE) );
+
+			const std::string twTable = TwTableName();
+			const std::string tw3StepFunc = TwTableLargeFunc();
+
+			// component: 0 - real, 1 - imaginary, 2 - both
+			size_t cStart, cEnd;
+			switch(component)
+			{
+			case SR_COMP_REAL:	cStart = 0; cEnd = 1; break;
+			case SR_COMP_IMAG:	cStart = 1; cEnd = 2; break;
+			case SR_COMP_BOTH:	cStart = 0; cEnd = 2; break;
+			default:	assert(false);
+			}
+
+			// Read/Write logic:
+			// The double loop inside pass loop of FFT algorithm is mapped into the
+			// workGroupSize work items with each work item handling cnPerWI numbers
+
+			// Read logic:
+			// Reads for any pass appear the same with the stockham algorithm when mapped to
+			// the work items. The buffer is divided into (L/radix) sized blocks and the
+			// values are read in linear order inside each block.
+
+			// Vector reads are possible if we have unit strides
+			// since read pattern remains the same for all passes and they are contiguous
+			// Writes are not contiguous
+
+			// TODO : twiddle multiplies can be combined with read
+			// TODO : twiddle factors can be reordered in the table to do vector reads of them
+
+			// Write logic:
+			// outer loop index k and the inner loop index j map to 'me' as follows:
+			// In one work-item (1 'me'), there are 'numButterfly' fft butterflies. They
+			// are indexed as numButterfly*me + butterflyIndex, where butterflyIndex's range is
+			// 0 ... numButterfly-1. The total number of butterflies needed is covered over all
+			// the work-items. So essentially the double loop k,j is flattened to fit this linearly
+			// increasing 'me'.
+			// j = (numButterfly*me + butterflyIndex)%LS
+			// k = (numButterfly*me + butterflyIndex)/LS
+
+
+			std::string twType = RegBaseType<PR>(2);
+			std::string rType  = RegBaseType<PR>(1);
+
+			size_t butterflyIndex = numPrev;
+
+			std::string regBase;
+			RegBase(regC, regBase);
+
+			// special write back to global memory with float4 grouping, writing 2 complex numbers at once
+			if( numB && (numB%2 == 0) && (regC == 1) && (stride == 1) && (numButterfly%2 == 0) && (algLS%2 == 0) && (flag == SR_WRITE) &&
+				(nextPass == NULL) && interleaved && (component == SR_COMP_BOTH) && linearRegs && enableGrouping )
+			{
+				assert((numButterfly * workGroupSize) == algLS);
+				assert(bufferRe.compare(bufferIm) == 0); // Make sure Real & Imag buffer strings are same for interleaved data
+
+				passStr += "\n\t";
+				passStr += "const array_view<"; passStr += RegBaseType<PR>(4);
+				passStr += ",1> &buff4g = "; passStr += bufferRe; passStr += ";\n\t"; // Assuming 'outOffset' is 0, so not adding it here
+
+				for(size_t r=0; r<radix; r++) // setting the radix loop outside to facilitate grouped writing
+				{
+					butterflyIndex = numPrev;
+
+					for(size_t i=0; i<(numB/2); i++)
+					{
+						std::string regIndexA = "(*R";
+						std::string regIndexB = "(*R";
+
+						RegBaseAndCountAndPos("", (2*i + 0)*radix + r, regIndexA); regIndexA += ")";
+						RegBaseAndCountAndPos("", (2*i + 1)*radix + r, regIndexB); regIndexB += ")";
+
+						passStr += "\n\t";
+						passStr += "buff4g"; passStr += "[ ";
+						passStr += SztToStr(numButterfly/2); passStr += "*me + "; passStr += SztToStr(butterflyIndex);
+						passStr += " + ";
+						passStr += SztToStr(r*(algLS/2)); passStr += " ]";
+						passStr += " = "; passStr += "("; passStr += RegBaseType<PR>(4); passStr += ")(";
+						passStr += regIndexA; passStr += ".x, ";
+						passStr += regIndexA; passStr += ".y, ";
+						passStr += regIndexB; passStr += ".x, ";
+						passStr += regIndexB; passStr += ".y) ";
+						if(scale != 1.0f) { passStr += " * "; passStr += FloatToStr(scale); passStr += FloatSuffix<PR>(); }
+						passStr += ";";
+
+						butterflyIndex++;
+					}
+				}
+
+				return;
+			}
+
+			for(size_t i=0; i<numB; i++)
+			{
+				std::string regBaseCount = regBase;
+				RegBaseAndCount(i, regBaseCount);
+
+				if(flag == SR_READ) // read operation
+				{
+					// the 'r' (radix index) loop is placed outer to the
+					// 'v' (vector index) loop to make possible vectorized reads
+
+					for(size_t r=0; r<radix; r++)
+					{
+						for(size_t c=cStart; c<cEnd; c++) // component loop: 0 - real, 1 - imaginary
+						{
+							std::string tail;
+							std::string regIndex;
+							regIndex = linearRegs ? "(R" : regBaseCount;
+                                                        std::string buffer;
+
+							// Read real & imag at once
+							if(interleaved && (component == SR_COMP_BOTH) && linearRegs)
+							{
+								assert(bufferRe.compare(bufferIm) == 0); // Make sure Real & Imag buffer strings are same for interleaved data
+								buffer = bufferRe;
+								RegBaseAndCountAndPos("", i*radix + r, regIndex); regIndex += "[0])";
+								tail = ";";
+							}
+							else
+							{
+								if(c == 0)
+								{
+									if(linearRegs) { RegBaseAndCountAndPos("", i*radix + r, regIndex); regIndex += "[0]).x"; }
+									else		   { RegBaseAndCountAndPos("R", r, regIndex); }
+									buffer = bufferRe;
+									tail = interleaved ? ".x;" : ";";
+								}
+								else
+								{
+									if(linearRegs) { RegBaseAndCountAndPos("", i*radix + r, regIndex); regIndex += "[0]).y"; }
+									else		   { RegBaseAndCountAndPos("I", r, regIndex); }
+									buffer = bufferIm;
+									tail = interleaved ? ".y;" : ";";
+								}
+							}
+
+							for(size_t v=0; v<regC; v++) // TODO: vectorize the reads; instead of reading individually for consecutive reads of vector elements
+							{
+								std::string regIndexSub(regIndex);
+								if(regC != 1)
+								{
+									regIndexSub += ".s";
+									regIndexSub += SztToStr(v);
+								}
+
+								passStr += "\n\t";
+								passStr += regIndexSub;
+								passStr += " = "; passStr += buffer;
+								passStr += "["; passStr += offset; passStr += " + ( "; passStr += SztToStr(numPrev); passStr += " + ";
+								passStr += "me*"; passStr += SztToStr(numButterfly); passStr += " + ";
+								passStr += SztToStr(i*regC + v); passStr += " + ";
+								passStr += SztToStr(r*length/radix); passStr += " )*";
+								passStr += SztToStr(stride); passStr += "]"; passStr += tail;
+							}
+
+							// Since we read real & imag at once, we break the loop
+							if(interleaved && (component == SR_COMP_BOTH) && linearRegs)
+								break;
+						}
+					}
+				}
+				else if( (flag == SR_TWMUL) || (flag == SR_TWMUL_3STEP) ) // twiddle multiplies and writes require that 'r' loop be innermost
+				{
+					for(size_t v=0; v<regC; v++)
+					{
+						for(size_t r=0; r<radix; r++)
+						{
+
+							std::string regRealIndex, regImagIndex;
+							regRealIndex = linearRegs ? "(R" : regBaseCount;
+							regImagIndex = linearRegs ? "(R" : regBaseCount;
+
+							if(linearRegs)
+							{
+								RegBaseAndCountAndPos("", i*radix + r, regRealIndex); regRealIndex += "[0]).x";
+								RegBaseAndCountAndPos("", i*radix + r, regImagIndex); regImagIndex += "[0]).y";
+							}
+							else
+							{
+								RegBaseAndCountAndPos("R", r, regRealIndex);
+								RegBaseAndCountAndPos("I", r, regImagIndex);
+							}
+
+							if(regC != 1)
+							{
+								regRealIndex += ".s"; regRealIndex += SztToStr(v);
+								regImagIndex += ".s"; regImagIndex += SztToStr(v);
+							}
+
+
+							if(flag == SR_TWMUL) // twiddle multiply operation
+							{
+								if(r == 0) // no twiddle muls needed
+									continue;
+
+								passStr += "\n\t{\n\t\t"; passStr += twType; passStr += " W = ";
+								passStr += twTable; passStr += "["; passStr += SztToStr(algLS-1); passStr += " + ";
+								passStr += SztToStr(radix-1); passStr += "*(("; passStr += SztToStr(numButterfly);
+								passStr += "*me + "; passStr += SztToStr(butterflyIndex); passStr += ")%";
+								passStr += SztToStr(algLS); passStr += ") + "; passStr += SztToStr(r-1);
+								passStr += "];\n\t\t";
+							}
+							else	// 3-step twiddle
+							{
+								passStr += "\n\t{\n\t\t"; passStr += twType; passStr += " W = ";
+								passStr += tw3StepFunc; passStr += "( ";
+								passStr += "(("; passStr += SztToStr(numButterfly); passStr += "*me + ";
+								passStr += SztToStr(butterflyIndex);
+								passStr += ")%"; passStr += SztToStr(algLS); passStr += " + ";
+								passStr += SztToStr(r*algLS); passStr += ") * b "; passStr += ");\n\t\t";
+							}
+
+							passStr += rType; passStr += " TR, TI;\n\t\t";
+							if(fwd)
+							{
+								passStr += "TR = (W.x * "; passStr += regRealIndex; passStr += ") - (W.y * ";
+								passStr += regImagIndex; passStr += ");\n\t\t";
+								passStr += "TI = (W.y * "; passStr += regRealIndex; passStr += ") + (W.x * ";
+								passStr += regImagIndex; passStr += ");\n\t\t";
+							}
+							else
+							{
+								passStr += "TR =  (W.x * "; passStr += regRealIndex; passStr += ") + (W.y * ";
+								passStr += regImagIndex; passStr += ");\n\t\t";
+								passStr += "TI = -(W.y * "; passStr += regRealIndex; passStr += ") + (W.x * ";
+								passStr += regImagIndex; passStr += ");\n\t\t";
+							}
+
+							passStr += regRealIndex; passStr += " = TR;\n\t\t";
+							passStr += regImagIndex; passStr += " = TI;\n\t}\n";
+
+						}
+
+						butterflyIndex++;
+					}
+				}
+				else // write operation
+				{
+					for(size_t v=0; v<regC; v++)
+					{
+						for(size_t r=0; r<radix; r++)
+						{
+							for(size_t c=cStart; c<cEnd; c++) // component loop: 0 - real, 1 - imaginary
+							{
+								std::string tail;
+								std::string regIndex;
+								regIndex = linearRegs ? "(R" : regBaseCount;
+								std::string buffer;
+
+								// Write real & imag at once
+								if(interleaved && (component == SR_COMP_BOTH) && linearRegs)
+								{
+									assert(bufferRe.compare(bufferIm) == 0); // Make sure Real & Imag buffer strings are same for interleaved data
+									buffer = bufferRe;
+									RegBaseAndCountAndPos("", i*radix + r, regIndex); regIndex += "[0])";
+									tail = "";
+								}
+								else
+								{
+									if(c == 0)
+									{
+										if(linearRegs) { RegBaseAndCountAndPos("", i*radix + r, regIndex); regIndex += "[0]).x"; }
+										else		   { RegBaseAndCountAndPos("R", r, regIndex); }
+										buffer = bufferRe;
+										tail = interleaved ? ".x" : "";
+									}
+									else
+									{
+										if(linearRegs) { RegBaseAndCountAndPos("", i*radix + r, regIndex); regIndex += "[0]).y"; }
+										else		   { RegBaseAndCountAndPos("I", r, regIndex); }
+										buffer = bufferIm;
+										tail = interleaved ? ".y" : "";
+									}
+								}
+
+								if(regC != 1)
+								{
+									regIndex += ".s";
+									regIndex += SztToStr(v);
+								}
+
+								passStr += "\n\t";
+								passStr += buffer; passStr += "["; passStr += offset; passStr += " + ( ";
+
+								if( (numButterfly * workGroupSize) > algLS )
+								{
+									passStr += "(("; passStr += SztToStr(numButterfly);
+									passStr += "*me + "; passStr += SztToStr(butterflyIndex); passStr += ")/";
+									passStr += SztToStr(algLS); passStr += ")*"; passStr += SztToStr(algL); passStr += " + (";
+									passStr += SztToStr(numButterfly); passStr += "*me + "; passStr += SztToStr(butterflyIndex);
+									passStr += ")%"; passStr += SztToStr(algLS); passStr += " + ";
+								}
+								else
+								{
+									passStr += SztToStr(numButterfly); passStr += "*me + "; passStr += SztToStr(butterflyIndex);
+									passStr += " + ";
+								}
+
+								passStr += SztToStr(r*algLS); passStr += " )*"; passStr += SztToStr(stride); passStr += "]";
+								passStr += tail; passStr += " = "; passStr += regIndex;
+								if(scale != 1.0f) { passStr += " * "; passStr += FloatToStr(scale); passStr += FloatSuffix<PR>(); }
+								passStr += ";";
+
+								// Since we write real & imag at once, we break the loop
+								if(interleaved && (component == SR_COMP_BOTH) && linearRegs)
+									break;
+							}
+						}
+
+						butterflyIndex++;
+					}
+
+				}
+			}
+
+			assert(butterflyIndex <= numButterfly);
+		}
      };
 }
 
