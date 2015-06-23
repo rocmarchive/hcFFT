@@ -140,6 +140,20 @@ ampfftStatus FFTPlan::executePlan(FFTPlan* fftPlan)
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftGetPlanPrecision( const  ampfftPlanHandle plHandle,  ampfftPrecision* precision )
+{
+  FFTRepo& fftRepo = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock = NULL;
+
+  fftRepo.getPlan(plHandle, fftPlan, planLock );
+  scopedLock sLock(*planLock, _T( " ampfftGetPlanPrecision" ) );
+
+  *precision = fftPlan->precision;
+
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
