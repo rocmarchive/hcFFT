@@ -78,7 +78,105 @@
 
 namespace StockhamGenerator
 {
+// Experimental End ===========================================
 
+#define RADIX_TABLE_COMMON 	{     2048,           256,             1,         4,     8, 8, 8, 4, 0, 0, 0, 0, 0, 0, 0, 0 },	\
+							{      512,            64,             1,         3,     8, 8, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0 },	\
+							{      256,            64,             1,         4,     4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0 },	\
+							{       64,            64,             4,         3,     4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0 },	\
+							{       32,            64,            16,         2,     8, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },	\
+							{       16,            64,            16,         2,     4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },	\
+							{        4,            64,            32,         2,     2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },	\
+							{        2,            64,            64,         1,     2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+
+    template <Precision PR>
+	class KernelCoreSpecs
+	{
+		struct SpecRecord
+		{
+			size_t length;
+			size_t workGroupSize;
+			size_t numTransforms;
+			size_t numPasses;
+			size_t radices[12]; // Setting upper limit of number of passes to 12
+		};
+
+		typedef typename std::map<size_t, SpecRecord> SpecTable;
+		SpecTable specTable;
+
+	public:
+		KernelCoreSpecs()
+		{
+			switch(PR)
+			{
+			case P_SINGLE:
+				{
+					SpecRecord specRecord[] = {
+
+					RADIX_TABLE_COMMON
+
+					//  Length, WorkGroupSize, NumTransforms, NumPasses,  Radices
+					{     4096,           256,             1,         4,     8, 8, 8, 8, 0, 0, 0, 0, 0, 0, 0, 0 },
+					{     1024,           128,             1,         4,     8, 8, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0 },
+					{      128,            64,             4,         3,     8, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+					{        8,            64,            32,         2,     4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+
+					};
+
+					size_t tableLength = sizeof(specRecord)/sizeof(specRecord[0]);
+					for(size_t i=0; i<tableLength; i++) specTable[specRecord[i].length] = specRecord[i];
+
+				} break;
+
+			case P_DOUBLE:
+				{
+					SpecRecord specRecord[] = {
+
+					RADIX_TABLE_COMMON
+
+					//  Length, WorkGroupSize, NumTransforms, NumPasses,  Radices
+					{     1024,           128,             1,         4,     8, 8, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0 },
+					//{      128,            64,             1,         7,     2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0 },
+					{      128,            64,             4,         3,     8, 8, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+					{        8,            64,            16,         3,     2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+
+					};
+
+					size_t tableLength = sizeof(specRecord)/sizeof(specRecord[0]);
+					for(size_t i=0; i<tableLength; i++) specTable[specRecord[i].length] = specRecord[i];
+				} break;
+
+			default:
+				assert(false);
+			}
+		}
+
+		void GetRadices(size_t length, size_t &numPasses, const size_t * &pRadices) const
+		{
+			pRadices = NULL;
+			numPasses = 0;
+
+			typename SpecTable::const_iterator it = specTable.find(length);
+			if(it != specTable.end())
+			{
+				pRadices = it->second.radices;
+				numPasses = it->second.numPasses;
+			}
+		}
+
+		void GetWGSAndNT(size_t length, size_t &workGroupSize, size_t &numTransforms) const
+		{
+			workGroupSize = 0;
+			numTransforms = 0;
+
+			typename SpecTable::const_iterator it = specTable.find(length);
+			if(it != specTable.end())
+			{
+				workGroupSize = it->second.workGroupSize;
+				numTransforms = it->second.numTransforms;
+			}
+		}
+	};
 }
 
 template<>
