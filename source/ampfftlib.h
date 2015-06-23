@@ -262,6 +262,8 @@ public:
 
   ampfftStatus	ampfftSetResultLocation(ampfftPlanHandle plHandle, ampfftResLocation placeness );
 
+  ampfftStatus	ampfftGetPlanTransposeResult(const ampfftPlanHandle plHandle, ampfftResTransposed * transposed );
+
   ampfftStatus GetEnvelope (const FFTEnvelope **) const;
 
   ampfftStatus SetEnvelope ();

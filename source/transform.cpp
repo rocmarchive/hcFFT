@@ -745,6 +745,20 @@ ampfftStatus FFTPlan::ampfftSetResultLocation(  ampfftPlanHandle plHandle,  ampf
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftGetPlanTransposeResult( const  ampfftPlanHandle plHandle,  ampfftResTransposed * transposed )
+{
+  FFTRepo& fftRepo	= FFTRepo::getInstance( );
+  FFTPlan* fftPlan	= NULL;
+  lockRAII* planLock	= NULL;
+
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock( *planLock, _T( " ampfftGetResultLocation" ) );
+
+  *transposed	= fftPlan->transposeType;
+
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
