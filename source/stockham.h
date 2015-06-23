@@ -99,4 +99,38 @@ namespace StockhamGenerator
 
 		return sfx;
 	}
+
+	inline std::string ButterflyName(size_t radix, size_t count, bool fwd)
+	{
+		std::string str;
+		if(fwd) str += "Fwd";
+		else	str += "Inv";
+		str += "Rad"; str += SztToStr(radix);
+		str += "B"; str += SztToStr(count);
+		return str;
+	}
+
+	inline std::string PassName(size_t pos, bool fwd)
+	{
+		std::string str;
+		if(fwd) str += "Fwd";
+		else	str += "Inv";
+		str += "Pass"; str += SztToStr(pos);
+		return str;
+	}
+
+	inline std::string TwTableName()
+	{
+		return "twiddles";
+	}
+
+	inline std::string TwTableLargeName()
+	{
+		return "twiddle_dee";
+	}
+
+	inline std::string TwTableLargeFunc()
+	{
+		return "TW3step";
+	}
 }
