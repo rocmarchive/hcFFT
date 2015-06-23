@@ -3107,3 +3107,34 @@ ampfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS,
 
     return    AMPFFT_SUCCESS;
 }
+
+template<>
+ampfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const ampfftPlanHandle plHandle, FFTRepo& fftRepo) const
+{
+    FFTKernelGenKeyParams params;
+    this->GetKernelGenKeyPvt<Stockham> (params);
+    std::cout<<" in GenerateKernelPvt params.fft_placeness "<< params.fft_placeness<< std::endl;
+    vector< size_t > gWorkSize;
+    vector< size_t > lWorkSize;
+    this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);
+
+    std::string programCode;
+    Precision pr = (params.fft_precision == AMPFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
+    switch(pr)
+    {
+        case P_SINGLE:
+	{
+	  Kernel<P_SINGLE> kernel(params);
+	  kernel.GenerateKernel(programCode, gWorkSize, lWorkSize);
+	} break;
+	case P_DOUBLE:
+	{
+	  Kernel<P_DOUBLE> kernel(params);
+	  kernel.GenerateKernel(programCode, gWorkSize, lWorkSize);
+	} break;
+    }
+
+    fftRepo.setProgramCode( Stockham, plHandle, params, programCode);
+    fftRepo.setProgramEntryPoints( Stockham, plHandle, params, "fft_fwd", "fft_back");
+    return AMPFFT_SUCCESS;
+}

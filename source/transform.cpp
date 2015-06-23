@@ -808,6 +808,16 @@ ampfftStatus  FFTPlan::GetWorkSizes (std::vector<size_t> & globalws, std::vector
 	}
 }
 
+ampfftStatus  FFTPlan::GenerateKernel (const ampfftPlanHandle plHandle, FFTRepo & fftRepo) const
+{
+        switch(gen)
+	{
+	case Stockham:
+          return GenerateKernelPvt<Stockham>(plHandle, fftRepo);
+	default:
+          return AMPFFT_ERROR;
+	}
+}
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );

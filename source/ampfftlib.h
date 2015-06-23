@@ -244,6 +244,8 @@ struct FFTKernelGenKeyParams {
 	bool                     fft_RCsimple;
 };
 
+class FFTRepo;
+
 class FFTPlan
 {
 public:
@@ -383,11 +385,16 @@ public:
   template <ampfftGenerators G>
   ampfftStatus GetWorkSizesPvt (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
 
+  template <ampfftGenerators G>
+  ampfftStatus GenerateKernelPvt (const ampfftPlanHandle plHandle, FFTRepo& fftRepo) const;
+
   ampfftStatus GetMax1DLength (size_t *longest ) const;
 
   ampfftStatus GetKernelGenKey (FFTKernelGenKeyParams & params) const;
 
   ampfftStatus GetWorkSizes (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
+
+  ampfftStatus GenerateKernel (const ampfftPlanHandle plHandle, FFTRepo & fftRepo) const;
 
   ampfftStatus AllocateWriteBuffers ();
 
