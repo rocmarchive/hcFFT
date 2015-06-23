@@ -644,6 +644,21 @@ ampfftStatus FFTPlan::ampfftSetPlanDistance(  ampfftPlanHandle plHandle, size_t 
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftGetLayout( const  ampfftPlanHandle plHandle,  ampfftIpLayout* iLayout,  ampfftOpLayout* oLayout )
+{
+  FFTRepo& fftRepo = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock = NULL;
+
+  fftRepo.getPlan(plHandle, fftPlan, planLock );
+  scopedLock sLock(*planLock, _T( " ampfftGetLayout" ) );
+
+  *iLayout = fftPlan->ipLayout;
+  *oLayout = fftPlan->opLayout;
+
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
