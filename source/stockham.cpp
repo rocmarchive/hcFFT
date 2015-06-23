@@ -2049,6 +2049,96 @@ namespace StockhamGenerator
 
 		return possible;
        }
+
+	inline std::string OffsetCalc(const std::string &off, bool input = true, bool rc_second_index = false)
+	{
+		std::string str;
+
+		const size_t *pStride = input ? params.fft_inStride : params.fft_outStride;
+
+		std::string batch;
+		if(r2c2r && !rcSimple)
+		{
+			batch += "(batch*"; batch += SztToStr(2*numTrans);
+			if(rc_second_index) batch += " + 1";
+			else				batch += " + 0";
+
+			if(numTrans != 1)	{ batch += " + 2*(me/"; batch += SztToStr(workGroupSizePerTrans); batch += "))"; }
+			else				{ batch += ")"; }
+		}
+		else
+		{
+			if(numTrans == 1)	{	batch += "batch"; }
+			else			{	batch += "(batch*"; batch += SztToStr(numTrans);
+							batch += " + (me/"; batch += SztToStr(workGroupSizePerTrans); batch += "))"; }
+		}
+
+		switch(params.fft_DataDim)
+		{
+			case 5:
+				{
+					str += "\t{\n\tunsigned int ocalc1 = ";
+					str += batch; str += "%"; str += SztToStr(params.fft_N[1] * params.fft_N[2] * params.fft_N[3]);
+					str += ";\n";
+
+					str += "\tunsigned int ocalc0 = ";
+					str += "ocalc1"; str += "%"; str += SztToStr(params.fft_N[1] * params.fft_N[2]);
+					str += ";\n";
+
+					str += "\t"; str += off; str += " = ";
+					str += "("; str += batch; str += "/"; str += SztToStr(params.fft_N[1] * params.fft_N[2] * params.fft_N[3]);
+					str += ")*"; str += SztToStr(pStride[4]); str += " + ";
+
+					str += "(ocalc1"; str += "/"; str += SztToStr(params.fft_N[1] * params.fft_N[2]); str += ")*";
+					str += SztToStr(pStride[3]); str += " + ";
+
+					str += "(ocalc0"; str += "/"; str += SztToStr(params.fft_N[1]); str += ")*";
+					str += SztToStr(pStride[2]); str += " + ";
+					str += "(ocalc0"; str += "%"; str += SztToStr(params.fft_N[1]); str += ")*";
+					str += SztToStr(pStride[1]); str += ";\n";
+
+					str += "\t}\n";
+				}
+				break;
+			case 4:
+				{
+					str += "\t{\n\tunsigned int ocalc0 = ";
+					str += batch; str += "%"; str += SztToStr(params.fft_N[1] * params.fft_N[2]);
+					str += ";\n";
+
+					str += "\t"; str += off; str += " = ";
+					str += "("; str += batch; str += "/"; str += SztToStr(params.fft_N[1] * params.fft_N[2]); str += ")*";
+					str += SztToStr(pStride[3]); str += " + ";
+
+					str += "(ocalc0"; str += "/"; str += SztToStr(params.fft_N[1]); str += ")*";
+					str += SztToStr(pStride[2]); str += " + ";
+					str += "(ocalc0"; str += "%"; str += SztToStr(params.fft_N[1]); str += ")*";
+					str += SztToStr(pStride[1]); str += ";\n";
+
+					str += "\t}\n";
+				}
+				break;
+			case 3:
+				{
+					str += "\t"; str += off; str += " = ";
+					str += "("; str += batch; str += "/"; str += SztToStr(params.fft_N[1]); str += ")*";
+					str += SztToStr(pStride[2]); str += " + ";
+					str += "("; str += batch; str += "%"; str += SztToStr(params.fft_N[1]); str += ")*";
+					str += SztToStr(pStride[1]); str += ";\n";
+				}
+				break;
+			case 2:
+				{
+					str += "\t"; str += off; str += " = ";
+					str += batch; str += "*"; str += SztToStr(pStride[1]); str += ";\n";
+				}
+				break;
+			default:
+				assert(false);
+			}
+
+			return str;
+		}
        };
 }
 
