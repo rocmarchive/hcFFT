@@ -1347,6 +1347,16 @@ namespace StockhamGenerator
 				assert(numButterfly == (numB4*4 + numB2*2 + numB1));
 			}
 		}
+
+		size_t GetNumB1() const { return numB1; }
+		size_t GetNumB2() const { return numB2; }
+		size_t GetNumB4() const { return numB4; }
+
+		size_t GetPosition() const { return position; }
+		size_t GetRadix() const { return radix; }
+
+		void SetNextPass(Pass<PR> *np) { nextPass = np; }
+		void SetGrouping(bool grp) { enableGrouping = grp; }
      };
 }
 
