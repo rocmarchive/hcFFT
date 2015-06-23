@@ -1,4 +1,11 @@
+#include <dlfcn.h>
 #include "ampfftlib.h"
+
+//	Static initialization of the repo lock variable
+lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
+
+//	Static initialization of the plan count variable
+size_t FFTRepo::planCount	= 1;
 
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
@@ -2799,6 +2806,7 @@ size_t FFTPlan::ElementSize() const
 {
   return ((precision == AMPFFT_DOUBLE) ? sizeof(std::complex<double> ) : sizeof(std::complex<float>));
 }
+
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------FFTRepo--------------------------------------------------------------------------------*/

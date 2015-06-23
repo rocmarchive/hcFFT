@@ -217,7 +217,7 @@ typedef enum ampfftGenerators_
 //	common denominators.
 //
 struct FFTEnvelope {
-	cl_ulong   limit_LocalMemSize;
+	long       limit_LocalMemSize;
 	           //  this is the minimum of CL_DEVICE_LOCAL_MEM_SIZE
 	size_t     limit_Dimensions;
 	           //  this is the minimum of CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS
