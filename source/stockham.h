@@ -133,4 +133,19 @@ namespace StockhamGenerator
 	{
 		return "TW3step";
 	}
+
+	// FFT butterfly
+       template <Precision PR>
+       class Butterfly
+       {
+	        size_t radix;		// Base radix
+                size_t count;       // Number of basic butterflies, valid values: 1,2,4
+		bool fwd;			// FFT direction
+		bool cReg;			// registers are complex numbers, .x (real), .y(imag)
+
+		size_t BitReverse (size_t n, size_t N) const
+		{
+			return (N < 2) ? n : (BitReverse (n >> 1, N >> 1) | ((n & 1) != 0 ? (N >> 1) : 0));
+		}
+       };
 }
