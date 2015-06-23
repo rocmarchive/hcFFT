@@ -1357,6 +1357,622 @@ namespace StockhamGenerator
 
 		void SetNextPass(Pass<PR> *np) { nextPass = np; }
 		void SetGrouping(bool grp) { enableGrouping = grp; }
+		void GeneratePass(	bool fwd, std::string &passStr, bool fft_3StepTwiddle,
+							bool inInterleaved, bool outInterleaved,
+							bool inReal, bool outReal,
+							size_t inStride, size_t outStride, double scale,
+                                                        size_t lWorkSize, bool gIn = false,
+                                                        bool gOut = false) const
+		{
+                        const std::string bufferInRe  = (inReal || inInterleaved) ?   "bufIn"  : "bufInRe";
+			const std::string bufferInIm  = (inReal || inInterleaved) ?   "bufIn"  : "bufInIm";
+			const std::string bufferOutRe = (outReal || outInterleaved) ? "bufOut" : "bufOutRe";
+			const std::string bufferOutIm = (outReal || outInterleaved) ? "bufOut" : "bufOutIm";
+
+			const std::string bufferInRe2  = (inReal || inInterleaved) ?   "bufIn2"  : "bufInRe2";
+			const std::string bufferInIm2  = (inReal || inInterleaved) ?   "bufIn2"  : "bufInIm2";
+			const std::string bufferOutRe2 = (outReal || outInterleaved) ? "bufOut2" : "bufOutRe2";
+			const std::string bufferOutIm2 = (outReal || outInterleaved) ? "bufOut2" : "bufOutIm2";
+
+
+			// for real transforms we use only B1 butteflies (regC = 1)
+			if(r2c || c2r)
+			{
+				assert(numB1 == numButterfly);
+				assert(linearRegs);
+			}
+
+			// Check if it is single pass transform
+			bool singlePass = ((position == 0) && (nextPass == NULL));
+			if(singlePass) assert(numButterfly == 1); // for single pass transforms, there can be only 1 butterfly per transform
+			if(singlePass) assert(workGroupSize == 1);
+
+			// Register types
+			std::string regB1Type = RegBaseType<PR>(1);
+			std::string regB2Type = RegBaseType<PR>(2);
+			std::string regB4Type = RegBaseType<PR>(4);
+
+			//Function attribute
+			passStr += "inline void\n";
+
+			//Function name
+			passStr += PassName(position, fwd);
+
+			// Function arguments
+			passStr += "(";
+			passStr += "unsigned int rw, unsigned int b, unsigned int me, unsigned int inOffset, unsigned int outOffset, ";
+
+			// For now, interleaved support is there for only global buffers
+			// TODO : add support for LDS interleaved
+			if(inInterleaved)  assert(gIn);
+			if(outInterleaved) assert(gOut);
+
+			if(r2c || c2r)
+			{
+				if(gIn)
+				{
+					if(inInterleaved)
+					{
+						passStr += "const array_view<"; passStr += regB2Type; passStr += ",1> &"; passStr += bufferInRe;  passStr += ", ";
+                                                passStr += "unsigned int iOffset,";
+						if(!rcSimple) {
+                                                              passStr += "unsigned int iOffset2,";
+                                                              }
+					}
+					else if(inReal)
+					{
+						passStr += "const array_view< "; passStr += regB1Type; passStr += ",1> &"; passStr += bufferInRe;  passStr += ", ";
+                                                passStr += "unsigned int iOffset,";
+						if(!rcSimple) {
+                                                passStr += "unsigned int iOffset2,";
+                                                }
+					}
+					else
+					{
+						passStr += "const array_view<"; passStr += regB1Type; passStr += ",1> &"; passStr += bufferInRe;  passStr += ", ";
+                                                passStr += "unsigned int iOffset,";
+						if(!rcSimple) {
+                                                              passStr += "unsigned int iOffset2,";
+                                                              }
+						passStr += "const array_view<"; passStr += regB1Type; passStr += ",1> &"; passStr += bufferInIm;  passStr += ", ";
+					}
+				}
+				else
+				{
+					passStr += regB1Type; passStr += " *"; passStr += bufferInRe; passStr += ", ";
+					passStr += regB1Type; passStr += " *"; passStr += bufferInIm; passStr += ", ";
+				}
+
+				if(gOut)
+				{
+					if(outInterleaved)
+					{
+						passStr += "const array_view<"; passStr += regB2Type; passStr += ",1> &"; passStr += bufferOutRe; passStr += ", ";
+                                                passStr += "unsigned int oOffset";
+						if(!rcSimple) {
+                                                              passStr += ", "; passStr += "unsigned int oOffset2";
+                                                              }
+					}
+					else if(outReal)
+					{
+						passStr += "const array_view<"; passStr += regB1Type; passStr += ",1> &"; passStr += bufferOutRe; passStr += ", ";
+                                                passStr += "unsigned int oOffset";
+						if(!rcSimple) {
+                                                              passStr += ", ";	passStr += "unsigned int oOffset2";
+                                                              }
+					}
+					else
+					{
+						passStr += "const array_view< "; passStr += regB1Type; passStr += ",1> &"; passStr += bufferOutRe;  passStr += ", ";
+                                                passStr += "unsigned int oOffset,";
+						if(!rcSimple) {
+                                                passStr += "unsigned int oOffset2,";
+                                                }
+						passStr += "const array_view< "; passStr += regB1Type; passStr += ",1> &"; passStr += bufferOutIm;
+					}
+				}
+				else
+				{
+					passStr += regB1Type; passStr += " *"; passStr += bufferOutRe; passStr += ", ";
+					passStr += regB1Type; passStr += " *"; passStr += bufferOutIm;
+				}
+			}
+			else
+			{
+				if(gIn)
+				{
+					if(inInterleaved)
+					{
+						passStr += "const array_view< "; passStr += regB2Type; passStr += ",1> &"; passStr += bufferInRe;  passStr += ", ";
+                                                passStr += "unsigned int iOffset,";
+					}
+					else
+					{
+						passStr += "const array_view< "; passStr += regB1Type; passStr += ",1> &"; passStr += bufferInRe;  passStr += ", ";
+                                                passStr += "unsigned int iOffset,";
+						passStr += "const array_view< "; passStr += regB1Type; passStr += ",1> &"; passStr += bufferInIm;  passStr += ", ";
+					}
+				}
+				else
+				{
+					passStr += regB1Type; passStr += " *"; passStr += bufferInRe; passStr += ", ";
+//                                        passStr += "unsigned int iOffset,";
+					passStr += regB1Type; passStr += " *"; passStr += bufferInIm; passStr += ", ";
+				}
+
+
+				if(gOut)
+				{
+					if(outInterleaved)
+					{
+						passStr += "const array_view< "; passStr += regB2Type; passStr += ",1> &"; passStr += bufferOutRe; passStr += ", ";
+                                                passStr += " unsigned int oOffset";
+					}
+					else
+					{
+						passStr += "const array_view<"; passStr += regB1Type; passStr += ",1> &"; passStr += bufferOutRe;  passStr += ", ";
+                                                passStr += "unsigned int oOffset,";
+						passStr += "const array_view<"; passStr += regB1Type; passStr += ",1> &"; passStr += bufferOutIm;
+					}
+				}
+				else
+				{
+					passStr += regB1Type; passStr += " *"; passStr += bufferOutRe; passStr += ", ";
+//                                        passStr += "unsigned int oOffset,";
+					passStr += regB1Type; passStr += " *"; passStr += bufferOutIm;
+				}
+			}
+
+			// Register arguments
+			if(linearRegs)
+			{
+				passStr += ", "; passStr += IterRegArgs();
+			}
+
+			passStr += ", const array_view<const ";
+                        passStr += regB2Type;
+                        passStr += ",1> &";
+                        passStr += TwTableName();
+                        passStr += ", Concurrency::tiled_index<";
+                        passStr += SztToStr(lWorkSize);
+                        passStr += ", 1> tidx) restrict(amp)\n{\n";
+
+			// Register Declarations
+			if(!linearRegs)
+			{
+				DeclareRegs(regB1Type, 1, numB1, passStr);
+				DeclareRegs(regB2Type, 2, numB2, passStr);
+				DeclareRegs(regB4Type, 4, numB4, passStr);
+			}
+
+			// odd cnPerWI processing
+			bool oddp = false;
+			oddp = ((cnPerWI%2) && (length > 1) && (!singlePass));
+
+			// additional register for odd
+			if( !rcSimple && oddp && ((r2c && (nextPass == NULL)) || (c2r && (position == 0))) )
+			{
+				passStr += "\n\t";
+				passStr += "uint brv = 0;\n\t";
+				passStr += "\n\t";
+				passStr += regB2Type; passStr += " R"; passStr += SztToStr(cnPerWI); passStr += "[0];\n\t";
+				passStr += "(R"; passStr += SztToStr(cnPerWI); passStr += "[0]).x = 0; ";
+				passStr += "(R"; passStr += SztToStr(cnPerWI); passStr += "[0]).y = 0;\n";
+			}
+
+			// Special private memory for c-r 1 pass transforms
+			if( !rcSimple && (c2r && (position == 0)) && singlePass )
+			{
+				assert(radix == length);
+
+				passStr += "\n\t";
+				passStr += regB1Type;
+				passStr += " mpvt["; passStr += SztToStr(length); passStr += "];\n";
+			}
+
+			passStr += "\n";
+
+			// Read into registers
+			if(r2c)
+			{
+				if(position == 0)
+				{
+					passStr += "\n\tif(rw)\n\t{";
+					if(gIn) { SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr);}
+                                        else { SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr); }
+					passStr += "\n\t}\n";
+
+					if(rcSimple)
+					{
+						passStr += "\n";
+						if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe, bufferInIm, "inOffset + iOffset2", passStr); }
+                                                else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInIm2, "inOffset", passStr); }
+						passStr += "\n";
+					}
+					else
+					{
+						passStr += "\n\tif(rw > 1)\n\t{";
+						if(gIn) { SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset2", 1, numB1, 0, passStr); }
+                                                else { SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, bufferInRe2, bufferInIm2, "inOffset", 1, numB1, 0, passStr); }
+						passStr += "\n\t}\n";
+
+						passStr += "\telse\n\t{";
+						if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe, bufferInIm, "inOffset + iOffset2", passStr); }
+                                                else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInIm2, "inOffset", passStr); }
+						passStr += "\n\t}\n";
+					}
+				}
+			}
+			else if(c2r && !rcSimple)
+			{
+				if(position == 0)
+				{
+					std::string processBufRe = bufferOutRe;
+					std::string processBufIm = bufferOutIm;
+					std::string processBufOffset = "outOffset";
+					size_t processBufStride = outStride;
+
+					if(singlePass)
+					{
+						processBufRe = "mpvt";
+						processBufIm = "mpvt";
+						processBufOffset = "0";
+						processBufStride = 1;
+					}
+
+					passStr += "\n\tif(rw && !me)\n\t{\n\t";
+					passStr += processBufRe; passStr += "["; passStr += processBufOffset; passStr += "] = ";
+					if(gIn) { passStr += bufferInRe; passStr+= "[inOffset + iOffset]"; }
+                                        else { passStr += bufferInRe; passStr+= "[inOffset]";}
+					if(inInterleaved) passStr += ".x;\n\t}"; else passStr += ";\n\t}";
+
+					if(length > 1)
+					{
+						passStr += "\n\n\tif(rw)\n\t{";
+						if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInRe, "inOffset + iOffset", passStr); }
+                                                else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInRe, "inOffset", passStr); }
+						passStr += "\n\t}\n";
+
+						passStr += "\n\tif(rw > 1)\n\t{";
+						if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, false, bufferInIm, bufferInIm, "inOffset + iOffset2", passStr); }
+                                                else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, false, bufferInIm2, bufferInIm2, "inOffset", passStr); }
+						passStr += "\n\t}\n\telse\n\t{";
+						if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, true, true, false, bufferInIm, bufferInIm, "inOffset + iOffset2", passStr); }
+                                                else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, true, true, false, bufferInIm2, bufferInIm2, "inOffset", passStr); }
+						passStr += "\n\t}\n";
+
+						if(oddp)
+						{
+							passStr += "\n\tif(rw && (me%2))\n\t{";
+                                                        if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInRe, "inOffset + iOffset", passStr); }
+                                                        else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInRe, "inOffset", passStr); }
+							passStr += "\n\t}";
+							passStr += "\n\tif((rw > 1) && (me%2))\n\t{";
+							if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, true, bufferInIm, bufferInIm, "inOffset + iOffset2", passStr); }
+                                                        else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, true, bufferInIm2, bufferInIm2, "inOffset", passStr); }
+							passStr += "\n\t}\n";
+						}
+
+
+						SweepRegsRC(SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, true, false, processBufRe, processBufIm, processBufOffset, passStr);
+						if(oddp)
+						{
+							passStr += "\n\tif(me%2)\n\t{";
+							SweepRegsRC(SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, true, true, processBufRe, processBufIm, processBufOffset, passStr);
+							passStr += "\n\t}\n";
+						}
+						SweepRegsRC(SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, false, false, processBufRe, processBufIm, processBufOffset, passStr);
+						if(oddp)
+						{
+							passStr += "\n\tif(me%2)\n\t{";
+							SweepRegsRC(SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, false, true, processBufRe, processBufIm, processBufOffset, passStr);
+							passStr += "\n\t}\n";
+						}
+					}
+
+					passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
+					SweepRegs(SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr);
+					passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
+
+
+					passStr += "\n\tif((rw > 1) && !me)\n\t{\n\t";
+					passStr += processBufIm; passStr += "["; passStr += processBufOffset; passStr += "] = ";
+					if(gIn) { passStr += bufferInRe; passStr+= "[inOffset + iOffset2]"; }
+                                        else { passStr += bufferInRe2; passStr+= "[inOffset]"; }
+					if(inInterleaved) passStr += ".x;\n\t}"; else passStr += ";\n\t}";
+					passStr += "\n\tif((rw == 1) && !me)\n\t{\n\t"; passStr += processBufIm; passStr += "["; passStr += processBufOffset; passStr += "] = 0;\n\t}";
+
+
+					if(length > 1)
+					{
+						passStr += "\n\n\tif(rw)\n\t{";
+                                                if (gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInIm, bufferInIm, "inOffset + iOffset", passStr); }
+                                                else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInIm, bufferInIm, "inOffset", passStr); }
+						passStr += "\n\t}\n";
+
+						passStr += "\n\tif(rw > 1)\n\t{";
+						if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, false, bufferInRe, bufferInRe, "inOffset + iOffset2", passStr); }
+                                                else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, false, bufferInRe2, bufferInRe2, "inOffset", passStr); }
+						passStr += "\n\t}\n\telse\n\t{";
+						if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe, bufferInRe, "inOffset + iOffset2", passStr); }
+                                                else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInRe2, "inOffset", passStr); }
+						passStr += "\n\t}\n";
+
+						if(oddp)
+						{
+							passStr += "\n\tif(rw && (me%2))\n\t{";
+							if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInIm, bufferInIm, "inOffset + iOffset", passStr); }
+                                                        else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInIm, bufferInIm, "inOffset", passStr);}
+							passStr += "\n\t}";
+							passStr += "\n\tif((rw > 1) && (me%2))\n\t{";
+							if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, true, bufferInRe, bufferInRe, "inOffset + iOffset2", passStr); }
+                                                        else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, true, bufferInRe2, bufferInRe2, "inOffset", passStr); }
+							passStr += "\n\t}\n";
+						}
+
+						SweepRegsRC(SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, true, false, processBufRe, processBufIm, processBufOffset, passStr);
+						if(oddp)
+						{
+							passStr += "\n\tif(me%2)\n\t{";
+							SweepRegsRC(SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, true, true, processBufRe, processBufIm, processBufOffset, passStr);
+							passStr += "\n\t}\n";
+						}
+						SweepRegsRC(SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, false, false, processBufRe, processBufIm, processBufOffset, passStr);
+						if(oddp)
+						{
+							passStr += "\n\tif(me%2)\n\t{";
+							SweepRegsRC(SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, false, true, processBufRe, processBufIm, processBufOffset, passStr);
+							passStr += "\n\t}\n";
+						}
+					}
+
+					passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
+					SweepRegs(SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr);
+					passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
+				}
+			}
+			else
+			{
+				if( (!linearRegs) || (linearRegs && (position == 0)) )
+				{
+					passStr += "\n\tif(rw)\n\t{";
+                                        if(gIn) {
+					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr);
+					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset", 2, numB2, numB1, passStr);
+					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset", 4, numB4, 2*numB2 + numB1, passStr);
+                                        }
+                                        else {
+					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
+					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "inOffset", 2, numB2, numB1, passStr);
+					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "inOffset", 4, numB4, 2*numB2 + numB1, passStr);
+                                        }
+
+					passStr += "\n\t}\n";
+				}
+			}
+
+
+			passStr += "\n";
+
+			// Twiddle multiply
+			if( (position > 0) && (radix > 1) )
+			{
+				SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+				SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
+				SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 4, numB4, 2*numB2 + numB1, passStr);
+			}
+
+			// Butterfly calls
+			if(radix > 1)
+			{
+				if(numB1) CallButterfly(ButterflyName(radix, 1, fwd), 1, numB1, passStr);
+				if(numB2) CallButterfly(ButterflyName(radix, 2, fwd), 2, numB2, passStr);
+				if(numB4) CallButterfly(ButterflyName(radix, 4, fwd), 4, numB4, passStr);
+			}
+
+			passStr += "\n";
+
+			if( (position != 0) && (!linearRegs) && (nextPass != NULL) )
+				passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
+
+			passStr += "\n";
+
+			// 3-step twiddle multiplies
+			if(fft_3StepTwiddle)
+			{
+				assert(nextPass == NULL);
+				if(linearRegs)
+				{
+					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+				}
+				else
+				{
+					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
+					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 4, numB4, 2*numB2 + numB1, passStr);
+				}
+			}
+
+			// Write back from registers
+			if(linearRegs)
+			{
+				// In this case, we have to write & again read back for the next pass since we are
+				// using only half the lds. Number of barriers will increase at the cost of halving the lds.
+
+				if(nextPass == NULL) // last pass
+				{
+					if(r2c && !rcSimple)
+					{
+						if(!singlePass)
+						{
+							if(gIn) { SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr); }
+                                                        else { SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr); }
+							passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
+							if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset + iOffset", passStr); }
+                                                        else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset", passStr); }
+							if(oddp)
+							{
+								passStr += "\n\tif(me%2)\n\t{";
+								if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInIm, "inOffset + iOffset", passStr); }
+                                                                else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInIm, "inOffset", passStr); }
+								passStr += "\n\t}\n";
+							}
+
+							passStr += "\n\n\n\tif(rw && !me)\n\t{\n\t";
+							if(outInterleaved)
+							{
+								if(gOut) { passStr += bufferOutRe; passStr+= "[outOffset + oOffset].x = "; }
+                                                                else { passStr += bufferOutRe; passStr+= "[outOffset].x = "; }
+                                                                if(gIn) { passStr += bufferInRe; passStr += "[inOffset + iOffset]"; }
+                                                                else { passStr += bufferInRe; passStr += "[inOffset]"; }
+								if(scale != 1.0) { passStr += " * "; passStr += FloatToStr(scale); passStr += FloatSuffix<PR>(); } passStr += ";\n\t";
+								if(gOut) { passStr += bufferOutIm; passStr+= "[outOffset + oOffset].y = "; passStr += "0;\n\t}"; }
+                                                                else { passStr += bufferOutIm; passStr+= "[outOffset].y = "; passStr += "0;\n\t}";}
+							}
+							else
+							{
+								if(gOut) { passStr += bufferOutRe; passStr+= "[outOffset + oOffset] = "; }
+                                                                else { passStr += bufferOutRe; passStr+= "[outOffset] = "; }
+                                                                if(gIn) { passStr += bufferInRe; passStr += "[inOffset + iOffset]"; }
+                                                                else { passStr += bufferInRe; passStr += "[inOffset]"; }
+								if(scale != 1.0) { passStr += " * "; passStr += FloatToStr(scale); passStr += FloatSuffix<PR>(); } passStr += ";\n\t";
+								if(gOut) { passStr += bufferOutIm; passStr+= "[outOffset + oOffset] = ";   passStr += "0;\n\t}"; }
+                                                                else { passStr += bufferOutIm; passStr+= "[outOffset] = ";   passStr += "0;\n\t}"; }
+							}
+							passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
+
+
+							if(gIn) { SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr); }
+                                                        else { SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr); }
+							passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
+							if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset + iOffset", passStr); }
+                                                        else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset", passStr); }
+							if(oddp)
+							{
+								passStr += "\n\tif(me%2)\n\t{";
+								if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInRe, bufferInIm, "inOffset + iOffset", passStr); }
+                                                                else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInRe, bufferInIm, "inOffset", passStr); }
+								passStr += "\n\t}\n";
+							}
+
+							passStr += "\n\tif((rw > 1) && !me)\n\t{\n\t";
+							if(outInterleaved)
+							{
+								if(gOut) { passStr += bufferOutRe; passStr+= "[outOffset + oOffset2].x = "; }
+                                                                else { passStr += bufferOutRe2; passStr+= "[outOffset].x = "; }
+                                                                if(gIn) { passStr += bufferInIm; passStr += "[inOffset + iOffset]"; } 
+                                                                else { passStr += bufferInIm; passStr += "[inOffset]"; }
+								if(scale != 1.0) { passStr += " * "; passStr += FloatToStr(scale); passStr += FloatSuffix<PR>(); } passStr += ";\n\t";
+								if(gOut) { passStr += bufferOutIm; passStr+= "[outOffset + oOffset2].y = "; passStr += "0;\n\t}"; }
+                                                                else { passStr += bufferOutIm2; passStr+= "[outOffset].y = "; passStr += "0;\n\t}"; }
+							}
+							else
+							{
+								if(gOut) { passStr += bufferOutRe; passStr+= "[outOffset + oOffset2] = "; }
+                                                                else { passStr += bufferOutRe2; passStr+= "[outOffset] = "; }
+                                                                if(gIn) { passStr += bufferInIm; passStr += "[inOffset + iOffset]"; }
+                                                                else { passStr += bufferInIm; passStr += "[inOffset]"; }
+								if(scale != 1.0) { passStr += " * "; passStr += FloatToStr(scale); passStr += FloatSuffix<PR>(); } passStr += ";\n\t";
+								if(gOut) { passStr += bufferOutIm; passStr+= "[outOffset + oOffset2] = ";   passStr += "0;\n\t}"; } 
+                                                                else { passStr += bufferOutIm2; passStr+= "[outOffset] = ";   passStr += "0;\n\t}"; }
+							}
+							passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
+						}
+
+
+						passStr += "\n\n\tif(rw)\n\t{";
+						if(gOut) { SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", passStr); }
+                                                else { SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, false, bufferOutRe, bufferOutIm, "outOffset", passStr); }
+						passStr += "\n\t}\n";
+						if(oddp)
+						{
+							passStr += "\n\n\tbrv = ((rw != 0) & (me%2 == 1));\n\t";
+							passStr += "if(brv)\n\t{";
+							if(gOut) { SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, true, bufferOutRe, bufferOutIm, "outOffset + oOffset", passStr); }
+                                                        else { SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, true, bufferOutRe, bufferOutIm, "outOffset", passStr); }
+							passStr += "\n\t}\n";
+						}
+
+						passStr += "\n\n\tif(rw > 1)\n\t{";
+						if(gOut) { SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, false, bufferOutRe, bufferOutIm, "outOffset + oOffset2", passStr); }
+                                                else { SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, false, bufferOutRe2, bufferOutIm2, "outOffset", passStr); }
+						passStr += "\n\t}\n";
+						if(oddp)
+						{
+							passStr += "\n\n\tbrv = ((rw > 1) & (me%2 == 1));\n\t";
+							passStr += "if(brv)\n\t{";
+							if(gOut) { SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, true, bufferOutRe, bufferOutIm, "outOffset + oOffset2", passStr); }
+                                                        else { SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, true, bufferOutRe2, bufferOutIm2, "outOffset", passStr); }
+							passStr += "\n\t}\n";
+						}
+
+					}
+					else if(c2r)
+					{
+						passStr += "\n\tif(rw)\n\t{";
+						if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr); }
+                                                else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
+						passStr += "\n\t}\n";
+
+						if(!rcSimple)
+						{
+							passStr += "\n\tif(rw > 1)\n\t{";
+							if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset2", 1, numB1, 0, passStr); }
+                                                        else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, bufferOutRe2, bufferOutIm2, "outOffset", 1, numB1, 0, passStr); }
+							passStr += "\n\t}\n";
+						}
+					}
+					else
+					{
+						passStr += "\n\tif(rw)\n\t{";
+						if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr); }
+                                                else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
+						passStr += "\n\t}\n";
+					}
+				}
+				else
+				{
+					passStr += "\n\tif(rw)\n\t{";
+					if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr); }
+                                        else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
+					passStr += "\n\t}\n";
+					passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
+					passStr += "\n\tif(rw)\n\t{";
+					if(gOut) { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, nextPass->GetNumB1(), 0, passStr); }
+                                        else { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr); }
+					passStr += "\n\t}\n";
+					passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
+					passStr += "\n\tif(rw)\n\t{";
+					if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr); }
+                                        else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
+					passStr += "\n\t}\n";
+					passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
+					passStr += "\n\tif(rw)\n\t{";
+					if(gOut) { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, nextPass->GetNumB1(), 0, passStr); }
+                                        else { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr); }
+					passStr += "\n\t}\n";
+					passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
+				}
+			}
+			else
+			{
+				passStr += "\n\tif(rw)\n\t{";
+				if(gOut) {
+                                SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr);
+				SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 2, numB2, numB1, passStr);
+				SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 4, numB4, 2*numB2 + numB1, passStr);
+				}
+                                else {
+                                SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+				SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset", 2, numB2, numB1, passStr);
+				SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset", 4, numB4, 2*numB2 + numB1, passStr);
+				}
+                                passStr += "\n\t}\n";
+			}
+
+
+			passStr += "\n}\n\n";
+		}
      };
 }
 
