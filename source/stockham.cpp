@@ -1974,6 +1974,82 @@ namespace StockhamGenerator
 			passStr += "\n}\n\n";
 		}
      };
+
+    // FFT kernel
+    template <Precision PR>
+    class Kernel
+    {
+        size_t length;					// Length of FFT
+        size_t workGroupSize;				// Work group size
+	size_t cnPerWI;					// complex numbers per work-item
+
+	size_t numTrans;				// Number of transforms per work-group
+	size_t workGroupSizePerTrans;			// Work group subdivision per transform
+	size_t numPasses;				// Number of FFT passes
+        std::vector<size_t> radices;			// Base radix at each pass
+        std::vector<Pass<PR> > passes;			// Array of pass objects
+
+	bool halfLds;					// LDS used to store one component (either real or imaginary) at a time
+							// for passing intermediate data between the passes, if this is set
+							// then each pass-function should accept same set of registers
+
+	// Future optimization ideas
+	// bool limitRegs;				// TODO: Incrementally write to LDS, thereby using same set of registers for more than 1 butterflies
+	// bool combineReadTwMul;			// TODO: Combine reading into registers and Twiddle multiply
+
+	bool r2c2r;					// real to complex or complex to real transform
+	bool r2c, c2r;
+	bool rcFull;
+	bool rcSimple;
+
+	const FFTKernelGenKeyParams params;		// key params
+
+	inline std::string IterRegs(const std::string &pfx, bool initComma = true)
+	{
+		std::string str = "";
+
+		if(halfLds)
+		{
+			if(initComma) str += ", ";
+
+			for(size_t i=0; i<cnPerWI; i++)
+			{
+				if(i != 0) str += ", ";
+				str += pfx; str += "R";
+				str += SztToStr(i);
+			}
+		}
+
+		return str;
+	}
+
+	inline bool IsGroupedReadWritePossible()
+	{
+		bool possible = true;
+		const size_t *iStride, *oStride;
+
+		if(r2c2r)
+			return false;
+
+		if(params.fft_placeness == AMPFFT_INPLACE)
+		{
+			iStride = oStride = params.fft_inStride;
+		}
+		else
+		{
+			iStride = params.fft_inStride;
+			oStride = params.fft_outStride;
+		}
+
+		for(size_t i=1; i < params.fft_DataDim; i++)
+		{
+			if(iStride[i] % 2) { possible = false; break; }
+			if(oStride[i] % 2) { possible = false; break; }
+		}
+
+		return possible;
+       }
+       };
 }
 
 template<>
