@@ -206,6 +206,19 @@ ampfftStatus FFTPlan::ampfftSetPlanScale(  ampfftPlanHandle plHandle,  ampfftDir
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftGetPlanBatchSize( const  ampfftPlanHandle plHandle, size_t* batchsize )
+{
+  FFTRepo& fftRepo = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock = NULL;
+
+  fftRepo.getPlan(plHandle, fftPlan, planLock );
+  scopedLock sLock(*planLock, _T( " ampfftGetPlanBatchSize" ) );
+
+  *batchsize = fftPlan->batchSize;
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
