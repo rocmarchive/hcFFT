@@ -362,6 +362,64 @@ ampfftStatus FFTPlan::ampfftGetPlanLength( const  ampfftPlanHandle plHandle, con
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftSetPlanLength(  ampfftPlanHandle plHandle, const  ampfftDim dim, const size_t* clLengths )
+{
+  FFTRepo& fftRepo = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock = NULL;
+
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock( *planLock, _T( " ampfftSetPlanLength" ) );
+
+  if( clLengths == NULL )
+    return AMPFFT_ERROR;
+
+  //	Simplest to clear any previous contents, because it's valid for user to shrink dimension
+  fftPlan->length.clear( );
+  switch( dim )
+  {
+    case AMPFFT_1D:
+    {
+    //	Minimum length size is 1
+    if( clLengths[0] == 0 )
+      return AMPFFT_ERROR;
+
+    fftPlan->length.push_back( clLengths[0] );
+    }
+    break;
+    case AMPFFT_2D:
+    {
+      //	Minimum length size is 1
+      if(clLengths[0] == 0 || clLengths[1] == 0 )
+         return AMPFFT_ERROR;
+
+      fftPlan->length.push_back( clLengths[0] );
+      fftPlan->length.push_back( clLengths[1] );
+    }
+    break;
+    case AMPFFT_3D:
+    {
+      //	Minimum length size is 1
+      if(clLengths[0 ] == 0 || clLengths[1] == 0 || clLengths[2] == 0)
+        return AMPFFT_ERROR;
+
+      fftPlan->length.push_back( clLengths[0] );
+      fftPlan->length.push_back( clLengths[1] );
+      fftPlan->length.push_back( clLengths[2] );
+    }
+    break;
+    default:
+      return AMPFFT_ERROR;
+      break;
+  }
+  fftPlan->dimension = dim;
+
+  //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
+  fftPlan->baked = false;
+
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
