@@ -72,4 +72,16 @@ namespace StockhamGenerator
 			assert(false); return "";
 		}
 	}
+
+        inline std::string ampHeader()
+	{
+                return "#include \"ampfftlib.h\"\n"
+                       "#include <amp.h>\n"
+                       "#include <amp_math.h>\n"
+	               "#include <stdio.h>\n"
+                       "#include <iostream>\n"
+                       "#include <amp_short_vectors.h>\n"
+                       "using namespace Concurrency;\n"
+                       "using namespace Concurrency::graphics;\n";
+	}
 }
