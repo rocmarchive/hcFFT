@@ -170,6 +170,23 @@ ampfftStatus FFTPlan::ampfftSetPlanPrecision(  ampfftPlanHandle plHandle,  ampff
   return AMPFFT_SUCCESS;
 }
 
+ampfftStatus FFTPlan::ampfftGetPlanScale( const  ampfftPlanHandle plHandle,  ampfftDirection dir, float* scale )
+{
+  FFTRepo& fftRepo = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock = NULL;
+
+  fftRepo.getPlan(plHandle, fftPlan, planLock );
+  scopedLock sLock(*planLock, _T( " ampfftGetPlanScale" ) );
+
+  if( dir == AMPFFT_FORWARD)
+    *scale = (float)(fftPlan->forwardScale);
+  else
+    *scale = (float)(fftPlan->backwardScale);
+
+  return AMPFFT_SUCCESS;
+}
+
 ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
