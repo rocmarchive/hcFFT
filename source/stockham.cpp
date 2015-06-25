@@ -362,7 +362,7 @@ namespace StockhamGenerator
 			std::stringstream ss;
 			for(size_t i = 0; i < (N-1); i++)
 			{
-				ss << "("; ss << RegBaseType<PR>(2); ss << ")(";
+				ss << RegBaseType<PR>(2); ss << "(";
 
 				char cv[64], sv[64];
 				sprintf(cv, "%036.34lf", wc[i]);
@@ -446,7 +446,7 @@ namespace StockhamGenerator
 					char cv[64], sv[64];
 					sprintf(cv, "%036.34lf", wc[nt]);
 					sprintf(sv, "%036.34lf", ws[nt++]);
-					ss << "("; ss << RegBaseType<PR>(2); ss << ")(";
+					ss << RegBaseType<PR>(2); ss << "(";
 					ss << cv; ss << sfx; ss << ", ";
 					ss << sv; ss << sfx; ss << ")";
 					ss << ", ";
@@ -3024,7 +3024,6 @@ ampfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & para
     params.fft_LdsComplex = this->bLdsComplex;
 
 	params.fft_RCsimple = this->RCsimple;
-
 	size_t wgs, nt;
 	size_t t_wgs, t_nt;
 	Precision pr = (params.fft_precision == AMPFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
