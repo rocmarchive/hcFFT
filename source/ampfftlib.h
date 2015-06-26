@@ -350,7 +350,7 @@ public:
               uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
 	      intBuffer( NULL ), tmpBufSizeRC(0), intBufferRC(NULL), tmpBufSizeC2R(0),
 	      intBufferC2R(NULL), transflag(false),large1D(0), large2D(false),
-              const_buffer(NULL), RCsimple(false)
+              const_buffer(NULL), RCsimple(false), direction(AMPFFT_FORWARD)
   {};
 
   ampfftStatus ampfftCreateDefaultPlan(ampfftPlanHandle* plHandle,ampfftDim dimension, const size_t *length);
