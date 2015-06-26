@@ -503,7 +503,6 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 						int_local = fftPlan->tmpBufSizeC2R ? fftPlan->intBufferC2R : localIntBuffer;
 						out_y = int_local;
 					}
-
 					// deal with column
 					ampfftEnqueueTransform( fftPlan->planY, AMPFFT_BACKWARD, clInputBuffers, int_local, localIntBuffer );
 
@@ -679,6 +678,8 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
           std::cout<<"Loaded Kernel: "<<kernellib.c_str()<<std::endl;
         }
 
+        if(dir == AMPFFT_FORWARD)
+        {
         FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, "fft_fwd");
         if (!FFTcall)
           std::cout<<"Loading fft_fwd fails "<<std::endl;
@@ -687,6 +688,19 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
         {
           std::cout<<"failed to locate fft_fwd(): "<< err;
           exit(1);
+        }
+        }
+        else if(dir == AMPFFT_BACKWARD)
+        {
+        FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, "fft_back");
+        if (!FFTcall)
+          std::cout<<"Loading fft_back fails "<<std::endl;
+        err=dlerror();
+        if (err)
+        {
+          std::cout<<"failed to locate fft_back(): "<< err;
+          exit(1);
+        }
         }
 
         FFTcall(&vectArr);
