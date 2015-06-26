@@ -4,6 +4,7 @@
 #include <amp_math.h>
 #include <amp_short_vectors.h>
 #include <complex>
+#include <unistd.h>
 #include "lock.h"
 
 using namespace Concurrency;
