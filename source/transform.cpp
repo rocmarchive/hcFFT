@@ -658,7 +658,7 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
         std::string Path(compilerPath);
         std::string OpenCLPath(CLPath);
 
-        std::string execCmd = Path + "/gmac_exp_build_cache/compiler/bin/clang++ `" + Path + "/gmac_exp_build_cache/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` -I/opt/AMDAPP/include  -L" + fftLibPath + " -lampfft "+ filename + " -o " + kernellib ;
+        std::string execCmd = Path + "/build/compiler/bin/clang++ `" + Path + "/build/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` -I/opt/AMDAPP/include  " + filename + " -o " + kernellib ;
 
         system(execCmd.c_str());
 
