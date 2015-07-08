@@ -1395,7 +1395,7 @@ namespace StockhamGenerator
 			passStr += "inline void\n";
 
 			//Function name
-			passStr += PassName(position, fwd);
+			passStr += PassName(plHandle, position, fwd);
 
 			// Function arguments
 			passStr += "(";
@@ -2323,9 +2323,9 @@ namespace StockhamGenerator
 					{
 						bool fwd = d ? false : true;
 
-						if(p->GetNumB1()) { Butterfly<PR> bfly(rad, 1, fwd, cReg); bfly.GenerateButterfly(str); str += "\n"; }
-						if(p->GetNumB2()) { Butterfly<PR> bfly(rad, 2, fwd, cReg); bfly.GenerateButterfly(str); str += "\n"; }
-						if(p->GetNumB4()) { Butterfly<PR> bfly(rad, 4, fwd, cReg); bfly.GenerateButterfly(str); str += "\n"; }
+						if(p->GetNumB1()) { Butterfly<PR> bfly(rad, 1, fwd, cReg); bfly.GenerateButterfly(str, plHandle); str += "\n"; }
+						if(p->GetNumB2()) { Butterfly<PR> bfly(rad, 2, fwd, cReg); bfly.GenerateButterfly(str, plHandle); str += "\n"; }
+						if(p->GetNumB4()) { Butterfly<PR> bfly(rad, 4, fwd, cReg); bfly.GenerateButterfly(str, plHandle); str += "\n"; }
 					}
 				}
 			}
@@ -2796,7 +2796,7 @@ namespace StockhamGenerator
 				if(numPasses == 1)
 				{
 					str += "\t";
-					str += PassName(0, fwd);
+					str += PassName(plHandle, 0, fwd);
 					str += "("; str += rw; str += me;
 					str += "0, 0, ";
 					str += inBuf; str += outBuf;
@@ -2810,7 +2810,7 @@ namespace StockhamGenerator
 					for(typename std::vector<Pass<PR> >::const_iterator p = passes.begin(); p != passes.end(); p++)
 					{
 						str += "\t";
-						str += PassName(p->GetPosition(), fwd);
+						str += PassName(plHandle, p->GetPosition(), fwd);
 						str += "(";
 
 						std::string ldsOff;

@@ -137,12 +137,14 @@ namespace StockhamGenerator
 		return str;
 	}
 
-	inline std::string PassName(size_t pos, bool fwd)
+	inline std::string PassName(const ampfftPlanHandle plHandle, size_t pos, bool fwd)
 	{
 		std::string str;
 		if(fwd) str += "Fwd";
 		else	str += "Inv";
-		str += "Pass"; str += SztToStr(pos);
+		str += "Pass";
+	        str += SztToStr(plHandle);
+		str += SztToStr(pos);
 		return str;
 	}
 
