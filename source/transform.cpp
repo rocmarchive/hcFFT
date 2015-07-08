@@ -14,31 +14,28 @@ ampfftStatus WriteKernel( const ampfftPlanHandle plHandle, const ampfftGenerator
 {
 	FFTRepo& fftRepo	= FFTRepo::getInstance( );
 
-	//	Logic to define a sensible filename
-	const std::string kernelPrefix( "ampfft.kernel." );
-	std::string generatorName;
-	std::stringstream kernelPath;
-
-	switch( gen )
-	{
-		case Stockham:		generatorName = "Stockham"; break;
-		case Transpose:		generatorName = "Transpose"; break;
-	}
-
-	kernelPath << kernelPrefix << generatorName << plHandle << ".cl";
-
-	//	Logic to write string contents out to file
-	tofstreamRAII kernelFile( kernelPath.str( ) );
-	if( !kernelFile.get( ) )
-	{
-		std::cerr << "Failed to open kernel file for writing: " << kernelPath.str( ) << std::endl;
-		return AMPFFT_ERROR;
-	}
-
 	std::string kernel;
 	fftRepo.getProgramCode( gen, plHandle, fftParams, kernel);
 
-	size_t written = fwrite(kernel.c_str(), kernel.size(), 1, kernelFile.get( ));// << kernel << std::endl;
+        std::string filename;
+        filename = "../kernel0.cpp";
+        FILE *fp = fopen (filename.c_str(),"a+");
+        if (!fp)
+        {
+          std::cout<<" File kernel.cpp open failed for writing "<<std::endl;
+          return AMPFFT_ERROR;
+        }
+
+	size_t written = fwrite(kernel.c_str(), kernel.size(), 1, fp);
+        if(!written)
+        {
+           std::cout<< "Kernel Write Failed "<<std::endl;
+           exit(1);
+        }
+
+        fflush(fp);
+        fclose(fp);
+
 	return	AMPFFT_SUCCESS;
 }
 
