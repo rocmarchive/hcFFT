@@ -776,8 +776,7 @@ namespace StockhamGenerator
 								std::string regIndexSub(regIndex);
 								if(regC != 1)
 								{
-									regIndexSub += ".s";
-									regIndexSub += SztToStr(v);
+									regIndexSub += ((v == 0) ? ".x" : (v == 1) ? ".y " : (v == 2) ? ".z" : ".w");
 								}
 
 								passStr += "\n\t";
@@ -820,8 +819,9 @@ namespace StockhamGenerator
 
 							if(regC != 1)
 							{
-								regRealIndex += ".s"; regRealIndex += SztToStr(v);
-								regImagIndex += ".s"; regImagIndex += SztToStr(v);
+
+								regRealIndex += ((v == 0) ? ".x" : (v == 1) ? ".y " : (v == 2) ? ".z" : ".w");
+								regImagIndex += ((v == 0) ? ".x" : (v == 1) ? ".y " : (v == 2) ? ".z" : ".w");
 							}
 
 
@@ -912,8 +912,7 @@ namespace StockhamGenerator
 
 								if(regC != 1)
 								{
-									regIndex += ".s";
-									regIndex += SztToStr(v);
+									regIndex += ((v == 0) ? ".x" : (v == 1) ? ".y " : (v == 2) ? ".z" : ".w");
 								}
 
 								passStr += "\n\t";
