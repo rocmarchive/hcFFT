@@ -624,26 +624,7 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 		}
 	}
 
-        std::string filename;
-        filename = "../kernel" + std::to_string(plHandle) + ".cpp";
-        FILE *fp = fopen (filename.c_str(),"w");
-        if (!fp)
-        {
-          std::cout<<" File kernel.cpp open failed for writing "<<std::endl;
-          return AMPFFT_ERROR;
-        }
-
-	size_t written = fwrite(kernel.c_str(), kernel.size(), 1, fp);
-        if(!written)
-        {
-           std::cout<< "Kernel Write Failed "<<std::endl;
-           exit(1);
-        }
-
-        fflush(fp);
-        fclose(fp);
-
-	vector< size_t > gWorkSize;
+        vector< size_t > gWorkSize;
 	vector< size_t > lWorkSize;
 	ampfftStatus result = fftPlan->GetWorkSizes (gWorkSize, lWorkSize);
 
@@ -653,6 +634,10 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 	}
 	BUG_CHECK (gWorkSize.size() == lWorkSize.size());
 
+        void * kernelHandle = NULL;
+        typedef void (FUNC_FFTFwd)(std::map<int, void*> *vectArr);
+        FUNC_FFTFwd * FFTcall;
+
         char cwd[1024];
         if (getcwd(cwd, sizeof(cwd)) != NULL)
           std::cout << "Current working dir: "<<cwd<<std::endl;
@@ -660,34 +645,7 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 	  std::cout<< "getcwd() error"<<std::endl;
 
         std::string pwd(cwd);
-        std::string kernellib = pwd + "/../libFFTKernel" + std::to_string(plHandle) + ".so";
-
-        char *compilerPath = (char*)calloc(100, 1);
-        compilerPath = getenv ("MCWCPPAMPROOT");
-        if(!compilerPath)
-          std::cout<<"No Compiler Path Variable found. Please export MCWCPPAMPROOT "<<std::endl;
-        else
-          std::cout<< "The Compiler path is: "<<compilerPath<<std::endl;
-
-        char *CLPath = (char*)calloc(100, 1);
-        CLPath = getenv ("AMDAPPSDKROOT");
-        if(!CLPath)
-          std::cout<<"No OpenCL path Variable found. Please export AMDAPPSDKROOT "<<std::endl;
-        else
-          std::cout<<"The  OpenCL path is: "<<CLPath<<std::endl;
-
-        string fftLibPath = pwd + "/../../Build/linux/";
-
-        std::string Path(compilerPath);
-        std::string OpenCLPath(CLPath);
-
-        std::string execCmd = Path + "/build/compiler/bin/clang++ `" + Path + "/build/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` -I/opt/AMDAPP/include  " + filename + " -o " + kernellib ;
-
-        system(execCmd.c_str());
-
-        void * kernelHandle = NULL;
-        typedef void (FUNC_FFTFwd)(std::map<int, void*> *vectArr);
-        FUNC_FFTFwd * FFTcall;
+        std::string kernellib = pwd + "/../libFFTKernel0.so";
 
         char *err = (char*) calloc(128,2);
         kernelHandle = dlopen(kernellib.c_str(),RTLD_NOW);
@@ -703,7 +661,9 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 
         if(dir == AMPFFT_FORWARD)
         {
-        FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, "fft_fwd");
+        std::string funcName = "fft_fwd";
+        funcName +=  std::to_string(plHandle);
+        FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
         if (!FFTcall)
           std::cout<<"Loading fft_fwd fails "<<std::endl;
         err=dlerror();
@@ -715,7 +675,9 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
         }
         else if(dir == AMPFFT_BACKWARD)
         {
-        FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, "fft_back");
+        std::string funcName = "fft_back";
+        funcName +=  std::to_string(plHandle);
+        FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
         if (!FFTcall)
           std::cout<<"Loading fft_back fails "<<std::endl;
         err=dlerror();
