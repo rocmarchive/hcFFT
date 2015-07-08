@@ -127,13 +127,14 @@ namespace StockhamGenerator
 		return sfx;
 	}
 
-	inline std::string ButterflyName(size_t radix, size_t count, bool fwd)
+	inline std::string ButterflyName(size_t radix, size_t count, bool fwd, const ampfftPlanHandle plHandle)
 	{
 		std::string str;
 		if(fwd) str += "Fwd";
 		else	str += "Inv";
 		str += "Rad"; str += SztToStr(radix);
 		str += "B"; str += SztToStr(count);
+		str += "H"; str += SztToStr(plHandle);
 		return str;
 	}
 
@@ -184,7 +185,7 @@ namespace StockhamGenerator
 			bflyStr += "inline void \n";
 
 			// Function name
-			bflyStr += ButterflyName(radix, count, fwd);
+			bflyStr += ButterflyName(radix, count, fwd, plHandle);
 
 			// Function Arguments
 			bflyStr += "(";

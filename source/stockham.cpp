@@ -1764,9 +1764,9 @@ namespace StockhamGenerator
 			// Butterfly calls
 			if(radix > 1)
 			{
-				if(numB1) CallButterfly(ButterflyName(radix, 1, fwd), 1, numB1, passStr);
-				if(numB2) CallButterfly(ButterflyName(radix, 2, fwd), 2, numB2, passStr);
-				if(numB4) CallButterfly(ButterflyName(radix, 4, fwd), 4, numB4, passStr);
+				if(numB1) CallButterfly(ButterflyName(radix, 1, fwd, plHandle), 1, numB1, passStr);
+				if(numB2) CallButterfly(ButterflyName(radix, 2, fwd, plHandle), 2, numB2, passStr);
+				if(numB4) CallButterfly(ButterflyName(radix, 4, fwd, plHandle), 4, numB4, passStr);
 			}
 
 			passStr += "\n";
