@@ -51,11 +51,37 @@ ampfftStatus CompileKernels(const ampfftPlanHandle plHandle, const ampfftGenerat
 
 	WriteKernel( plHandle, gen, fftParams);
 
-	std::string programCode;
-	fftRepo.getProgramCode( gen, plHandle, fftParams, programCode);
+        char cwd[1024];
+        if (getcwd(cwd, sizeof(cwd)) != NULL)
+          std::cout << "Current working dir: "<<cwd<<std::endl;
+        else
+	  std::cout<< "getcwd() error"<<std::endl;
 
-	const char* source = programCode.c_str();
-	fwrite(source,programCode.length(),1,fp);
+        std::string pwd(cwd);
+        std::string kernellib = pwd + "/../libFFTKernel0.so";
+
+        char *compilerPath = (char*)calloc(100, 1);
+        compilerPath = getenv ("MCWCPPAMPROOT");
+        if(!compilerPath)
+          std::cout<<"No Compiler Path Variable found. Please export MCWCPPAMPROOT "<<std::endl;
+        else
+          std::cout<< "The Compiler path is: "<<compilerPath<<std::endl;
+
+        char *CLPath = (char*)calloc(100, 1);
+        CLPath = getenv ("AMDAPPSDKROOT");
+        if(!CLPath)
+          std::cout<<"No OpenCL path Variable found. Please export AMDAPPSDKROOT "<<std::endl;
+        else
+          std::cout<<"The  OpenCL path is: "<<CLPath<<std::endl;
+
+        string fftLibPath = pwd + "/../../Build/linux/";
+
+        std::string Path(compilerPath);
+        std::string OpenCLPath(CLPath);
+
+        std::string execCmd = Path + "/build/compiler/bin/clang++ `" + Path + "/build/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` -I/opt/AMDAPP/include  ../kernel0.cpp -o " + kernellib ;
+
+        system(execCmd.c_str());
 
 	// For real transforms we comppile either forward or backward kernel
 	bool r2c_transform = (fftParams.fft_inputLayout == AMPFFT_REAL);
