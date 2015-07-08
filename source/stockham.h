@@ -174,7 +174,7 @@ namespace StockhamGenerator
 		{
 			return (N < 2) ? n : (BitReverse (n >> 1, N >> 1) | ((n & 1) != 0 ? (N >> 1) : 0));
 		}
-		void GenerateButterflyStr(std::string &bflyStr) const
+		void GenerateButterflyStr(std::string &bflyStr, const ampfftPlanHandle plHandle) const
 		{
 			std::string regType = cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
 
@@ -1337,11 +1337,11 @@ namespace StockhamGenerator
 	public:
 		Butterfly(size_t radixVal, size_t countVal, bool fwdVal, bool cRegVal) : radix(radixVal), count(countVal), fwd(fwdVal), cReg(cRegVal) {}
 
-		void GenerateButterfly(std::string &bflyStr) const
+		void GenerateButterfly(std::string &bflyStr, const ampfftPlanHandle plHandle) const
 		{
 			assert(count <= 4);
 			if(count > 0)
-				GenerateButterflyStr(bflyStr);
+				GenerateButterflyStr(bflyStr, plHandle);
 		}
        };
 }
