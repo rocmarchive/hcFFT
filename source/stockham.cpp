@@ -2261,7 +2261,7 @@ namespace StockhamGenerator
 					passes[i].SetNextPass(&passes[i+1]);
 		}
 
-        void GenerateKernel(std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize)
+        void GenerateKernel(const ampfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize)
 		{
 			std::string twType = RegBaseType<PR>(2);
 			std::string rType  = RegBaseType<PR>(1);
@@ -3119,12 +3119,12 @@ ampfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const ampfftPlanHandle plHandl
         case P_SINGLE:
 	{
 	  Kernel<P_SINGLE> kernel(params);
-	  kernel.GenerateKernel(programCode, gWorkSize, lWorkSize);
+	  kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize);
 	} break;
 	case P_DOUBLE:
 	{
 	  Kernel<P_DOUBLE> kernel(params);
-	  kernel.GenerateKernel(programCode, gWorkSize, lWorkSize);
+	  kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize);
 	} break;
     }
 
