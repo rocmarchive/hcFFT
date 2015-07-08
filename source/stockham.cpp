@@ -2385,8 +2385,8 @@ namespace StockhamGenerator
                                 str += "\nvoid ";
 
 				// Function name
-				if(fwd) str += "fft_fwd";
-				else	str += "fft_back";
+				if(fwd) { str += "fft_fwd"; str+= SztToStr(plHandle); }
+				else	{ str += "fft_back";  str+= SztToStr(plHandle); }
 				str += "( std::map<int, void*> vectArr )\n\t{\n\t";
 
 			        str += "array_view<float,1> *cbP = (array_view<float,1> *)vectArr["; str += SztToStr(arg); str += "];\n";
