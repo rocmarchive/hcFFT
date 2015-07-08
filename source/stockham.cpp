@@ -1356,7 +1356,7 @@ namespace StockhamGenerator
 
 		void SetNextPass(Pass<PR> *np) { nextPass = np; }
 		void SetGrouping(bool grp) { enableGrouping = grp; }
-		void GeneratePass(	bool fwd, std::string &passStr, bool fft_3StepTwiddle,
+		void GeneratePass(const ampfftPlanHandle plHandle, bool fwd, std::string &passStr, bool fft_3StepTwiddle,
 							bool inInterleaved, bool outInterleaved,
 							bool inReal, bool outReal,
 							size_t inStride, size_t outStride, double scale,
@@ -2356,7 +2356,7 @@ namespace StockhamGenerator
 					bool inRl = false, outRl = false;
 					if(p == passes.begin())		{ inIlvd  = inInterleaved;  inRl  = inReal;  gIn  = true; ins  = params.fft_inStride[0];  }
 					if((p+1) == passes.end())	{ outIlvd = outInterleaved; outRl = outReal; gOut = true; outs = params.fft_outStride[0]; s = scale; tw3Step = params.fft_3StepTwiddle; }
-					p->GeneratePass(fwd, str, tw3Step, inIlvd, outIlvd, inRl, outRl, ins, outs, s, lWorkSize[0], gIn, gOut);
+					p->GeneratePass(plHandle, fwd, str, tw3Step, inIlvd, outIlvd, inRl, outRl, ins, outs, s, lWorkSize[0], gIn, gOut);
 				}
 
 				// if real transform we do only 1 direction
