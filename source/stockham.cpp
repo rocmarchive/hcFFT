@@ -76,6 +76,7 @@
 //       Radix 5: k*L + j, k*L + j + LS, k*L + j + 2*LS, k*L + j + 3*LS, k*L + j + 4*LS
 //
 
+static int first;
 namespace StockhamGenerator
 {
 // Experimental End ===========================================
@@ -2279,6 +2280,8 @@ namespace StockhamGenerator
 
 			size_t large1D = params.fft_N[0] * params.fft_N[1];
 
+                       if(first)
+			{
 			// Pragma
 			str += ampHeader();
 
@@ -2299,6 +2302,7 @@ namespace StockhamGenerator
 			str += "#define C3QA 0.50000000000000000000000000000000"; str += sfx; str += "\n";
 			str += "#define C3QB 0.86602540378443864676372317075294"; str += sfx; str += "\n";
 			str += "\n";
+                       }
 
 			bool cReg = halfLds ? true : false;
 
