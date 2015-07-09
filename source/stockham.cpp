@@ -2280,7 +2280,7 @@ namespace StockhamGenerator
 
 			size_t large1D = params.fft_N[0] * params.fft_N[1];
 
-                       if(first)
+                       if(!first)
 			{
 			// Pragma
 			str += ampHeader();
@@ -2872,6 +2872,7 @@ namespace StockhamGenerator
 
 				str += " });\n}}\n\n";
 
+				first = 1;
 				if(r2c2r)
 					break;
 			}
