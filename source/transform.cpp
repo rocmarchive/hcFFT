@@ -42,8 +42,6 @@ ampfftStatus WriteKernel( const ampfftPlanHandle plHandle, const ampfftGenerator
 //	Compile the kernels that this plan uses, and store into the plan
 ampfftStatus CompileKernels(const ampfftPlanHandle plHandle, const ampfftGenerators gen, FFTPlan* fftPlan )
 {
-	FILE *fp = fopen("kernel_program_code.cl", "w+");
-
 	FFTRepo& fftRepo	= FFTRepo::getInstance( );
 
 	FFTKernelGenKeyParams fftParams;
