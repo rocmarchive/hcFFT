@@ -1825,7 +1825,6 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 
 		if(fftPlan->ipLayout == AMPFFT_REAL)
 		{
-                  cout<<" inside real "<<endl;
 		  length0 = fftPlan->length[0];
 		  length1 = fftPlan->length[1];
 
@@ -2023,124 +2022,6 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		    rowPlan->outStride.push_back(fftPlan->outStride[2]);
 		  }
 	          ampfftBakePlan(fftPlan->planX);
-		}
-		else
-		{
-		  if (fftPlan->tmpBufSize==0 && fftPlan->length.size()<=2)
-		  {
-		    fftPlan->tmpBufSize = length0 * length1 *
-		    fftPlan->batchSize * fftPlan->ElementSize();
-		  }
-
-		  //create row plan
-		  ampfftCreateDefaultPlan( &fftPlan->planX, AMPFFT_1D, &fftPlan->length[ 0 ] );
-
-		  FFTPlan* rowPlan	= NULL;
-		  lockRAII* rowLock	= NULL;
-		  fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
-
-		  rowPlan->ipLayout   = fftPlan->ipLayout;
-		  if (fftPlan->large2D || fftPlan->length.size()>2)
-		  {
-		    rowPlan->opLayout  = fftPlan->opLayout;
-		    rowPlan->location     = fftPlan->location;
-		    rowPlan->outStride[0]  = fftPlan->outStride[0];
-		    rowPlan->outStride.push_back(fftPlan->outStride[1]);
-		    rowPlan->oDist         = fftPlan->oDist;
-		  }
-		  else
-		  {
-		    rowPlan->opLayout  = AMPFFT_COMPLEX;
-		    rowPlan->location     = AMPFFT_OUTOFPLACE;
-		    rowPlan->outStride[0]  = length1;
-		    rowPlan->outStride.push_back(1);
-		    rowPlan->oDist         = length0 * length1;
-		  }
-		  rowPlan->precision     = fftPlan->precision;
-		  rowPlan->forwardScale  = 1.0f;
-		  rowPlan->backwardScale = 1.0f;
-		  rowPlan->tmpBufSize    = fftPlan->tmpBufSize;
-		  rowPlan->bLdsComplex   = fftPlan->bLdsComplex;
-		  rowPlan->uLdsFraction  = fftPlan->uLdsFraction;
-		  rowPlan->ldsPadding    = fftPlan->ldsPadding;
-		  rowPlan->gen		 = fftPlan->gen;
-		  rowPlan->envelope	 = fftPlan->envelope;
-
-		  // This is the row fft, the first elements distance between the first two FFTs is the distance of the first elements
-		  // of the first two rows in the original buffer.
-		  rowPlan->batchSize    = fftPlan->batchSize;
-		  rowPlan->inStride[0]  = fftPlan->inStride[0];
-
-		  //pass length and other info to kernel, so the kernel knows this is decomposed from higher dimension
-		  rowPlan->length.push_back(fftPlan->length[1]);
-		  rowPlan->inStride.push_back(fftPlan->inStride[1]);
-
-		  //this 2d is decomposed from 3d
-		  if (fftPlan->length.size()>2)
-		  {
-		    rowPlan->length.push_back(fftPlan->length[2]);
-		    rowPlan->inStride.push_back(fftPlan->inStride[2]);
-		    rowPlan->outStride.push_back(fftPlan->outStride[2]);
-		  }
-
-		  rowPlan->iDist    = fftPlan->iDist;
-                  ampfftBakePlan(fftPlan->planX);
-
-                  //create col plan
-		  ampfftCreateDefaultPlan( &fftPlan->planY, AMPFFT_1D, &fftPlan->length[ 1 ] );
-
-                  FFTPlan* colPlan	= NULL;
-		  lockRAII* colLock	= NULL;
-		  fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
-
-		  if (fftPlan->large2D || fftPlan->length.size()>2)
-		  {
-		    colPlan->ipLayout   = fftPlan->opLayout;
-		    colPlan->location     = AMPFFT_INPLACE;
-		    colPlan->inStride[0]   = fftPlan->outStride[1];
-		    colPlan->inStride.push_back(fftPlan->outStride[0]);
-		    colPlan->iDist         = fftPlan->oDist;
-		  }
-		  else
-		  {
-		    colPlan->ipLayout   = AMPFFT_COMPLEX;
-		    colPlan->location = AMPFFT_OUTOFPLACE;
-		    colPlan->inStride[0]   = 1;
-		    colPlan->inStride.push_back(length1);
-		    colPlan->iDist         = length0 * length1;
-		  }
-
-		  colPlan->opLayout  = fftPlan->opLayout;
-		  colPlan->precision     = fftPlan->precision;
-		  colPlan->forwardScale  = fftPlan->forwardScale;
-		  colPlan->backwardScale = fftPlan->backwardScale;
-		  colPlan->tmpBufSize    = fftPlan->tmpBufSize;
-		  colPlan->bLdsComplex   = fftPlan->bLdsComplex;
-		  colPlan->uLdsFraction  = fftPlan->uLdsFraction;
-		  colPlan->ldsPadding    = fftPlan->ldsPadding;
-		  colPlan->gen		 = fftPlan->gen;
-		  colPlan->envelope	 = fftPlan->envelope;
-
-		  // This is a column FFT, the first elements distance between each FFT is the distance of the first two
-		  // elements in the original buffer. Like a transpose of the matrix
-		  colPlan->batchSize = fftPlan->batchSize;
-		  colPlan->outStride[0] = fftPlan->outStride[1];
-
-		  //pass length and other info to kernel, so the kernel knows this is decomposed from higher dimension
-		  colPlan->length.push_back(fftPlan->length[0]);
-		  colPlan->outStride.push_back(fftPlan->outStride[0]);
-		  colPlan->oDist    = fftPlan->oDist;
-
-		  //this 2d is decomposed from 3d
-		  if (fftPlan->length.size()>2)
-		  {
-	            //assert(fftPlan->large2D);
-		    colPlan->length.push_back(fftPlan->length[2]);
-		    colPlan->inStride.push_back(fftPlan->outStride[2]);
-		    colPlan->outStride.push_back(fftPlan->outStride[2]);
-		  }
-
-		  ampfftBakePlan(fftPlan->planY);
 		}
 
 		fftPlan->baked = true;
