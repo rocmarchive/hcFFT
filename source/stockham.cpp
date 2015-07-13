@@ -1555,7 +1555,7 @@ namespace StockhamGenerator
 				passStr += "\n\t";
 				passStr += "uint brv = 0;\n\t";
 				passStr += "\n\t";
-				passStr += regB2Type; passStr += " R"; passStr += SztToStr(cnPerWI); passStr += "[0];\n\t";
+				passStr += regB2Type; passStr += " R"; passStr += SztToStr(cnPerWI); passStr += "[1];\n\t";
 				passStr += "(R"; passStr += SztToStr(cnPerWI); passStr += "[0]).x = 0; ";
 				passStr += "(R"; passStr += SztToStr(cnPerWI); passStr += "[0]).y = 0;\n";
 			}
