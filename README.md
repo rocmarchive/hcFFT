@@ -18,75 +18,77 @@ This repository hosts the C++ AMP implementation of FFT routines. The following 
 * **AMD Driver installer**: amd-driver-installer-15.20
 
 
-##Building and set up:    
-######Need to be a super user
+## Installation Steps:
 
-(i)  ** C++ AMP Compiler installation**: Indepth details can be found [here](https://bitbucket.org/multicoreware/cppamp-driver-ng/wiki/Home)
+### A. C++ AMP Compiler Installation: 
 
-Prepare a directory for work space.
+Make sure the parent directory chosen is say ~/ or any other folder of your choice. Lets take ~/ as an example
 
-   * mkdir mcw_cppamp
+  (a) Prepare a directory for work space
 
-   * cd mcw_cppamp 
+       * mkdir ~/mcw_cppamp
+
+       * cd ~/mcw_cppamp
    
-   * git clone https://bitbucket.org/multicoreware/cppamp-driver-ng.git src
+       * git clone https://bitbucket.org/multicoreware/cppamp-driver-ng.git src
 
-   * git checkout master
+       * cd ~/mcw_cppamp/src/
 
-Create a build directory and configure using CMake.
+       * git checkout master
 
-  * mkdir mcw_cppamp/build
+  (b) Create a build directory and configure using CMake.
 
-  * cd mcw_cppamp/build
+       * mkdir ~/mcw_cppamp/build
 
-  * cmake ../src -DCMAKE_BUILD_TYPE=Release (The master branch expects the AMDAPP SDK in the path /opt/AMDAPP)
+       * cd ~/mcw_cppamp/build
 
-Build the whole system. This will build clang and other libraries that require one time build.
+       * export CLAMP_NOTILECHECK=ON
 
-  * make [-j #] world           (# is the number of parallel builds. Generally it is # of CPU cores)
+       * cmake ../src -DCMAKE_BUILD_TYPE=Release -DCXXAMP_ENABLE_BOLT=ON -DOPENCL_HEADER_DIR=<path to SDK's OpenCL headers> -DOPENCL_LIBRARY_DIR=<path to SDK's OpenCL library> 
+  
+       * For example, cmake ../src -DCMAKE_BUILD_TYPE=Release -DCXXAMP_ENABLE_BOLT=ON  -DOPENCL_HEADER_DIR=/opt/AMDAPPSDK-3.0.0-Beta/include/CL -DOPENCL_LIBRARY_DIR=/opt/AMDAPPSDK-3.0-0-Beta/lib/x86_64
 
-  * make                        (this builds llvm utilities)
 
-Note that you might need to manually check updates from C++ AMP Compiler.
-Please do the following and rebuild the Compiler if any update is available
+  (c) Build AMP
 
-```
-#!python
- # check updates from C++AMP Compiler
- cd mcw_cppamp/src
- git fetch --all
- git checkout master
+       * cd ~/mcw_cppamp/build
 
- # check updates from C++AMP Compiler's dependency
- cd mcw_cppamp/src/compiler/tools/clang
- git fetch --all
- git checkout master
-```
-Prior to building the library the following environment variables need to be set using export command
+       * make [-j #] world && make          (# is the number of parallel builds. Generally it is # of CPU cores)
 
-* AMDAPPSDKROOT=<path to AMD APP SDK>
-* MCWCPPAMPROOT=<path to mcw_cppamp dir>
+With this the C++ AMP Compiler installation is complete.
 
-Steps to build AMPFFT:
+### B. AMPFFT Installation
 
-   * git clone https://bitbucket.org/multicoreware/ampfft.git
+(i) Clone MCW AMPFFT source codes
 
-   * cd ampfft
+      * cd ~/
+   
+      * git clone https://bitbucket.org/multicoreware/ampfft.git 
 
-   For Linux :
+      * cd ~/ampfft
 
-     * cd Build/linux/
-     * sh build.sh
-     * make
+(ii) Platform-specific build
 
-   For 32-bit Windows : (It requires Visual Studio 12 version)
+(a) For Linux:
 
-     * cd Build
-     * cd vc11-x86
-     * make-solutions.bat (This creates a Visual studio solution for ampfft Library)
+       * cd ~/ampfft/Build/linux
+       
+       * export MCWCPPAMPROOT=<path_to>/mcw_cppamp/ (Here path_to points to parent folder of mcw_cppamp. ~/ in our case)
 
-   For 64-bit Windows : (It requires Visual Studio 12 version)
+       * sh build.sh
 
-     * cd Build
-     * cd vc11-x86_64
-     * make-solutions.bat (This creates a Visual studio solution for ampfft Library)
+       * make
+
+(b)  For Windows: (Prerequisite: Visual Studio 12 version )
+
+1. For 32 Bit:
+
+     * cd Build/vc11-x86
+
+     * make-solutions.bat (This creates a Visual studio solution for ampfft Library) 
+
+ 2. For 64-bit:
+
+     * cd Build/vc11-x86_64
+
+     * make-solutions.bat (This creates a Visual Studio solution for ampfft Library)
