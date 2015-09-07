@@ -26,32 +26,32 @@ Make sure the parent directory chosen is say ~/ or any other folder of your choi
 
   (a) Prepare a directory for work space
 
-       * mkdir ~/mcw_cppamp
+       * mkdir ~/mcw_cppamp35
 
-       * cd ~/mcw_cppamp
-   
-       * git clone https://bitbucket.org/multicoreware/cppamp-driver-ng.git src
+       * cd ~/mcw_cppamp35
 
-       * cd ~/mcw_cppamp/src/
+       * git clone https://bitbucket.org/multicoreware/cppamp-driver-ng-35.git src
+
+       * cd ~/mcw_cppamp35/src/
 
        * git checkout master
 
   (b) Create a build directory and configure using CMake.
 
-       * mkdir ~/mcw_cppamp/build
+       * mkdir ~/mcw_cppamp35/build
 
-       * cd ~/mcw_cppamp/build
+       * cd ~/mcw_cppamp35/build
 
        * export CLAMP_NOTILECHECK=ON
 
        * cmake ../src -DCMAKE_BUILD_TYPE=Release -DCXXAMP_ENABLE_BOLT=ON -DOPENCL_HEADER_DIR=<path to SDK's OpenCL headers> -DOPENCL_LIBRARY_DIR=<path to SDK's OpenCL library> 
   
-       * For example, cmake ../src -DCMAKE_BUILD_TYPE=Release -DCXXAMP_ENABLE_BOLT=ON  -DOPENCL_HEADER_DIR=/opt/AMDAPPSDK-3.0.0-Beta/include/CL -DOPENCL_LIBRARY_DIR=/opt/AMDAPPSDK-3.0-0-Beta/lib/x86_64
+       * For example, cmake ../src -DCMAKE_BUILD_TYPE=Release -DCXXAMP_ENABLE_BOLT=ON  -DOPENCL_HEADER_DIR=/opt/AMDAPPSDK-2.9.1/include/CL -DOPENCL_LIBRARY_DIR=/opt/AMDAPPSDK-2.9.1/lib/x86_64
 
 
   (c) Build AMP
 
-       * cd ~/mcw_cppamp/build
+       * cd ~/mcw_cppamp35/build
 
        * make [-j #] world && make          (# is the number of parallel builds. Generally it is # of CPU cores)
 
@@ -73,7 +73,7 @@ With this the C++ AMP Compiler installation is complete.
 
        * cd ~/ampfft/Build/linux
        
-       * export MCWCPPAMPROOT=<path_to>/mcw_cppamp/ (Here path_to points to parent folder of mcw_cppamp. ~/ in our case)
+       * export MCWCPPAMPROOT=<path_to>/mcw_cppamp35/ (Here path_to points to parent folder of mcw_cppamp. ~/ in our case)
 
        * sh build.sh
 
