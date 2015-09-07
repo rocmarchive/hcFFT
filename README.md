@@ -92,3 +92,20 @@ With this the C++ AMP Compiler installation is complete.
      * cd Build/vc11-x86_64
 
      * make-solutions.bat (This creates a Visual Studio solution for ampfft Library)
+
+
+### C. Unit testing
+
+1. FFT R2C and C2R Testing: 
+
+     * export AMPFFT_LIBRARY_PATH = ~/ampfft/Build/linux
+     
+     * export MCWCPPAMPROOT=~/mcw_cppamp35/
+     
+     * export LD_LIBRARY_PATH=$AMPFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
+     
+     * cd ~/ampfft/source/test/
+     
+     * make
+     
+     * To test ./fft N1 N2
