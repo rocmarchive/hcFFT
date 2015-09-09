@@ -36,6 +36,8 @@ Make sure the parent directory chosen is say ~/ or any other folder of your choi
 
        * git checkout master
 
+       * git checkout 4fb5922
+
   (b) Create a build directory and configure using CMake.
 
        * mkdir ~/mcw_cppamp35/build
