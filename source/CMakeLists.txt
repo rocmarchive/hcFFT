@@ -3,14 +3,14 @@ CMAKE_MINIMUM_REQUIRED (VERSION 2.8.8)
 MESSAGE(STATUS "CMAKE VERSION ${CMAKE_VERSION}")
 
 #Setting a Project name
-SET(PROJECT_NAME "libampfft")
+SET(PROJECT_NAME "libhcfft")
 PROJECT (${PROJECT_NAME})
 MESSAGE(STATUS "PROJECT NAME    : ${PROJECT_NAME}")
 
 #Setting a variable for source files
 SET (SRCS
     lock.h
-    ampfftlib.h
+    hcfftlib.h
     stockham.h
     stockham.cpp 
     transform.cpp

@@ -1,5 +1,5 @@
 TARGET = fft
-LIBS = -lampfft -L${AMPFFT_LIBRARY_PATH}
+LIBS = -lhcfft -L${HCFFT_LIBRARY_PATH}
 CC = ${MCWCPPAMPROOT}/build/compiler/bin/clang++
 CFLAGS = `${MCWCPPAMPROOT}/build/build/Release/bin/clamp-config --build --cxxflags --ldflags`
 

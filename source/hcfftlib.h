@@ -10,27 +10,27 @@
 using namespace Concurrency;
 using namespace Concurrency::graphics;
 
-#define AMPFFT_CB_NY 0
-#define	AMPFFT_CB_NZ 1
-#define	AMPFFT_CB_NW 2
-#define	AMPFFT_CB_N5 3
-#define	AMPFFT_CB_ISX 4
-#define	AMPFFT_CB_ISY 5
-#define	AMPFFT_CB_ISZ 6
-#define	AMPFFT_CB_ISW 7
-#define	AMPFFT_CB_IS5 8
-#define	AMPFFT_CB_OSX 9
-#define	AMPFFT_CB_OSY 10
-#define	AMPFFT_CB_OSZ 11
-#define	AMPFFT_CB_OSW 12
-#define	AMPFFT_CB_OS5 13
-#define AMPFFT_CB_SIZE 32
+#define HCFFT_CB_NY 0
+#define	HCFFT_CB_NZ 1
+#define	HCFFT_CB_NW 2
+#define	HCFFT_CB_N5 3
+#define	HCFFT_CB_ISX 4
+#define	HCFFT_CB_ISY 5
+#define	HCFFT_CB_ISZ 6
+#define	HCFFT_CB_ISW 7
+#define	HCFFT_CB_IS5 8
+#define	HCFFT_CB_OSX 9
+#define	HCFFT_CB_OSY 10
+#define	HCFFT_CB_OSZ 11
+#define	HCFFT_CB_OSW 12
+#define	HCFFT_CB_OS5 13
+#define HCFFT_CB_SIZE 32
 
 #define BUG_CHECK(_proposition)	\
-	{ bool btmp = (_proposition);	assert (btmp); if (! btmp)	return AMPFFT_ERROR; }
+	{ bool btmp = (_proposition);	assert (btmp); if (! btmp)	return HCFFT_ERROR; }
 
 #define ARG_CHECK(_proposition)	\
-{ bool btmp = (_proposition);	assert (btmp); if (! btmp)	return AMPFFT_ERROR; }
+{ bool btmp = (_proposition);	assert (btmp); if (! btmp)	return HCFFT_ERROR; }
 
 static inline bool IsPo2 (size_t u) {
 	return (u != 0) &&  (0 == (u & (u-1)));
@@ -161,56 +161,56 @@ class tofstreamRAII
 		}
 };
 
-typedef size_t ampfftPlanHandle;
+typedef size_t hcfftPlanHandle;
 
-typedef enum ampfftPrecision_
+typedef enum hcfftPrecision_
 {
-	AMPFFT_SINGLE	= 1,
-	AMPFFT_DOUBLE,
-}ampfftPrecision;
+	HCFFT_SINGLE	= 1,
+	HCFFT_DOUBLE,
+}hcfftPrecision;
 
-typedef enum ampfftDim_
+typedef enum hcfftDim_
 {
-  AMPFFT_1D = 1,
-  AMPFFT_2D,
-  AMPFFT_3D
-}ampfftDim;
+  HCFFT_1D = 1,
+  HCFFT_2D,
+  HCFFT_3D
+}hcfftDim;
 
-typedef enum ampfftLayout_
+typedef enum hcfftLayout_
 {
-  AMPFFT_COMPLEX = 1,
-  AMPFFT_REAL,
-}ampfftIpLayout,ampfftOpLayout;
+  HCFFT_COMPLEX = 1,
+  HCFFT_REAL,
+}hcfftIpLayout,hcfftOpLayout;
 
-typedef enum ampfftDirection_
+typedef enum hcfftDirection_
 {
-  AMPFFT_FORWARD = -1,
-  AMPFFT_BACKWARD = 1,
-} ampfftDirection;
+  HCFFT_FORWARD = -1,
+  HCFFT_BACKWARD = 1,
+} hcfftDirection;
 
-typedef enum ampfftResLocation_
+typedef enum hcfftResLocation_
 {
-  AMPFFT_INPLACE = 1,
-  AMPFFT_OUTOFPLACE,
-} ampfftResLocation;
+  HCFFT_INPLACE = 1,
+  HCFFT_OUTOFPLACE,
+} hcfftResLocation;
 
-typedef enum ampfftResTransposed_ {
-  AMPFFT_NOTRANSPOSE = 1,
-  AMPFFT_TRANSPOSED,
-} ampfftResTransposed;
+typedef enum hcfftResTransposed_ {
+  HCFFT_NOTRANSPOSE = 1,
+  HCFFT_TRANSPOSED,
+} hcfftResTransposed;
 
-typedef enum ampfftStatus_ {
-  AMPFFT_SUCCESS = 0,
-  AMPFFT_INVALID = -1,
-  AMPFFT_ERROR = -2
-} ampfftStatus;
+typedef enum hcfftStatus_ {
+  HCFFT_SUCCESS = 0,
+  HCFFT_INVALID = -1,
+  HCFFT_ERROR = -2
+} hcfftStatus;
 
-typedef enum ampfftGenerators_
+typedef enum hcfftGenerators_
 {
 	Stockham = 1,
 	Transpose,
 	Copy,
-}ampfftGenerators;
+}hcfftGenerators;
 
 //	The "envelope" is a set of limits imposed by the hardware
 //	This will depend on the GPU(s) in the OpenCL context.
@@ -251,10 +251,10 @@ struct FFTKernelGenKeyParams {
 	size_t                   fft_inStride [5];  // input strides
 	size_t                   fft_outStride[5];  // output strides
 
-	ampfftResLocation   fft_placeness;
-	ampfftIpLayout           fft_inputLayout;
-	ampfftOpLayout           fft_outputLayout;
-	ampfftPrecision        fft_precision;
+	hcfftResLocation   fft_placeness;
+	hcfftIpLayout           fft_inputLayout;
+	hcfftOpLayout           fft_outputLayout;
+	hcfftPrecision        fft_precision;
 	double                   fft_fwdScale;
 	double                   fft_backScale;
 
@@ -281,13 +281,13 @@ class FFTRepo;
 class FFTPlan
 {
 public:
-  ampfftDim dimension;
-  ampfftIpLayout ipLayout;
-  ampfftOpLayout opLayout;
-  ampfftDirection direction;
-  ampfftResLocation location;
-  ampfftResTransposed transposeType;
-  ampfftPrecision precision;
+  hcfftDim dimension;
+  hcfftIpLayout ipLayout;
+  hcfftOpLayout opLayout;
+  hcfftDirection direction;
+  hcfftResLocation location;
+  hcfftResTransposed transposeType;
+  hcfftPrecision precision;
   void* input;
   void* output;
   std::vector< size_t >	length;
@@ -299,20 +299,20 @@ public:
   double backwardScale;
 
   bool baked;
-  ampfftGenerators gen;
+  hcfftGenerators gen;
 
   //	Hardware Limits
   FFTEnvelope envelope;
 
-  ampfftPlanHandle planX;
-  ampfftPlanHandle planY;
-  ampfftPlanHandle planZ;
+  hcfftPlanHandle planX;
+  hcfftPlanHandle planY;
+  hcfftPlanHandle planZ;
 
-  ampfftPlanHandle planTX;
-  ampfftPlanHandle planTY;
-  ampfftPlanHandle planTZ;
+  hcfftPlanHandle planTX;
+  hcfftPlanHandle planTY;
+  hcfftPlanHandle planTZ;
 
-  ampfftPlanHandle planRCcopy;
+  hcfftPlanHandle planRCcopy;
   //	Performance Tuning parameters
   bool bLdsComplex;
   unsigned uLdsFraction;
@@ -342,100 +342,100 @@ public:
   // where imaginary of input is set to zero in forward and imaginary not written in backward
   bool RCsimple;
 
-  FFTPlan() : dimension (AMPFFT_1D), ipLayout (AMPFFT_COMPLEX),
-              opLayout (AMPFFT_COMPLEX), location (AMPFFT_INPLACE),
-              transposeType (AMPFFT_NOTRANSPOSE), precision (AMPFFT_SINGLE),
+  FFTPlan() : dimension (HCFFT_1D), ipLayout (HCFFT_COMPLEX),
+              opLayout (HCFFT_COMPLEX), location (HCFFT_INPLACE),
+              transposeType (HCFFT_NOTRANSPOSE), precision (HCFFT_SINGLE),
               batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0),
               baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
               planTX(0), planTY(0), planTZ(0), planRCcopy(0), bLdsComplex(false),
               uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
 	      intBuffer( NULL ), tmpBufSizeRC(0), intBufferRC(NULL), tmpBufSizeC2R(0),
 	      intBufferC2R(NULL), transflag(false),large1D(0), large2D(false),
-              const_buffer(NULL), RCsimple(false), direction(AMPFFT_FORWARD)
+              const_buffer(NULL), RCsimple(false), direction(HCFFT_FORWARD)
   {};
 
-  ampfftStatus ampfftCreateDefaultPlan(ampfftPlanHandle* plHandle,ampfftDim dimension, const size_t *length);
+  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle,hcfftDim dimension, const size_t *length);
 
-  ampfftStatus	ampfftBakePlan(ampfftPlanHandle plHandle);
+  hcfftStatus	hcfftBakePlan(hcfftPlanHandle plHandle);
 
-  ampfftStatus ampfftDestroyPlan(ampfftPlanHandle* plHandle);
+  hcfftStatus hcfftDestroyPlan(hcfftPlanHandle* plHandle);
 
-  ampfftStatus	ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDirection dir, Concurrency::array_view<float, 1> *inputBuffers,
+  hcfftStatus	hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, Concurrency::array_view<float, 1> *inputBuffers,
                                        Concurrency::array_view<float, 1> *outputBuffers, Concurrency::array_view<float, 1> *tmpBuffer);
 
-  ampfftStatus executePlan(FFTPlan*);
+  hcfftStatus executePlan(FFTPlan*);
 
-  ampfftStatus	ampfftGetPlanPrecision(const ampfftPlanHandle plHandle, ampfftPrecision* precision );
+  hcfftStatus	hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 
-  ampfftStatus	ampfftSetPlanPrecision(ampfftPlanHandle plHandle, ampfftPrecision precision );
+  hcfftStatus	hcfftSetPlanPrecision(hcfftPlanHandle plHandle, hcfftPrecision precision );
 
-  ampfftStatus	ampfftGetPlanScale(const ampfftPlanHandle plHandle, ampfftDirection dir, float* scale );
+  hcfftStatus	hcfftGetPlanScale(const hcfftPlanHandle plHandle, hcfftDirection dir, float* scale );
 
-  ampfftStatus	ampfftSetPlanScale(ampfftPlanHandle plHandle, ampfftDirection dir, float scale );
+  hcfftStatus	hcfftSetPlanScale(hcfftPlanHandle plHandle, hcfftDirection dir, float scale );
 
-  ampfftStatus	ampfftGetPlanBatchSize(const ampfftPlanHandle plHandle, size_t* batchSize );
+  hcfftStatus	hcfftGetPlanBatchSize(const hcfftPlanHandle plHandle, size_t* batchSize );
 
-  ampfftStatus	ampfftSetPlanBatchSize(ampfftPlanHandle plHandle, size_t batchSize );
+  hcfftStatus	hcfftSetPlanBatchSize(hcfftPlanHandle plHandle, size_t batchSize );
 
-  ampfftStatus	ampfftGetPlanDim(const ampfftPlanHandle plHandle, ampfftDim* dim, int* size );
+  hcfftStatus	hcfftGetPlanDim(const hcfftPlanHandle plHandle, hcfftDim* dim, int* size );
 
-  ampfftStatus	ampfftSetPlanDim(ampfftPlanHandle plHandle, const ampfftDim dim );
+  hcfftStatus	hcfftSetPlanDim(hcfftPlanHandle plHandle, const hcfftDim dim );
 
-  ampfftStatus	ampfftGetPlanLength(const ampfftPlanHandle plHandle, const ampfftDim dim, size_t* clLengths );
+  hcfftStatus	hcfftGetPlanLength(const hcfftPlanHandle plHandle, const hcfftDim dim, size_t* clLengths );
 
-  ampfftStatus	ampfftSetPlanLength(ampfftPlanHandle plHandle, const ampfftDim dim, const size_t* clLengths );
+  hcfftStatus	hcfftSetPlanLength(hcfftPlanHandle plHandle, const hcfftDim dim, const size_t* clLengths );
 
-  ampfftStatus	ampfftGetPlanInStride(const ampfftPlanHandle plHandle, const ampfftDim dim, size_t* clStrides );
+  hcfftStatus	hcfftGetPlanInStride(const hcfftPlanHandle plHandle, const hcfftDim dim, size_t* clStrides );
 
-  ampfftStatus	ampfftSetPlanInStride(ampfftPlanHandle plHandle, const ampfftDim dim, size_t* clStrides );
+  hcfftStatus	hcfftSetPlanInStride(hcfftPlanHandle plHandle, const hcfftDim dim, size_t* clStrides );
 
-  ampfftStatus	ampfftGetPlanOutStride(const ampfftPlanHandle plHandle, const ampfftDim dim, size_t* clStrides );
+  hcfftStatus	hcfftGetPlanOutStride(const hcfftPlanHandle plHandle, const hcfftDim dim, size_t* clStrides );
 
-  ampfftStatus	ampfftSetPlanOutStride(ampfftPlanHandle plHandle, const ampfftDim dim, size_t* clStrides );
+  hcfftStatus	hcfftSetPlanOutStride(hcfftPlanHandle plHandle, const hcfftDim dim, size_t* clStrides );
 
-  ampfftStatus	ampfftGetPlanDistance(const ampfftPlanHandle plHandle, size_t* iDist, size_t* oDist );
+  hcfftStatus	hcfftGetPlanDistance(const hcfftPlanHandle plHandle, size_t* iDist, size_t* oDist );
 
-  ampfftStatus	ampfftSetPlanDistance(ampfftPlanHandle plHandle, size_t iDist, size_t oDist );
+  hcfftStatus	hcfftSetPlanDistance(hcfftPlanHandle plHandle, size_t iDist, size_t oDist );
 
-  ampfftStatus	ampfftGetLayout(const ampfftPlanHandle plHandle, ampfftIpLayout* iLayout, ampfftOpLayout* oLayout );
+  hcfftStatus	hcfftGetLayout(const hcfftPlanHandle plHandle, hcfftIpLayout* iLayout, hcfftOpLayout* oLayout );
 
-  ampfftStatus	ampfftSetLayout(ampfftPlanHandle plHandle, ampfftIpLayout iLayout, ampfftOpLayout oLayout );
+  hcfftStatus	hcfftSetLayout(hcfftPlanHandle plHandle, hcfftIpLayout iLayout, hcfftOpLayout oLayout );
 
-  ampfftStatus	ampfftGetResultLocation(const ampfftPlanHandle plHandle, ampfftResLocation* placeness );
+  hcfftStatus	hcfftGetResultLocation(const hcfftPlanHandle plHandle, hcfftResLocation* placeness );
 
-  ampfftStatus	ampfftSetResultLocation(ampfftPlanHandle plHandle, ampfftResLocation placeness );
+  hcfftStatus	hcfftSetResultLocation(hcfftPlanHandle plHandle, hcfftResLocation placeness );
 
-  ampfftStatus	ampfftGetPlanTransposeResult(const ampfftPlanHandle plHandle, ampfftResTransposed * transposed );
+  hcfftStatus	hcfftGetPlanTransposeResult(const hcfftPlanHandle plHandle, hcfftResTransposed * transposed );
 
-  ampfftStatus	ampfftSetPlanTransposeResult(ampfftPlanHandle plHandle, ampfftResTransposed transposed );
+  hcfftStatus	hcfftSetPlanTransposeResult(hcfftPlanHandle plHandle, hcfftResTransposed transposed );
 
-  ampfftStatus GetEnvelope (const FFTEnvelope **) const;
+  hcfftStatus GetEnvelope (const FFTEnvelope **) const;
 
-  ampfftStatus SetEnvelope ();
+  hcfftStatus SetEnvelope ();
 
-  template <ampfftGenerators G>
-  ampfftStatus GetMax1DLengthPvt (size_t *longest ) const;
+  template <hcfftGenerators G>
+  hcfftStatus GetMax1DLengthPvt (size_t *longest ) const;
 
-  template <ampfftGenerators G>
-  ampfftStatus GetKernelGenKeyPvt (FFTKernelGenKeyParams & params) const;
+  template <hcfftGenerators G>
+  hcfftStatus GetKernelGenKeyPvt (FFTKernelGenKeyParams & params) const;
 
-  template <ampfftGenerators G>
-  ampfftStatus GetWorkSizesPvt (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
+  template <hcfftGenerators G>
+  hcfftStatus GetWorkSizesPvt (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
 
-  template <ampfftGenerators G>
-  ampfftStatus GenerateKernelPvt (const ampfftPlanHandle plHandle, FFTRepo& fftRepo) const;
+  template <hcfftGenerators G>
+  hcfftStatus GenerateKernelPvt (const hcfftPlanHandle plHandle, FFTRepo& fftRepo) const;
 
-  ampfftStatus GetMax1DLength (size_t *longest ) const;
+  hcfftStatus GetMax1DLength (size_t *longest ) const;
 
-  ampfftStatus GetKernelGenKey (FFTKernelGenKeyParams & params) const;
+  hcfftStatus GetKernelGenKey (FFTKernelGenKeyParams & params) const;
 
-  ampfftStatus GetWorkSizes (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
+  hcfftStatus GetWorkSizes (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
 
-  ampfftStatus GenerateKernel (const ampfftPlanHandle plHandle, FFTRepo & fftRepo) const;
+  hcfftStatus GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo) const;
 
-  ampfftStatus AllocateWriteBuffers ();
+  hcfftStatus AllocateWriteBuffers ();
 
-  ampfftStatus ReleaseBuffers ();
+  hcfftStatus ReleaseBuffers ();
 
   size_t ElementSize() const;
 };
@@ -448,9 +448,9 @@ class FFTRepo
   //	does not seem appropriate, so a map was chosen because of the O(log N) search properties
   //	A lock object is created for each plan, such that any getter/setter can lock the 'plan' object before
   //	reading/writing its values.  The lock object is kept seperate from the plan object so that the lock
-  //	object can be held the entire time a plan is getting destroyed in ampfftDestroyPlan.
+  //	object can be held the entire time a plan is getting destroyed in hcfftDestroyPlan.
   typedef pair< FFTPlan*, lockRAII* > repoPlansValue;
-  typedef map< ampfftPlanHandle, repoPlansValue > repoPlansType;
+  typedef map< hcfftPlanHandle, repoPlansValue > repoPlansType;
   repoPlansType repoPlans;
 
   //	Structure containing all the data we need to remember for a specific invokation of a kernel
@@ -464,7 +464,7 @@ class FFTRepo
     {}
   };
 
-  typedef std::pair< ampfftGenerators, ampfftPlanHandle> fftRepoKey;
+  typedef std::pair< hcfftGenerators, hcfftPlanHandle> fftRepoKey;
   typedef std::map< fftRepoKey, fftRepoValue > fftRepoType;
   typedef fftRepoType::iterator fftRepo_iterator;
 
@@ -499,22 +499,22 @@ class FFTRepo
     return fftRepo;
   };
 
-  ampfftStatus createPlan( ampfftPlanHandle* plHandle, FFTPlan*& fftPlan );
+  hcfftStatus createPlan( hcfftPlanHandle* plHandle, FFTPlan*& fftPlan );
 
-  ampfftStatus getPlan( ampfftPlanHandle plHandle, FFTPlan*& fftPlan, lockRAII*& planLock );
+  hcfftStatus getPlan( hcfftPlanHandle plHandle, FFTPlan*& fftPlan, lockRAII*& planLock );
 
-  ampfftStatus deletePlan( ampfftPlanHandle* plHandle );
+  hcfftStatus deletePlan( hcfftPlanHandle* plHandle );
 
-  ampfftStatus setProgramEntryPoints( const ampfftGenerators gen, const ampfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, 
+  hcfftStatus setProgramEntryPoints( const hcfftGenerators gen, const hcfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, 
                                       const char * kernel_fwd, const char * kernel_back);
 
-  ampfftStatus getProgramEntryPoint( const ampfftGenerators gen, const ampfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, ampfftDirection dir, std::string& kernel);
+  hcfftStatus getProgramEntryPoint( const hcfftGenerators gen, const hcfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, hcfftDirection dir, std::string& kernel);
 
-  ampfftStatus setProgramCode( const ampfftGenerators gen, const ampfftPlanHandle& handle, const FFTKernelGenKeyParams&, const std::string& kernel);
+  hcfftStatus setProgramCode( const hcfftGenerators gen, const hcfftPlanHandle& handle, const FFTKernelGenKeyParams&, const std::string& kernel);
 
-  ampfftStatus getProgramCode( const ampfftGenerators gen, const ampfftPlanHandle& handle, const FFTKernelGenKeyParams&, std::string& kernel);
+  hcfftStatus getProgramCode( const hcfftGenerators gen, const hcfftPlanHandle& handle, const FFTKernelGenKeyParams&, std::string& kernel);
 
-  ampfftStatus releaseResources( );
+  hcfftStatus releaseResources( );
 
   ~FFTRepo( )
   {

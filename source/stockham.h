@@ -4,7 +4,7 @@
 #include <sstream>
 #include <fstream>
 #include <map>
-#include "ampfftlib.h"
+#include "hcfftlib.h"
 
 using namespace std;
 
@@ -100,9 +100,9 @@ namespace StockhamGenerator
 		}
 	}
 
-        inline std::string ampHeader()
+        inline std::string hcHeader()
 	{
-                return "#include \"ampfftlib.h\"\n"
+                return "#include \"hcfftlib.h\"\n"
                        "#include <amp.h>\n"
                        "#include <amp_math.h>\n"
 	               "#include <stdio.h>\n"
@@ -127,7 +127,7 @@ namespace StockhamGenerator
 		return sfx;
 	}
 
-	inline std::string ButterflyName(size_t radix, size_t count, bool fwd, const ampfftPlanHandle plHandle)
+	inline std::string ButterflyName(size_t radix, size_t count, bool fwd, const hcfftPlanHandle plHandle)
 	{
 		std::string str;
 		if(fwd) str += "Fwd";
@@ -138,7 +138,7 @@ namespace StockhamGenerator
 		return str;
 	}
 
-	inline std::string PassName(const ampfftPlanHandle plHandle, size_t pos, bool fwd)
+	inline std::string PassName(const hcfftPlanHandle plHandle, size_t pos, bool fwd)
 	{
 		std::string str;
 		if(fwd) str += "Fwd";
@@ -177,7 +177,7 @@ namespace StockhamGenerator
 		{
 			return (N < 2) ? n : (BitReverse (n >> 1, N >> 1) | ((n & 1) != 0 ? (N >> 1) : 0));
 		}
-		void GenerateButterflyStr(std::string &bflyStr, const ampfftPlanHandle plHandle) const
+		void GenerateButterflyStr(std::string &bflyStr, const hcfftPlanHandle plHandle) const
 		{
 			std::string regType = cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
 
@@ -1340,7 +1340,7 @@ namespace StockhamGenerator
 	public:
 		Butterfly(size_t radixVal, size_t countVal, bool fwdVal, bool cRegVal) : radix(radixVal), count(countVal), fwd(fwdVal), cReg(cRegVal) {}
 
-		void GenerateButterfly(std::string &bflyStr, const ampfftPlanHandle plHandle) const
+		void GenerateButterfly(std::string &bflyStr, const hcfftPlanHandle plHandle) const
 		{
 			assert(count <= 4);
 			if(count > 0)

@@ -1357,7 +1357,7 @@ namespace StockhamGenerator
 
 		void SetNextPass(Pass<PR> *np) { nextPass = np; }
 		void SetGrouping(bool grp) { enableGrouping = grp; }
-		void GeneratePass(const ampfftPlanHandle plHandle, bool fwd, std::string &passStr, bool fft_3StepTwiddle,
+		void GeneratePass(const hcfftPlanHandle plHandle, bool fwd, std::string &passStr, bool fft_3StepTwiddle,
 							bool inInterleaved, bool outInterleaved,
 							bool inReal, bool outReal,
 							size_t inStride, size_t outStride, double scale,
@@ -2031,7 +2031,7 @@ namespace StockhamGenerator
 		if(r2c2r)
 			return false;
 
-		if(params.fft_placeness == AMPFFT_INPLACE)
+		if(params.fft_placeness == HCFFT_INPLACE)
 		{
 			iStride = oStride = params.fft_inStride;
 		}
@@ -2152,8 +2152,8 @@ namespace StockhamGenerator
 			r2c = false;
 			c2r = false;
 			// Check if it is R2C or C2R transform
-			if(params.fft_inputLayout == AMPFFT_REAL)  r2c = true;
-			if(params.fft_outputLayout == AMPFFT_REAL) c2r = true;
+			if(params.fft_inputLayout == HCFFT_REAL)  r2c = true;
+			if(params.fft_outputLayout == HCFFT_REAL) c2r = true;
 			r2c2r = (r2c || c2r);
 
                         rcFull = false;
@@ -2161,8 +2161,8 @@ namespace StockhamGenerator
 			rcSimple = params.fft_RCsimple;
 
 			// Set half lds only for power-of-2 problem sizes & interleaved data
-			halfLds = ( (params.fft_inputLayout == AMPFFT_COMPLEX) &&
-						(params.fft_outputLayout == AMPFFT_COMPLEX) ) ? true : false;
+			halfLds = ( (params.fft_inputLayout == HCFFT_COMPLEX) &&
+						(params.fft_outputLayout == HCFFT_COMPLEX) ) ? true : false;
 			halfLds = halfLds ? ((length & (length-1)) ? false : true) : false;
 			//halfLds = false;
 
@@ -2262,7 +2262,7 @@ namespace StockhamGenerator
 					passes[i].SetNextPass(&passes[i+1]);
 		}
 
-        void GenerateKernel(const ampfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize)
+        void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize)
 		{
 			std::string twType = RegBaseType<PR>(2);
 			std::string rType  = RegBaseType<PR>(1);
@@ -2270,20 +2270,20 @@ namespace StockhamGenerator
 
 			bool inInterleaved;  // Input is interleaved format
 			bool outInterleaved; // Output is interleaved format
-			inInterleaved  = (params.fft_inputLayout == AMPFFT_COMPLEX)  ? true : false;
-			outInterleaved = (params.fft_outputLayout == AMPFFT_COMPLEX) ? true : false;
+			inInterleaved  = (params.fft_inputLayout == HCFFT_COMPLEX)  ? true : false;
+			outInterleaved = (params.fft_outputLayout == HCFFT_COMPLEX) ? true : false;
 
 			bool inReal;  // Input is real format
 			bool outReal; // Output is real format
-			inReal  = (params.fft_inputLayout == AMPFFT_REAL) ? true : false;
-			outReal = (params.fft_outputLayout == AMPFFT_REAL) ? true : false;
+			inReal  = (params.fft_inputLayout == HCFFT_REAL) ? true : false;
+			outReal = (params.fft_outputLayout == HCFFT_REAL) ? true : false;
 
 			size_t large1D = params.fft_N[0] * params.fft_N[1];
 
                        if(!first)
 			{
 			// Pragma
-			str += ampHeader();
+			str += hcHeader();
 
 			std::string sfx = FloatSuffix<PR>();
 
@@ -2398,7 +2398,7 @@ namespace StockhamGenerator
 			        arg++;
 
 				// Function attributes
-				if(params.fft_placeness == AMPFFT_INPLACE)
+				if(params.fft_placeness == HCFFT_INPLACE)
 				{
 					if(r2c2r)
 					{
@@ -2655,7 +2655,7 @@ namespace StockhamGenerator
                                 }
 				else
 				{
-					if(params.fft_placeness == AMPFFT_INPLACE)
+					if(params.fft_placeness == HCFFT_INPLACE)
 					{
 						str += "unsigned int iOffset;\n\t";
 
@@ -2736,7 +2736,7 @@ namespace StockhamGenerator
 				}
 				else
 				{
-					if(params.fft_placeness == AMPFFT_INPLACE)
+					if(params.fft_placeness == HCFFT_INPLACE)
 					{
 						str += OffsetCalc("iOffset", true);
 
@@ -2782,7 +2782,7 @@ namespace StockhamGenerator
 				}
 				else
 				{
-					if(params.fft_placeness == AMPFFT_INPLACE)
+					if(params.fft_placeness == HCFFT_INPLACE)
 					{
 						if(inInterleaved)	{ inBuf = "gb, iOffset, "; outBuf = "gb, iOffset"; }
 						else				{ inBuf = "gbRe, iOffset, gbIm, "; outBuf = "gbRe, oOffset, gbIm, "; }
@@ -2884,7 +2884,7 @@ namespace StockhamGenerator
 using namespace StockhamGenerator;
 
 template<>
-ampfftStatus FFTPlan::GetMax1DLengthPvt<Stockham> (size_t * longest) const
+hcfftStatus FFTPlan::GetMax1DLengthPvt<Stockham> (size_t * longest) const
 {
 	// TODO  The caller has already acquired the lock on *this
 	//	However, we shouldn't depend on it.
@@ -2903,12 +2903,12 @@ ampfftStatus FFTPlan::GetMax1DLengthPvt<Stockham> (size_t * longest) const
 		(1 * LdsperElement);
 	result = FloorPo2 (result);
 	*longest = result;
-	return AMPFFT_SUCCESS;
+	return HCFFT_SUCCESS;
 }
 
 
 template<>
-ampfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & params) const
+hcfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & params) const
 {
 
     //    Query the devices in this context for their local memory sizes
@@ -2926,9 +2926,9 @@ ampfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & para
 
     ARG_CHECK (this->inStride.size() == this->outStride.size())
 
-	bool real_transform = ((this->ipLayout == AMPFFT_REAL) || (this->opLayout == AMPFFT_REAL));
+	bool real_transform = ((this->ipLayout == HCFFT_REAL) || (this->opLayout == HCFFT_REAL));
 
-    if ( (AMPFFT_INPLACE == this->location) && (!real_transform) ) {
+    if ( (HCFFT_INPLACE == this->location) && (!real_transform) ) {
         //    If this is an in-place transform the
         //    input and output layout, dimensions and strides
         //    *MUST* be the same.
@@ -3030,7 +3030,7 @@ ampfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & para
 	params.fft_RCsimple = this->RCsimple;
 	size_t wgs, nt;
 	size_t t_wgs, t_nt;
-	Precision pr = (params.fft_precision == AMPFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
+	Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
 	switch(pr)
 	{
 	case P_SINGLE:
@@ -3071,11 +3071,11 @@ ampfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & para
 
     params.fft_fwdScale  = this->forwardScale;
     params.fft_backScale = this->backwardScale;
-    return AMPFFT_SUCCESS;
+    return HCFFT_SUCCESS;
 }
 
 template<>
-ampfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS, std::vector<size_t> & localWS) const
+hcfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS, std::vector<size_t> & localWS) const
 {
     //    How many complex numbers in the input mutl-dimensional array?
     //
@@ -3094,7 +3094,7 @@ ampfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS,
     count = DivRoundingUp<unsigned long long> (count, fftParams.fft_SIMD);   // count of WorkGroups
 
 	// for real transforms we only need half the work groups since we do twice the work in 1 work group
-	if( !(fftParams.fft_RCsimple) && ((fftParams.fft_inputLayout == AMPFFT_REAL) || (fftParams.fft_outputLayout == AMPFFT_REAL)) )
+	if( !(fftParams.fft_RCsimple) && ((fftParams.fft_inputLayout == HCFFT_REAL) || (fftParams.fft_outputLayout == HCFFT_REAL)) )
 		count = DivRoundingUp<unsigned long long> (count, 2);
 
     count = std::max<unsigned long long> (count, 1) * fftParams.fft_SIMD;
@@ -3105,11 +3105,11 @@ ampfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS,
 
     localWS.push_back( fftParams.fft_SIMD );
 
-    return    AMPFFT_SUCCESS;
+    return    HCFFT_SUCCESS;
 }
 
 template<>
-ampfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const ampfftPlanHandle plHandle, FFTRepo& fftRepo) const
+hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo) const
 {
     FFTKernelGenKeyParams params;
     this->GetKernelGenKeyPvt<Stockham> (params);
@@ -3118,7 +3118,7 @@ ampfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const ampfftPlanHandle plHandl
     this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);
 
     std::string programCode;
-    Precision pr = (params.fft_precision == AMPFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
+    Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
     switch(pr)
     {
         case P_SINGLE:
@@ -3135,5 +3135,5 @@ ampfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const ampfftPlanHandle plHandl
 
     fftRepo.setProgramCode( Stockham, plHandle, params, programCode);
     fftRepo.setProgramEntryPoints( Stockham, plHandle, params, "fft_fwd", "fft_back");
-    return AMPFFT_SUCCESS;
+    return HCFFT_SUCCESS;
 }

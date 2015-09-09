@@ -1,5 +1,5 @@
 #include <dlfcn.h>
-#include "ampfftlib.h"
+#include "hcfftlib.h"
 
 //	Static initialization of the repo lock variable
 lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
@@ -10,7 +10,7 @@ size_t FFTRepo::planCount	= 1;
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
 //	Read the kernels that this plan uses from file, and store into the plan
-ampfftStatus WriteKernel( const ampfftPlanHandle plHandle, const ampfftGenerators gen, const FFTKernelGenKeyParams& fftParams)
+hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators gen, const FFTKernelGenKeyParams& fftParams)
 {
 	FFTRepo& fftRepo	= FFTRepo::getInstance( );
 
@@ -23,7 +23,7 @@ ampfftStatus WriteKernel( const ampfftPlanHandle plHandle, const ampfftGenerator
         if (!fp)
         {
           std::cout<<" File kernel.cpp open failed for writing "<<std::endl;
-          return AMPFFT_ERROR;
+          return HCFFT_ERROR;
         }
 
 	size_t written = fwrite(kernel.c_str(), kernel.size(), 1, fp);
@@ -36,11 +36,11 @@ ampfftStatus WriteKernel( const ampfftPlanHandle plHandle, const ampfftGenerator
         fflush(fp);
         fclose(fp);
 
-	return	AMPFFT_SUCCESS;
+	return	HCFFT_SUCCESS;
 }
 
 //	Compile the kernels that this plan uses, and store into the plan
-ampfftStatus CompileKernels(const ampfftPlanHandle plHandle, const ampfftGenerators gen, FFTPlan* fftPlan )
+hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators gen, FFTPlan* fftPlan )
 {
 	FFTRepo& fftRepo	= FFTRepo::getInstance( );
 
@@ -82,23 +82,23 @@ ampfftStatus CompileKernels(const ampfftPlanHandle plHandle, const ampfftGenerat
         system(execCmd.c_str());
 
 	// For real transforms we comppile either forward or backward kernel
-	bool r2c_transform = (fftParams.fft_inputLayout == AMPFFT_REAL);
-	bool c2r_transform = (fftParams.fft_outputLayout == AMPFFT_REAL);
+	bool r2c_transform = (fftParams.fft_inputLayout == HCFFT_REAL);
+	bool c2r_transform = (fftParams.fft_outputLayout == HCFFT_REAL);
 	bool real_transform = (gen == Copy) ? true : (r2c_transform || c2r_transform);
-	bool h2c = (gen == Copy) && ((fftParams.fft_inputLayout == AMPFFT_COMPLEX) || (fftParams.fft_inputLayout == AMPFFT_COMPLEX));
-	bool c2h = (gen == Copy) && ((fftParams.fft_outputLayout == AMPFFT_COMPLEX) || (fftParams.fft_outputLayout == AMPFFT_COMPLEX));
+	bool h2c = (gen == Copy) && ((fftParams.fft_inputLayout == HCFFT_COMPLEX) || (fftParams.fft_inputLayout == HCFFT_COMPLEX));
+	bool c2h = (gen == Copy) && ((fftParams.fft_outputLayout == HCFFT_COMPLEX) || (fftParams.fft_outputLayout == HCFFT_COMPLEX));
 
 	// get a kernel object handle for a kernel with the given name
 	if( (!real_transform) || r2c_transform || c2h )
 	{
 		std::string entryPoint;
-		fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, AMPFFT_FORWARD, entryPoint);
+		fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, HCFFT_FORWARD, entryPoint);
 	}
 
 	if( (!real_transform) || c2r_transform || h2c )
 	{
 		std::string entryPoint;
-		fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, AMPFFT_BACKWARD, entryPoint);
+		fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, HCFFT_BACKWARD, entryPoint);
 	}
 }
 
@@ -109,7 +109,7 @@ ampfftStatus CompileKernels(const ampfftPlanHandle plHandle, const ampfftGenerat
 //	the object's context is set.  On 2nd and subsequent calls,
 //	we just return the pointer.
 //
-ampfftStatus FFTPlan::SetEnvelope ()
+hcfftStatus FFTPlan::SetEnvelope ()
 {
 
 	// TODO  The caller has already acquired the lock on *this
@@ -121,45 +121,45 @@ ampfftStatus FFTPlan::SetEnvelope ()
         for(int i = 0 ;i < envelope.limit_Dimensions; i++)
           envelope.limit_Size[i] = 256;
 
-	return AMPFFT_SUCCESS;
+	return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::GetEnvelope (const FFTEnvelope ** ppEnvelope) const
+hcfftStatus FFTPlan::GetEnvelope (const FFTEnvelope ** ppEnvelope) const
 {
 	if(&envelope == NULL) assert(false);
 	*ppEnvelope = &envelope;
-	return AMPFFT_SUCCESS;
+	return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftCreateDefaultPlan (ampfftPlanHandle* plHandle,ampfftDim dimension, const size_t *length)
+hcfftStatus FFTPlan::hcfftCreateDefaultPlan (hcfftPlanHandle* plHandle,hcfftDim dimension, const size_t *length)
 {
   if( length == NULL )
-    return AMPFFT_ERROR;
+    return HCFFT_ERROR;
 
   size_t lenX = 1, lenY = 1, lenZ = 1;
   switch( dimension )
   {
-    case AMPFFT_1D:
+    case HCFFT_1D:
     {
       if( length[ 0 ] == 0 )
-	return AMPFFT_ERROR;
+	return HCFFT_ERROR;
       lenX = length[ 0 ];
     }
     break;
 
-    case AMPFFT_2D:
+    case HCFFT_2D:
     {
       if( length[ 0 ] == 0 || length[ 1 ] == 0 )
-	return AMPFFT_ERROR;
+	return HCFFT_ERROR;
       lenX = length[ 0 ];
       lenY = length[ 1 ];
     }
     break;
 
-    case AMPFFT_3D:
+    case HCFFT_3D:
     {
       if( length[ 0 ] == 0 || length[ 1 ] == 0 || length[ 2 ] == 0 )
-	return AMPFFT_ERROR;
+	return HCFFT_ERROR;
       lenX = length[ 0 ];
       lenY = length[ 1 ];
       lenZ = length[ 2 ];
@@ -167,7 +167,7 @@ ampfftStatus FFTPlan::ampfftCreateDefaultPlan (ampfftPlanHandle* plHandle,ampfft
     break;
 
     default:
-      return AMPFFT_ERROR;
+      return HCFFT_ERROR;
     break;
   }
 
@@ -176,10 +176,10 @@ ampfftStatus FFTPlan::ampfftCreateDefaultPlan (ampfftPlanHandle* plHandle,ampfft
   fftRepo.createPlan( plHandle, fftPlan );
   fftPlan->baked = false;
   fftPlan->dimension = dimension;
-  fftPlan->location = AMPFFT_INPLACE;
-  fftPlan->ipLayout = AMPFFT_COMPLEX;
-  fftPlan->opLayout = AMPFFT_COMPLEX;
-  fftPlan->precision = AMPFFT_SINGLE;
+  fftPlan->location = HCFFT_INPLACE;
+  fftPlan->ipLayout = HCFFT_COMPLEX;
+  fftPlan->opLayout = HCFFT_COMPLEX;
+  fftPlan->precision = HCFFT_SINGLE;
   fftPlan->forwardScale	= 1.0;
   fftPlan->backwardScale = 1.0 / static_cast< double >( lenX * lenY * lenZ );
   fftPlan->batchSize = 1;
@@ -190,7 +190,7 @@ ampfftStatus FFTPlan::ampfftCreateDefaultPlan (ampfftPlanHandle* plHandle,ampfft
 
   switch( dimension )
   {
-    case AMPFFT_1D:
+    case HCFFT_1D:
     {
       fftPlan->length.push_back( lenX );
       fftPlan->inStride.push_back( 1 );
@@ -200,7 +200,7 @@ ampfftStatus FFTPlan::ampfftCreateDefaultPlan (ampfftPlanHandle* plHandle,ampfft
     }
     break;
 
-    case AMPFFT_2D:
+    case HCFFT_2D:
     {
       fftPlan->length.push_back( lenX );
       fftPlan->length.push_back( lenY );
@@ -213,7 +213,7 @@ ampfftStatus FFTPlan::ampfftCreateDefaultPlan (ampfftPlanHandle* plHandle,ampfft
     }
     break;
 
-    case AMPFFT_3D:
+    case HCFFT_3D:
     {
       fftPlan->length.push_back( lenX );
       fftPlan->length.push_back( lenY );
@@ -229,13 +229,13 @@ ampfftStatus FFTPlan::ampfftCreateDefaultPlan (ampfftPlanHandle* plHandle,ampfft
     }
     break;
   }
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDirection dir, Concurrency::array_view<float, 1> *clInputBuffers,
+hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, Concurrency::array_view<float, 1> *clInputBuffers,
 				             Concurrency::array_view<float, 1> *clOutputBuffers, Concurrency::array_view<float, 1> *clTmpBuffers)
 {
-	ampfftStatus status = AMPFFT_SUCCESS;
+	hcfftStatus status = HCFFT_SUCCESS;
 
         std::map<int, void*> vectArr;
 
@@ -247,17 +247,17 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 	//	after we finish baking the plan (if the user did not do that explicitely before), the plan cannot
 	//	change again through the action of other thread before we enqueue this plan for execution.
 	fftRepo.getPlan( plHandle, fftPlan, planLock );
-	scopedLock sLock( *planLock, _T( "ampfftGetPlanBatchSize" ) );
+	scopedLock sLock( *planLock, _T( "hcfftGetPlanBatchSize" ) );
 
 	if( fftPlan->baked == false )
 	{
-		ampfftBakePlan( plHandle);
+		hcfftBakePlan( plHandle);
 	}
 
-	if (fftPlan->ipLayout == AMPFFT_REAL)
-	  dir = AMPFFT_FORWARD;
-	else if	(fftPlan->opLayout == AMPFFT_REAL)
-	  dir = AMPFFT_BACKWARD;
+	if (fftPlan->ipLayout == HCFFT_REAL)
+	  dir = HCFFT_FORWARD;
+	else if	(fftPlan->opLayout == HCFFT_REAL)
+	  dir = HCFFT_BACKWARD;
 
         // we do not check the user provided buffer at this release
 	Concurrency::array_view<float, 1> *localIntBuffer = clTmpBuffers;
@@ -301,42 +301,42 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 	if(fftPlan->gen != Copy)
 	switch( fftPlan->dimension )
 	{
-		case AMPFFT_1D:
+		case HCFFT_1D:
 		{
 			if (fftPlan->length[0] <= Large1DThreshold)
 				break;
 
-			if( fftPlan->ipLayout == AMPFFT_REAL )
+			if( fftPlan->ipLayout == HCFFT_REAL )
 			{
 				// First pass
-				ampfftEnqueueTransform( fftPlan->planX, AMPFFT_FORWARD, clInputBuffers, fftPlan->intBufferRC, localIntBuffer);
+				hcfftEnqueueTransform( fftPlan->planX, HCFFT_FORWARD, clInputBuffers, fftPlan->intBufferRC, localIntBuffer);
 
-				ampfftEnqueueTransform( fftPlan->planY, AMPFFT_FORWARD, fftPlan->intBufferRC, fftPlan->intBufferRC, localIntBuffer );
+				hcfftEnqueueTransform( fftPlan->planY, HCFFT_FORWARD, fftPlan->intBufferRC, fftPlan->intBufferRC, localIntBuffer );
 
 				Concurrency::array_view<float, 1> *out_local;
-				out_local = (fftPlan->location==AMPFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
+				out_local = (fftPlan->location==HCFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
 
-				ampfftEnqueueTransform( fftPlan->planRCcopy, AMPFFT_FORWARD, fftPlan->intBufferRC, out_local, localIntBuffer );
+				hcfftEnqueueTransform( fftPlan->planRCcopy, HCFFT_FORWARD, fftPlan->intBufferRC, out_local, localIntBuffer );
 
-				return	AMPFFT_SUCCESS;
+				return	HCFFT_SUCCESS;
 
 			}
-			else if( fftPlan->opLayout == AMPFFT_REAL )
+			else if( fftPlan->opLayout == HCFFT_REAL )
 			{
 				// copy from hermitian to full complex
-				ampfftEnqueueTransform( fftPlan->planRCcopy, AMPFFT_BACKWARD, clInputBuffers, fftPlan->intBufferRC, localIntBuffer );
+				hcfftEnqueueTransform( fftPlan->planRCcopy, HCFFT_BACKWARD, clInputBuffers, fftPlan->intBufferRC, localIntBuffer );
 
 				// First pass
 				// column with twiddle first, INPLACE,
-				ampfftEnqueueTransform( fftPlan->planX, AMPFFT_BACKWARD, fftPlan->intBufferRC, fftPlan->intBufferRC, localIntBuffer);
+				hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, fftPlan->intBufferRC, fftPlan->intBufferRC, localIntBuffer);
 
 				Concurrency::array_view<float, 1> *out_local;
-				out_local = (fftPlan->location==AMPFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
+				out_local = (fftPlan->location==HCFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
 
 				// another column FFT output, OUTOFPLACE + transpose
-				ampfftEnqueueTransform( fftPlan->planY, AMPFFT_BACKWARD, fftPlan->intBufferRC, out_local, localIntBuffer );
+				hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, fftPlan->intBufferRC, out_local, localIntBuffer );
 
-				return	AMPFFT_SUCCESS;
+				return	HCFFT_SUCCESS;
 			}
 			else
 			{
@@ -344,48 +344,48 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 				{
 					//First transpose
 					// Input->tmp
-					ampfftEnqueueTransform( fftPlan->planTX, dir, clInputBuffers, localIntBuffer, NULL );
+					hcfftEnqueueTransform( fftPlan->planTX, dir, clInputBuffers, localIntBuffer, NULL );
 
 					Concurrency::array_view<float, 1> *mybuffers;
-					if (fftPlan->location == AMPFFT_INPLACE)
+					if (fftPlan->location == HCFFT_INPLACE)
 						mybuffers = clInputBuffers;
 					else
 						mybuffers = clOutputBuffers;
 
 					//First Row
 					//tmp->output
-					ampfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, mybuffers, NULL );
+					hcfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, mybuffers, NULL );
 
 					//Second Transpose
 					// output->tmp
-					ampfftEnqueueTransform( fftPlan->planTY, dir, mybuffers, localIntBuffer, NULL );
+					hcfftEnqueueTransform( fftPlan->planTY, dir, mybuffers, localIntBuffer, NULL );
 
 					//Second Row
 					//tmp->tmp, inplace
-					ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
+					hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
 
 					//Third Transpose
 					// tmp->output
-					ampfftEnqueueTransform( fftPlan->planTZ, dir, localIntBuffer, mybuffers, NULL );
+					hcfftEnqueueTransform( fftPlan->planTZ, dir, localIntBuffer, mybuffers, NULL );
 
-					return	AMPFFT_SUCCESS;
+					return	HCFFT_SUCCESS;
 				}
 
 				if (fftPlan->large1D == 0)
 				{
 					// First pass
 					// column with twiddle first, OUTOFPLACE, + transpose
-					ampfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, localIntBuffer, localIntBuffer);
+					hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, localIntBuffer, localIntBuffer);
 
 					//another column FFT output, OUTOFPLACE
-					if (fftPlan->location == AMPFFT_INPLACE)
+					if (fftPlan->location == HCFFT_INPLACE)
 					{
-						ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clInputBuffers, localIntBuffer );
+						hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clInputBuffers, localIntBuffer );
 
 					}
 					else
 					{
-						ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clOutputBuffers, localIntBuffer );
+						hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clOutputBuffers, localIntBuffer );
 
 					}
 				}
@@ -393,17 +393,17 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 				{
 					// second pass for huge 1D
 					// column with twiddle first, OUTOFPLACE, + transpose
-					ampfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, clOutputBuffers, localIntBuffer);
+					hcfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, clOutputBuffers, localIntBuffer);
 
-					ampfftEnqueueTransform( fftPlan->planY, dir,clOutputBuffers, clOutputBuffers, localIntBuffer );
+					hcfftEnqueueTransform( fftPlan->planY, dir,clOutputBuffers, clOutputBuffers, localIntBuffer );
 
 				}
 
-				return	AMPFFT_SUCCESS;
+				return	HCFFT_SUCCESS;
 			}
 			break;
 		}
-		case AMPFFT_2D:
+		case HCFFT_2D:
 		{
 			// if transpose kernel, we will fall below
 			if (fftPlan->transflag && !(fftPlan->planTX)) break;
@@ -413,11 +413,11 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 			if (fftPlan->transflag)
 			{//first time set up transpose kernel for 2D
 				//First row
-				ampfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, NULL );
+				hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, NULL );
 
 				Concurrency::array_view<float, 1> *mybuffers;
 
-				if (fftPlan->location==AMPFFT_INPLACE)
+				if (fftPlan->location==HCFFT_INPLACE)
 					mybuffers = clInputBuffers;
 				else
 					mybuffers = clOutputBuffers;
@@ -427,88 +427,88 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 				if (xyflag)
 				{
 					//First transpose
-					ampfftEnqueueTransform( fftPlan->planTX, dir, mybuffers, localIntBuffer, NULL );
+					hcfftEnqueueTransform( fftPlan->planTX, dir, mybuffers, localIntBuffer, NULL );
 
-					if (fftPlan->transposeType == AMPFFT_NOTRANSPOSE)
+					if (fftPlan->transposeType == HCFFT_NOTRANSPOSE)
 					{
 						//Second Row transform
-						ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
+						hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
 
 						//Second transpose
-						ampfftEnqueueTransform( fftPlan->planTY, dir, localIntBuffer, mybuffers, NULL );
+						hcfftEnqueueTransform( fftPlan->planTY, dir, localIntBuffer, mybuffers, NULL );
 
 					}
 					else
 					{
 						//Second Row transform
-						ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, mybuffers, NULL );
+						hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, mybuffers, NULL );
 					}
 				}
 				else
 				{
 					// First Transpose
-					ampfftEnqueueTransform( fftPlan->planTX, dir, mybuffers, NULL, NULL );
+					hcfftEnqueueTransform( fftPlan->planTX, dir, mybuffers, NULL, NULL );
 
-					if (fftPlan->transposeType == AMPFFT_NOTRANSPOSE)
+					if (fftPlan->transposeType == HCFFT_NOTRANSPOSE)
 					{
 						//Second Row transform
-						ampfftEnqueueTransform( fftPlan->planY, dir, mybuffers, NULL, NULL );
+						hcfftEnqueueTransform( fftPlan->planY, dir, mybuffers, NULL, NULL );
 
 						//Second transpose
-						ampfftEnqueueTransform( fftPlan->planTY, dir, mybuffers, NULL, NULL );
+						hcfftEnqueueTransform( fftPlan->planTY, dir, mybuffers, NULL, NULL );
 					}
 					else
 					{
 						//Second Row transform
-						ampfftEnqueueTransform( fftPlan->planY, dir, mybuffers, NULL, NULL );
+						hcfftEnqueueTransform( fftPlan->planY, dir, mybuffers, NULL, NULL );
 					}
 				}
 
-				return AMPFFT_SUCCESS;
+				return HCFFT_SUCCESS;
 			}
 
 			if ( (fftPlan->large2D || fftPlan->length.size()>2) &&
-				(fftPlan->ipLayout != AMPFFT_REAL) && (fftPlan->opLayout != AMPFFT_REAL))
+				(fftPlan->ipLayout != HCFFT_REAL) && (fftPlan->opLayout != HCFFT_REAL))
 			{
-				if (fftPlan->location==AMPFFT_INPLACE)
+				if (fftPlan->location==HCFFT_INPLACE)
 				{
 					//deal with row first
-					ampfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, NULL, localIntBuffer );
+					hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, NULL, localIntBuffer );
 
 					//deal with column
-					ampfftEnqueueTransform( fftPlan->planY, dir, clInputBuffers, NULL, localIntBuffer );
+					hcfftEnqueueTransform( fftPlan->planY, dir, clInputBuffers, NULL, localIntBuffer );
 				}
 				else
 				{
 					//deal with row first
-					ampfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, localIntBuffer );
+					hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, localIntBuffer );
 
 					//deal with column
-					ampfftEnqueueTransform( fftPlan->planY, dir, clOutputBuffers, NULL, localIntBuffer );
+					hcfftEnqueueTransform( fftPlan->planY, dir, clOutputBuffers, NULL, localIntBuffer );
 				}
 			}
 			else
 			{
-				if(fftPlan->ipLayout == AMPFFT_REAL)
+				if(fftPlan->ipLayout == HCFFT_REAL)
 				{
-					if (fftPlan->location==AMPFFT_INPLACE)
+					if (fftPlan->location==HCFFT_INPLACE)
 					{
 						// deal with row
-						ampfftEnqueueTransform( fftPlan->planX, AMPFFT_FORWARD, clInputBuffers, NULL, localIntBuffer );
+						hcfftEnqueueTransform( fftPlan->planX, HCFFT_FORWARD, clInputBuffers, NULL, localIntBuffer );
 
 						// deal with column
-						ampfftEnqueueTransform( fftPlan->planY, AMPFFT_FORWARD, clInputBuffers, NULL, localIntBuffer );
+						hcfftEnqueueTransform( fftPlan->planY, HCFFT_FORWARD, clInputBuffers, NULL, localIntBuffer );
 					}
 					else
 					{
 						// deal with row
-						ampfftEnqueueTransform( fftPlan->planX, AMPFFT_FORWARD, clInputBuffers, clOutputBuffers, localIntBuffer );
+						hcfftEnqueueTransform( fftPlan->planX, HCFFT_FORWARD, clInputBuffers, clOutputBuffers, localIntBuffer );
 
 						// deal with column
-						ampfftEnqueueTransform( fftPlan->planY, AMPFFT_FORWARD, clOutputBuffers, NULL, localIntBuffer );
+						hcfftEnqueueTransform( fftPlan->planY, HCFFT_FORWARD, clOutputBuffers, NULL, localIntBuffer );
 					}
 				}
-				else if(fftPlan->opLayout == AMPFFT_REAL)
+				else if(fftPlan->opLayout == HCFFT_REAL)
 				{
 					Concurrency::array_view<float, 1> *out_local, *int_local, *out_y;
 
@@ -520,36 +520,36 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 					}
 					else
 					{
-						out_local = (fftPlan->location == AMPFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
+						out_local = (fftPlan->location == HCFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
 						int_local = fftPlan->tmpBufSizeC2R ? fftPlan->intBufferC2R : localIntBuffer;
 						out_y = int_local;
 					}
 					// deal with column
-					ampfftEnqueueTransform( fftPlan->planY, AMPFFT_BACKWARD, clInputBuffers, int_local, localIntBuffer );
+					hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, clInputBuffers, int_local, localIntBuffer );
 
 					// deal with row
-					ampfftEnqueueTransform( fftPlan->planX, AMPFFT_BACKWARD, out_y, out_local, localIntBuffer );
+					hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, out_y, out_local, localIntBuffer );
 
 				}
 				else
 				{
 					//deal with row first
-					ampfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, localIntBuffer, localIntBuffer );
+					hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, localIntBuffer, localIntBuffer );
 
-					if (fftPlan->location == AMPFFT_INPLACE)
+					if (fftPlan->location == HCFFT_INPLACE)
 					{
 						//deal with column
-						ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clInputBuffers, localIntBuffer );
+						hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clInputBuffers, localIntBuffer );
 					}
 					else
 					{
 						//deal with column
-						ampfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clOutputBuffers, localIntBuffer );
+						hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clOutputBuffers, localIntBuffer );
 					}
 				}
 			}
 
-			return	AMPFFT_SUCCESS;
+			return	HCFFT_SUCCESS;
 		}
 	}
 
@@ -567,14 +567,14 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 	//	Decode the relevant properties from the plan paramter to figure out how many input/output buffers we have
 	switch( fftPlan->ipLayout )
 	{
-		case AMPFFT_COMPLEX:
+		case HCFFT_COMPLEX:
 		{
 			switch( fftPlan->opLayout )
 			{
-                                case AMPFFT_COMPLEX:
-				case AMPFFT_REAL:
+                                case HCFFT_COMPLEX:
+				case HCFFT_REAL:
 				{
-					if( fftPlan->location == AMPFFT_INPLACE )
+					if( fftPlan->location == HCFFT_INPLACE )
 					{
 						vectArr.insert(std::make_pair(uarg++, clInputBuffers));
 					}
@@ -588,19 +588,19 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 				default:
 				{
 					//	Don't recognize output layout
-					return AMPFFT_ERROR;
+					return HCFFT_ERROR;
 				}
 			}
 
 			break;
 		}
-		case AMPFFT_REAL:
+		case HCFFT_REAL:
 		{
 			switch( fftPlan->opLayout )
 			{
-				case AMPFFT_COMPLEX:
+				case HCFFT_COMPLEX:
 				{
-					if( fftPlan->location == AMPFFT_INPLACE )
+					if( fftPlan->location == HCFFT_INPLACE )
 					{
 						vectArr.insert(std::make_pair(uarg++,clInputBuffers));
 					}
@@ -618,15 +618,15 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
 		default:
 		{
 			//	Don't recognize output layout
-			return AMPFFT_ERROR;
+			return HCFFT_ERROR;
 		}
 	}
 
         vector< size_t > gWorkSize;
 	vector< size_t > lWorkSize;
-	ampfftStatus result = fftPlan->GetWorkSizes (gWorkSize, lWorkSize);
+	hcfftStatus result = fftPlan->GetWorkSizes (gWorkSize, lWorkSize);
 
-	if (AMPFFT_ERROR == result)
+	if (HCFFT_ERROR == result)
 	{
 		std::cout<<"Work size too large for clEnqueNDRangeKernel()"<<std::endl;
 	}
@@ -650,14 +650,14 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
          if(!kernelHandle)
         {
           std::cout << "Failed to load Kernel: "<< kernellib.c_str()<<std::endl;
-          return AMPFFT_ERROR;
+          return HCFFT_ERROR;
         }
         else
         {
           std::cout<<"Loaded Kernel: "<<kernellib.c_str()<<std::endl;
         }
 
-        if(dir == AMPFFT_FORWARD)
+        if(dir == HCFFT_FORWARD)
         {
         std::string funcName = "fft_fwd";
         funcName +=  std::to_string(plHandle);
@@ -671,7 +671,7 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
           exit(1);
         }
         }
-        else if(dir == AMPFFT_BACKWARD)
+        else if(dir == HCFFT_BACKWARD)
         {
         std::string funcName = "fft_back";
         funcName +=  std::to_string(plHandle);
@@ -692,51 +692,51 @@ ampfftStatus FFTPlan::ampfftEnqueueTransform(ampfftPlanHandle plHandle, ampfftDi
         kernelHandle = NULL;
 }
 
-ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
+hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan(plHandle, fftPlan, planLock);
-  scopedLock sLock( *planLock, _T( "ampfftBakePlan" ) );
+  scopedLock sLock( *planLock, _T( "hcfftBakePlan" ) );
 
   // if we have already baked the plan and nothing has changed since, we're done here
   if( fftPlan->baked == true )
   {
-    return AMPFFT_SUCCESS;
+    return HCFFT_SUCCESS;
   }
 
   //find product of lengths
   size_t pLength = 1;
   switch(fftPlan->dimension)
   {
-    case AMPFFT_3D: pLength *= fftPlan->length[2];
-    case AMPFFT_2D: pLength *= fftPlan->length[1];
-    case AMPFFT_1D: pLength *= fftPlan->length[0];
+    case HCFFT_3D: pLength *= fftPlan->length[2];
+    case HCFFT_2D: pLength *= fftPlan->length[1];
+    case HCFFT_1D: pLength *= fftPlan->length[0];
   }
 
   if(fftPlan->dimension == fftPlan->length.size() && fftPlan->gen != Transpose && fftPlan->gen != Copy) // confirm it is top-level plan (user plan)
   {
-    if(fftPlan->location == AMPFFT_INPLACE)
+    if(fftPlan->location == HCFFT_INPLACE)
     {
-      if((fftPlan->ipLayout == AMPFFT_COMPLEX) || (fftPlan->opLayout == AMPFFT_COMPLEX))
-        return AMPFFT_ERROR;
+      if((fftPlan->ipLayout == HCFFT_COMPLEX) || (fftPlan->opLayout == HCFFT_COMPLEX))
+        return HCFFT_ERROR;
     }
 
     // Make sure strides & distance are same for C-C transforms
-    if(fftPlan->location == AMPFFT_INPLACE)
+    if(fftPlan->location == HCFFT_INPLACE)
     {
-      if((fftPlan->ipLayout != AMPFFT_REAL) && (fftPlan->opLayout != AMPFFT_REAL))
+      if((fftPlan->ipLayout != HCFFT_REAL) && (fftPlan->opLayout != HCFFT_REAL))
         {
 	  // check strides
 	  for(size_t i=0; i<fftPlan->dimension; i++)
 	    if(fftPlan->inStride[i] != fftPlan->outStride[i])
-	      return AMPFFT_ERROR;
+	      return HCFFT_ERROR;
 
 	  // check distance
 	  if(fftPlan->iDist != fftPlan->oDist)
-	     return AMPFFT_ERROR;
+	     return HCFFT_ERROR;
         }
      }
   }
@@ -745,10 +745,10 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
        fftPlan->GenerateKernel(plHandle, fftRepo);
        CompileKernels(plHandle, fftPlan->gen, fftPlan);
        fftPlan->baked = true;
-       return AMPFFT_SUCCESS;
+       return HCFFT_SUCCESS;
      }
 
-     bool rc = (fftPlan->ipLayout == AMPFFT_REAL) || (fftPlan->opLayout == AMPFFT_REAL);
+     bool rc = (fftPlan->ipLayout == HCFFT_REAL) || (fftPlan->opLayout == HCFFT_REAL);
      // Compress the plan by discarding length '1' dimensions
      // decision to pick generator
      if(fftPlan->dimension == fftPlan->length.size() && fftPlan->gen != Transpose && !rc) // confirm it is top-level plan (user plan)
@@ -759,7 +759,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
        // 	 case flows with no 'break' statements
        switch(fftPlan->dimension)
        {
-         case AMPFFT_3D:
+         case HCFFT_3D:
            if(fftPlan->length[2] == 1)
            {
              dmnsn -= 1;
@@ -772,7 +772,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 	     if(!IsPo2(fftPlan->length[2]))
                pow2flag=false;
 	   }
-	 case AMPFFT_2D:
+	 case HCFFT_2D:
            if(fftPlan->length[1] == 1)
 	   {
 	     dmnsn -= 1;
@@ -785,7 +785,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 	     if(!IsPo2(fftPlan->length[1]))
                pow2flag=false;
 	   }
-	 case AMPFFT_1D:
+	 case HCFFT_1D:
            if( (fftPlan->length[0] == 1) && (dmnsn > 1) )
 	   {
 	     dmnsn -= 1;
@@ -799,13 +799,13 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
                pow2flag=false;
 	   }
 	 }
-         fftPlan->dimension = (ampfftDim)dmnsn;
+         fftPlan->dimension = (hcfftDim)dmnsn;
        }
 
        // first time check transposed
-       if (fftPlan->transposeType != AMPFFT_NOTRANSPOSE && fftPlan->dimension != AMPFFT_2D &&
+       if (fftPlan->transposeType != HCFFT_NOTRANSPOSE && fftPlan->dimension != HCFFT_2D &&
 	   fftPlan->dimension == fftPlan->length.size())
-	     return AMPFFT_ERROR;
+	     return HCFFT_ERROR;
 
        //	The largest vector we can transform in a single pass
        //	depends on the GPU caps -- especially the amount of LDS
@@ -818,7 +818,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
        {
          switch( fftPlan->dimension )
          {
-           case AMPFFT_1D:
+           case HCFFT_1D:
            {
 	     if(fftPlan->length[0] < 32768 || fftPlan->length[0] > 1048576)
 	       fftPlan->uLdsFraction = 8;
@@ -831,13 +831,13 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 	       fftPlan->bLdsComplex = false;
 	   }
 	   break;
-	   case AMPFFT_2D:
+	   case HCFFT_2D:
 	   {
 	     fftPlan->uLdsFraction = 4;
 	     fftPlan->bLdsComplex = false;
 	   }
 	   break;
-	   case AMPFFT_3D:
+	   case HCFFT_3D:
 	   {
 	     //for case 128*128*128 and 1024*128*128, fraction = 8 is faster.
 	     fftPlan->uLdsFraction = 4;
@@ -852,7 +852,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 	//	Verify that the data passed to us is packed
 	switch( fftPlan->dimension )
 	{
-	  case AMPFFT_1D:
+	  case HCFFT_1D:
 	  {
 	    if(fftPlan->length[0] > Large1DThreshold)
 	    {
@@ -918,7 +918,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		ARG_CHECK (fftPlan->length[0] == clLengths[0] * clLengths[1]);
 	      }
 
-              while (1 && (fftPlan->ipLayout != AMPFFT_REAL) && (fftPlan->opLayout != AMPFFT_REAL))
+              while (1 && (fftPlan->ipLayout != HCFFT_REAL) && (fftPlan->opLayout != HCFFT_REAL))
 	      {
 	        if (!IsPo2(fftPlan->length[0])) break;
 		if (fftPlan->length.size() > 1) break;
@@ -935,19 +935,19 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 
 		//Transpose
 		//Input --> tmp buffer
-		ampfftCreateDefaultPlan(&fftPlan->planTX, AMPFFT_2D, clLengths);
+		hcfftCreateDefaultPlan(&fftPlan->planTX, HCFFT_2D, clLengths);
 
 	        FFTPlan* trans1Plan	= NULL;
 		lockRAII* trans1Lock	= NULL;
 		fftRepo.getPlan(fftPlan->planTX, trans1Plan, trans1Lock);
 
-                trans1Plan->location = AMPFFT_OUTOFPLACE;
+                trans1Plan->location = HCFFT_OUTOFPLACE;
 		trans1Plan->precision = fftPlan->precision;
 		trans1Plan->tmpBufSize = 0;
 		trans1Plan->batchSize = fftPlan->batchSize;
 		trans1Plan->envelope = fftPlan->envelope;
 		trans1Plan->ipLayout = fftPlan->ipLayout;
-		trans1Plan->opLayout = AMPFFT_COMPLEX;
+		trans1Plan->opLayout = HCFFT_COMPLEX;
 		trans1Plan->inStride[0]   = fftPlan->inStride[0];
                 trans1Plan->inStride[1]   = clLengths[0];
 		trans1Plan->outStride[0]  = 1;
@@ -957,18 +957,18 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		trans1Plan->gen           = Transpose;
 		trans1Plan->transflag     = true;
 
-		ampfftBakePlan(fftPlan->planTX);
+		hcfftBakePlan(fftPlan->planTX);
 
 		//Row transform
 		//tmp->output
 		//size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
-		ampfftCreateDefaultPlan(&fftPlan->planX, AMPFFT_1D, &clLengths[1]);
+		hcfftCreateDefaultPlan(&fftPlan->planX, HCFFT_1D, &clLengths[1]);
 
 		FFTPlan* row1Plan	= NULL;
 		lockRAII* row1Lock	= NULL;
 		fftRepo.getPlan( fftPlan->planX, row1Plan, row1Lock);
 
-		row1Plan->location     = AMPFFT_OUTOFPLACE;
+		row1Plan->location     = HCFFT_OUTOFPLACE;
 		row1Plan->precision     = fftPlan->precision;
 		row1Plan->forwardScale  = 1.0f;
 		row1Plan->backwardScale = 1.0f;
@@ -984,7 +984,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		row1Plan->large1D       = fftPlan->length[0];
 
 		row1Plan->length.push_back(clLengths[0]);
-		row1Plan->ipLayout   = AMPFFT_COMPLEX;
+		row1Plan->ipLayout   = HCFFT_COMPLEX;
 		row1Plan->opLayout  = fftPlan->opLayout;
 		row1Plan->inStride[0]   = 1;
 		row1Plan->outStride[0]  = fftPlan->outStride[0];
@@ -993,23 +993,23 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		row1Plan->inStride.push_back(clLengths[1]);
 		row1Plan->outStride.push_back(clLengths[1]);
 
-		ampfftBakePlan(fftPlan->planX);
+		hcfftBakePlan(fftPlan->planX);
 
 		//Transpose 2
 		//Output --> tmp buffer
 		clLengths[2] = clLengths[0];
-		ampfftCreateDefaultPlan(&fftPlan->planTY, AMPFFT_2D, &clLengths[1]);
+		hcfftCreateDefaultPlan(&fftPlan->planTY, HCFFT_2D, &clLengths[1]);
 		FFTPlan* trans2Plan	= NULL;
 		lockRAII* trans2Lock	= NULL;
 		fftRepo.getPlan( fftPlan->planTY, trans2Plan, trans2Lock );
 
-                trans2Plan->location     = AMPFFT_OUTOFPLACE;
+                trans2Plan->location     = HCFFT_OUTOFPLACE;
 		trans2Plan->precision     = fftPlan->precision;
 		trans2Plan->tmpBufSize    = 0;
 		trans2Plan->batchSize     = fftPlan->batchSize;
 		trans2Plan->envelope	  = fftPlan->envelope;
 		trans2Plan->opLayout   = fftPlan->opLayout;
-		trans2Plan->opLayout  = AMPFFT_COMPLEX;
+		trans2Plan->opLayout  = HCFFT_COMPLEX;
 		trans2Plan->inStride[0]   = fftPlan->outStride[0];
 		trans2Plan->inStride[1]   = clLengths[1];
 		trans2Plan->outStride[0]  = 1;
@@ -1019,18 +1019,18 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		trans2Plan->gen           = Transpose;
 		trans2Plan->transflag     = true;
 
-		ampfftBakePlan(fftPlan->planTY);
+		hcfftBakePlan(fftPlan->planTY);
 
 		//Row transform 2
 		//tmp->tmp
 		//size clLengths[0], batch clLengths[1]
-		ampfftCreateDefaultPlan( &fftPlan->planY, AMPFFT_1D, &clLengths[0]);
+		hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &clLengths[0]);
 
 		FFTPlan* row2Plan	= NULL;
 		lockRAII* row2Lock	= NULL;
 		fftRepo.getPlan( fftPlan->planY, row2Plan, row2Lock );
 
-		row2Plan->location     = AMPFFT_INPLACE;
+		row2Plan->location     = HCFFT_INPLACE;
 		row2Plan->precision     = fftPlan->precision;
 		row2Plan->forwardScale  = fftPlan->forwardScale;
 		row2Plan->backwardScale = fftPlan->backwardScale;
@@ -1046,8 +1046,8 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		row2Plan->large1D       = 0;
 
 		row2Plan->length.push_back(clLengths[1]);
-		row2Plan->ipLayout   = AMPFFT_COMPLEX;
-		row2Plan->opLayout  = AMPFFT_COMPLEX;
+		row2Plan->ipLayout   = HCFFT_COMPLEX;
+		row2Plan->opLayout  = HCFFT_COMPLEX;
 		row2Plan->inStride[0]   = 1;
 		row2Plan->outStride[0]  = 1;
 		row2Plan->iDist         = fftPlan->length[0];
@@ -1055,22 +1055,22 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		row2Plan->inStride.push_back(clLengths[0]);
 		row2Plan->outStride.push_back(clLengths[0]);
 
-		ampfftBakePlan(fftPlan->planY);
+		hcfftBakePlan(fftPlan->planY);
 
 		//Transpose 3
 		//tmp --> output
-		ampfftCreateDefaultPlan( &fftPlan->planTZ, AMPFFT_2D, clLengths);
+		hcfftCreateDefaultPlan( &fftPlan->planTZ, HCFFT_2D, clLengths);
 
 		FFTPlan* trans3Plan	= NULL;
 		lockRAII* trans3Lock	= NULL;
 		fftRepo.getPlan( fftPlan->planTZ, trans3Plan, trans3Lock);
 
-		trans3Plan->location     = AMPFFT_OUTOFPLACE;
+		trans3Plan->location     = HCFFT_OUTOFPLACE;
 		trans3Plan->precision     = fftPlan->precision;
 		trans3Plan->tmpBufSize    = 0;
 		trans3Plan->batchSize     = fftPlan->batchSize;
 		trans3Plan->envelope	  = fftPlan->envelope;
-		trans3Plan->ipLayout   = AMPFFT_COMPLEX;
+		trans3Plan->ipLayout   = HCFFT_COMPLEX;
 		trans3Plan->opLayout  = fftPlan->opLayout;
 		trans3Plan->inStride[0]   = 1;
 		trans3Plan->inStride[1]   = clLengths[0];
@@ -1081,16 +1081,16 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		trans3Plan->gen           = Transpose;
 		trans3Plan->transflag     = true;
 
-		ampfftBakePlan(fftPlan->planTZ);
+		hcfftBakePlan(fftPlan->planTZ);
 
                 fftPlan->transflag = true;
 		fftPlan->baked = true;
-		return	AMPFFT_SUCCESS;
+		return	HCFFT_SUCCESS;
 	      }
               size_t length0 = clLengths[0];
 	      size_t length1 = clLengths[1];
 
-	      if(fftPlan->ipLayout == AMPFFT_REAL)
+	      if(fftPlan->ipLayout == HCFFT_REAL)
 	      {
 	        if (fftPlan->tmpBufSizeRC==0 )
 		{
@@ -1103,7 +1103,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 
 	        // column FFT, size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
 		// transposed output
-		ampfftCreateDefaultPlan( &fftPlan->planX, AMPFFT_1D, &clLengths[1]);
+		hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &clLengths[1]);
 
 		FFTPlan* colTPlan	= NULL;
 		lockRAII* colLock	= NULL;
@@ -1114,7 +1114,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		// elements in the original buffer. Like a transpose of the matrix
 		// we need to pass clLengths[0] and instride size to kernel, so kernel can tell the difference
 		//this part are common for both passes
-	        colTPlan->location     = AMPFFT_OUTOFPLACE;
+	        colTPlan->location     = HCFFT_OUTOFPLACE;
 		colTPlan->precision     = fftPlan->precision;
 		colTPlan->forwardScale  = 1.0f;
 		colTPlan->backwardScale = 1.0f;
@@ -1134,7 +1134,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 
 		// first Pass
 		colTPlan->ipLayout   = fftPlan->ipLayout;
-		colTPlan->opLayout  = AMPFFT_COMPLEX;
+		colTPlan->opLayout  = HCFFT_COMPLEX;
 		colTPlan->inStride[0]   = fftPlan->inStride[0] * clLengths[0];
 		colTPlan->outStride[0]  = 1;
 		colTPlan->iDist         = fftPlan->iDist;
@@ -1151,10 +1151,10 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  colTPlan->oDist        *= fftPlan->length[index];
 		}
 
-		ampfftBakePlan(fftPlan->planX);
+		hcfftBakePlan(fftPlan->planX);
 
 		//another column FFT, size clLengths[0], batch clLengths[1], output without transpose
-		ampfftCreateDefaultPlan( &fftPlan->planY, AMPFFT_1D,  &clLengths[0]);
+		hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D,  &clLengths[0]);
 
 		FFTPlan* col2Plan	= NULL;
 		lockRAII* rowLock	= NULL;
@@ -1163,9 +1163,9 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		// This is second column fft, intermediate buffer is packed and interleaved
 		// we need to pass clLengths[1] and instride size to kernel, so kernel can tell the difference
 		// common part for both passes
-		col2Plan->location     = AMPFFT_INPLACE;
-		col2Plan->ipLayout   = AMPFFT_COMPLEX;
-		col2Plan->opLayout  = AMPFFT_COMPLEX;
+		col2Plan->location     = HCFFT_INPLACE;
+		col2Plan->ipLayout   = HCFFT_COMPLEX;
+		col2Plan->opLayout  = HCFFT_COMPLEX;
 
 		col2Plan->precision     = fftPlan->precision;
 		col2Plan->forwardScale  = fftPlan->forwardScale;
@@ -1197,10 +1197,10 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  col2Plan->oDist   *= fftPlan->length[index];
 		}
 
-		ampfftBakePlan(fftPlan->planY);
+		hcfftBakePlan(fftPlan->planY);
 
 		// copy plan to get back to hermitian
-		ampfftCreateDefaultPlan( &fftPlan->planRCcopy, AMPFFT_1D,  &fftPlan->length[0]);
+		hcfftCreateDefaultPlan( &fftPlan->planRCcopy, HCFFT_1D,  &fftPlan->length[0]);
 
 		FFTPlan* copyPlan	= NULL;
 		lockRAII* copyLock	= NULL;
@@ -1209,8 +1209,8 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		// This is second column fft, intermediate buffer is packed and interleaved
 		// we need to pass clLengths[1] and instride size to kernel, so kernel can tell the difference
 		// common part for both passes
-		copyPlan->location     = AMPFFT_OUTOFPLACE;
-		copyPlan->ipLayout   = AMPFFT_COMPLEX;
+		copyPlan->location     = HCFFT_OUTOFPLACE;
+		copyPlan->ipLayout   = HCFFT_COMPLEX;
 		copyPlan->opLayout  = fftPlan->opLayout;
 		copyPlan->precision     = fftPlan->precision;
 		copyPlan->forwardScale  = 1.0f;
@@ -1235,9 +1235,9 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  copyPlan->outStride.push_back(fftPlan->outStride[index]);
 		}
 
-		ampfftBakePlan(fftPlan->planRCcopy);
+		hcfftBakePlan(fftPlan->planRCcopy);
 	      }
-	      else if(fftPlan->opLayout == AMPFFT_REAL)
+	      else if(fftPlan->opLayout == HCFFT_REAL)
 	      {
 	        if (fftPlan->tmpBufSizeRC==0 )
 		{
@@ -1248,7 +1248,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  }
 		}
                 // copy plan to from hermitian to full complex
-		ampfftCreateDefaultPlan( &fftPlan->planRCcopy, AMPFFT_1D,  &fftPlan->length[0]);
+		hcfftCreateDefaultPlan( &fftPlan->planRCcopy, HCFFT_1D,  &fftPlan->length[0]);
 
 		FFTPlan* copyPlan	= NULL;
 		lockRAII* copyLock	= NULL;
@@ -1257,9 +1257,9 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		// This is second column fft, intermediate buffer is packed and interleaved
 		// we need to pass clLengths[1] and instride size to kernel, so kernel can tell the difference
 		// common part for both passes
-		copyPlan->location     = AMPFFT_OUTOFPLACE;
+		copyPlan->location     = HCFFT_OUTOFPLACE;
 		copyPlan->ipLayout   = fftPlan->ipLayout;
-		copyPlan->opLayout  = AMPFFT_COMPLEX;
+		copyPlan->opLayout  = HCFFT_COMPLEX;
 		copyPlan->precision     = fftPlan->precision;
 		copyPlan->forwardScale  = 1.0f;
 		copyPlan->backwardScale = 1.0f;
@@ -1283,11 +1283,11 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  copyPlan->inStride.push_back(fftPlan->inStride[index]);
 		}
 
-		ampfftBakePlan(fftPlan->planRCcopy);
+		hcfftBakePlan(fftPlan->planRCcopy);
 
 		// column FFT, size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
 		// transposed output
-		ampfftCreateDefaultPlan(&fftPlan->planX, AMPFFT_1D, &clLengths[1]);
+		hcfftCreateDefaultPlan(&fftPlan->planX, HCFFT_1D, &clLengths[1]);
 
 		FFTPlan* colTPlan	= NULL;
 		lockRAII* colLock	= NULL;
@@ -1298,7 +1298,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		// elements in the original buffer. Like a transpose of the matrix
 		// we need to pass clLengths[0] and instride size to kernel, so kernel can tell the difference
 		//this part are common for both passes
-		colTPlan->location     = AMPFFT_INPLACE;
+		colTPlan->location     = HCFFT_INPLACE;
 		colTPlan->precision     = fftPlan->precision;
 		colTPlan->forwardScale  = 1.0f;
 		colTPlan->backwardScale = 1.0f;
@@ -1313,8 +1313,8 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		colTPlan->large1D       = fftPlan->length[0];
 		colTPlan->length.push_back(clLengths[0]);
 		// first Pass
-		colTPlan->ipLayout   = AMPFFT_COMPLEX;
-		colTPlan->opLayout  = AMPFFT_COMPLEX;
+		colTPlan->ipLayout   = HCFFT_COMPLEX;
+		colTPlan->opLayout  = HCFFT_COMPLEX;
 		colTPlan->inStride[0]  = length0;
 		colTPlan->inStride.push_back(1);
 		colTPlan->iDist        = length0 * length1;
@@ -1330,10 +1330,10 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  colTPlan->oDist   *= fftPlan->length[index];
 		}
 
-                ampfftBakePlan(fftPlan->planX);
+                hcfftBakePlan(fftPlan->planX);
 
 		//another column FFT, size clLengths[0], batch clLengths[1], output without transpose
-		ampfftCreateDefaultPlan( &fftPlan->planY, AMPFFT_1D,  &clLengths[0]);
+		hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D,  &clLengths[0]);
 
 		FFTPlan* col2Plan	= NULL;
 		lockRAII* rowLock	= NULL;
@@ -1342,8 +1342,8 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		// This is second column fft, intermediate buffer is packed and interleaved
 		// we need to pass clLengths[1] and instride size to kernel, so kernel can tell the difference
 		// common part for both passes
-		col2Plan->location     = AMPFFT_OUTOFPLACE;
-		col2Plan->ipLayout   = AMPFFT_COMPLEX;
+		col2Plan->location     = HCFFT_OUTOFPLACE;
+		col2Plan->ipLayout   = HCFFT_COMPLEX;
 		col2Plan->opLayout  = fftPlan->opLayout;
 		col2Plan->precision     = fftPlan->precision;
 		col2Plan->forwardScale  = fftPlan->forwardScale;
@@ -1371,7 +1371,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  col2Plan->outStride.push_back(fftPlan->outStride[index]);
 		}
 
-		ampfftBakePlan(fftPlan->planY);
+		hcfftBakePlan(fftPlan->planY);
 		}
 		else
 		{
@@ -1416,7 +1416,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 
 		  // column FFT, size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
 		  // transposed output
-		  ampfftCreateDefaultPlan( &fftPlan->planX, AMPFFT_1D, &clLengths[1]);
+		  hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &clLengths[1]);
 
 		  FFTPlan* colTPlan	= NULL;
 		  lockRAII* colLock	= NULL;
@@ -1427,7 +1427,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  // elements in the original buffer. Like a transpose of the matrix
 		  // we need to pass clLengths[0] and instride size to kernel, so kernel can tell the difference
 		  //this part are common for both passes
-		  colTPlan->location     = AMPFFT_OUTOFPLACE;
+		  colTPlan->location     = HCFFT_OUTOFPLACE;
 		  colTPlan->precision     = fftPlan->precision;
 		  colTPlan->forwardScale  = 1.0f;
 		  colTPlan->backwardScale = 1.0f;
@@ -1448,7 +1448,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  {
 		    // first Pass
 		    colTPlan->ipLayout   = fftPlan->ipLayout;
-		    colTPlan->opLayout  = AMPFFT_COMPLEX;
+		    colTPlan->opLayout  = HCFFT_COMPLEX;
 		    colTPlan->inStride[0]   = fftPlan->inStride[0] * clLengths[0];
 		    colTPlan->outStride[0]  = 1;
 		    colTPlan->iDist         = fftPlan->iDist;
@@ -1468,7 +1468,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 	           else
 		   {
 		     // second pass for huge 1D
-		     colTPlan->ipLayout   = AMPFFT_COMPLEX;
+		     colTPlan->ipLayout   = HCFFT_COMPLEX;
 		     colTPlan->opLayout  = fftPlan->opLayout;
 		     colTPlan->inStride[0]   = fftPlan->length[1]*clLengths[0];
 		     colTPlan->outStride[0]  = fftPlan->outStride[0];
@@ -1486,10 +1486,10 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		     }
 		   }
 
-		   ampfftBakePlan(fftPlan->planX);
+		   hcfftBakePlan(fftPlan->planX);
 
 		   //another column FFT, size clLengths[0], batch clLengths[1], output without transpose
-		   ampfftCreateDefaultPlan( &fftPlan->planY, AMPFFT_1D,  &clLengths[0]);
+		   hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D,  &clLengths[0]);
 
 		   FFTPlan* col2Plan	= NULL;
 		   lockRAII* rowLock	= NULL;
@@ -1522,8 +1522,8 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		   if (fftPlan->large1D == 0)
 		   {
 		     //first layer, large 1D from tmp buffer to output buffer
-		     col2Plan->location    = AMPFFT_OUTOFPLACE;
-		     col2Plan->ipLayout  = AMPFFT_COMPLEX;
+		     col2Plan->location    = HCFFT_OUTOFPLACE;
+		     col2Plan->ipLayout  = HCFFT_COMPLEX;
 		     col2Plan->inStride[0]  = length1;
 		     col2Plan->outStride[0] = fftPlan->outStride[0] * clLengths[1];
 		     col2Plan->iDist        = length0 * length1;
@@ -1540,7 +1540,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		   else
 		   {
 		     //second layer, huge 1D from output buffer to output buffer
-		     col2Plan->location    = AMPFFT_INPLACE;
+		     col2Plan->location    = HCFFT_INPLACE;
 		     col2Plan->ipLayout  = fftPlan->opLayout;
 		     col2Plan->inStride[0]  = fftPlan->outStride[0] * clLengths[1];
 		     col2Plan->outStride[0] = col2Plan->inStride[0];
@@ -1555,15 +1555,15 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		     }
 		   }
 
-                   ampfftBakePlan(fftPlan->planY);
+                   hcfftBakePlan(fftPlan->planY);
 		   }
 
                    fftPlan->baked = true;
-		   return AMPFFT_SUCCESS;
+		   return HCFFT_SUCCESS;
 		 }
 	      }
 	      break;
-	    case AMPFFT_2D:
+	    case HCFFT_2D:
 	    {
 	      size_t length0 = fftPlan->length[0];
 	      size_t length1 = fftPlan->length[1];
@@ -1605,14 +1605,14 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 	      if(fftPlan->length[0] > Large1DThreshold || fftPlan->length[1] > Large1DThreshold)
 		 fftPlan->large2D = true;
 
-	      while (1 && (fftPlan->ipLayout != AMPFFT_REAL) && (fftPlan->opLayout != AMPFFT_REAL))
+	      while (1 && (fftPlan->ipLayout != HCFFT_REAL) && (fftPlan->opLayout != HCFFT_REAL))
 	      {
 	        if (fftPlan->transflag) //Transpose for 2D
 		{
 		  fftPlan->GenerateKernel( plHandle, fftRepo);
 		  CompileKernels(plHandle, fftPlan->gen, fftPlan);
                   fftPlan->baked		= true;
-		  return	AMPFFT_SUCCESS;
+		  return	HCFFT_SUCCESS;
 		}
 
                 // TODO : Check for a better way to do this.
@@ -1626,7 +1626,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  break;
 		if (fftPlan->length[1] < 32) break;
 
-                if (fftPlan->length[0] < 512 && fftPlan->transposeType == AMPFFT_NOTRANSPOSE) break;
+                if (fftPlan->length[0] < 512 && fftPlan->transposeType == HCFFT_NOTRANSPOSE) break;
 		if (fftPlan->length[0] < 32) break;
 
                 if (fftPlan->inStride[0] != 1 || fftPlan->outStride[0] != 1 ||
@@ -1635,7 +1635,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		fftPlan->transflag = true;
 		//create row plan,
 		// x=y & x!=y, In->In for inplace, In->out for outofplace
-                ampfftCreateDefaultPlan( &fftPlan->planX, AMPFFT_1D, &fftPlan->length[ 0 ] );
+                hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ] );
 
 		FFTPlan* rowPlan	= NULL;
 		lockRAII* rowLock	= NULL;
@@ -1662,7 +1662,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		rowPlan->inStride.push_back(fftPlan->inStride[1]);
 		rowPlan->iDist           = fftPlan->iDist;
 
-		ampfftBakePlan(fftPlan->planX);
+		hcfftBakePlan(fftPlan->planX);
 
 		//Create transpose plan for first transpose
 		//x=y: inplace. x!=y inplace: in->tmp, outofplace out->tmp
@@ -1677,7 +1677,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  // we assume the tmp buffer is packed interleaved
 		  fftPlan->tmpBufSize = length0 * length1 * fftPlan->batchSize * fftPlan->ElementSize();
 		}
-		ampfftCreateDefaultPlan( &fftPlan->planTX, AMPFFT_2D, clLengths );
+		hcfftCreateDefaultPlan( &fftPlan->planTX, HCFFT_2D, clLengths );
 
 		FFTPlan* transPlanX	= NULL;
 		lockRAII* transLockX	= NULL;
@@ -1696,8 +1696,8 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 
 		if (xyflag)
 		{
-		  transPlanX->opLayout    = AMPFFT_COMPLEX;
-		  transPlanX->location       = AMPFFT_OUTOFPLACE;
+		  transPlanX->opLayout    = HCFFT_COMPLEX;
+		  transPlanX->location       = HCFFT_OUTOFPLACE;
 		  transPlanX->outStride[0]    = 1;
 		  transPlanX->outStride[1]    = clLengths[0];
 		  transPlanX->oDist           = clLengths[0] * clLengths[1];
@@ -1705,18 +1705,18 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		else
 		{
 		  transPlanX->opLayout    = fftPlan->opLayout;
-		  transPlanX->location       = AMPFFT_INPLACE;
+		  transPlanX->location       = HCFFT_INPLACE;
 		  transPlanX->outStride[0]    = fftPlan->outStride[0];
 		  transPlanX->outStride[1]    = fftPlan->outStride[1];
 		  transPlanX->oDist           = fftPlan->oDist;
 		}
 
-		ampfftBakePlan(fftPlan->planTX);
+		hcfftBakePlan(fftPlan->planTX);
 
 		//create second row plan
 		//x!=y: tmp->tmp, x=y case: In->In or Out->Out
 		//if Transposed result is a choice x!=y: tmp->In or out
-		ampfftCreateDefaultPlan( &fftPlan->planY, AMPFFT_1D, &fftPlan->length[ 1 ] );
+		hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
 
 		FFTPlan* colPlan	= NULL;
 		lockRAII* colLock	= NULL;
@@ -1724,18 +1724,18 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 
 		if (xyflag)
 		{
-		  colPlan->ipLayout     = AMPFFT_COMPLEX;
+		  colPlan->ipLayout     = HCFFT_COMPLEX;
 		  colPlan->inStride[0]     = 1;
 		  colPlan->inStride.push_back(clLengths[1]);
 		  colPlan->iDist           = clLengths[0] * clLengths[1];
 
-		  if (fftPlan->transposeType == AMPFFT_NOTRANSPOSE)
+		  if (fftPlan->transposeType == HCFFT_NOTRANSPOSE)
 		  {
-		    colPlan->opLayout    = AMPFFT_COMPLEX;
+		    colPlan->opLayout    = HCFFT_COMPLEX;
 		    colPlan->outStride[0]    = 1;
 		    colPlan->outStride.push_back(clLengths[1]);
 		    colPlan->oDist           = clLengths[0] * clLengths[1];
-		    colPlan->location       = AMPFFT_INPLACE;
+		    colPlan->location       = HCFFT_INPLACE;
 		  }
 		  else
 		  {
@@ -1743,7 +1743,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		    colPlan->outStride[0]    = fftPlan->outStride[0];
 		    colPlan->outStride.push_back(clLengths[1] * fftPlan->outStride[0]);
 		    colPlan->oDist           = fftPlan->oDist;
-		    colPlan->location       = AMPFFT_OUTOFPLACE;
+		    colPlan->location       = HCFFT_OUTOFPLACE;
 		  }
 		}
 		else
@@ -1756,7 +1756,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  colPlan->inStride[0]     = fftPlan->outStride[0];
 		  colPlan->inStride.push_back(fftPlan->outStride[1]);
 		  colPlan->iDist           = fftPlan->oDist;
-		  colPlan->location       = AMPFFT_INPLACE;
+		  colPlan->location       = HCFFT_INPLACE;
 		}
 		colPlan->precision       = fftPlan->precision;
 		colPlan->forwardScale    = fftPlan->forwardScale;
@@ -1770,27 +1770,27 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		colPlan->batchSize       = fftPlan->batchSize;
 		colPlan->length.push_back(fftPlan->length[0]);
 
-	        ampfftBakePlan(fftPlan->planY);
+	        hcfftBakePlan(fftPlan->planY);
 
-		if (fftPlan->transposeType == AMPFFT_TRANSPOSED)
+		if (fftPlan->transposeType == HCFFT_TRANSPOSED)
 		{
 		  fftPlan->baked = true;
-		  return AMPFFT_SUCCESS;
+		  return HCFFT_SUCCESS;
 		}
 
 		//Create transpose plan for second transpose
 		//x!=y case tmp->In or Out, x=y case In->In or Out->out
 		clLengths[0] = fftPlan->length[1];
 		clLengths[1] = fftPlan->length[0];
-		ampfftCreateDefaultPlan( &fftPlan->planTY, AMPFFT_2D, clLengths );
+		hcfftCreateDefaultPlan( &fftPlan->planTY, HCFFT_2D, clLengths );
 
 		FFTPlan* transPlanY	= NULL;
 		lockRAII* transLockY	= NULL;
 		fftRepo.getPlan( fftPlan->planTY, transPlanY, transLockY);
 		if (xyflag)
 		{
-		  transPlanY->ipLayout     = AMPFFT_COMPLEX;
-		  transPlanY->location       = AMPFFT_OUTOFPLACE;
+		  transPlanY->ipLayout     = HCFFT_COMPLEX;
+		  transPlanY->location       = HCFFT_OUTOFPLACE;
 		  transPlanY->inStride[0]     = 1;
 		  transPlanY->inStride[1]     = clLengths[0];
 		  transPlanY->iDist           = clLengths[0] * clLengths[1];
@@ -1798,7 +1798,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		else
 		{
 		  transPlanY->ipLayout     = fftPlan->opLayout;
-		  transPlanY->location       = AMPFFT_INPLACE;
+		  transPlanY->location       = HCFFT_INPLACE;
 		  transPlanY->inStride[0]     = fftPlan->outStride[0];
 		  transPlanY->inStride[1]     = fftPlan->outStride[1];
 		  transPlanY->iDist           = fftPlan->oDist;
@@ -1813,17 +1813,17 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		transPlanY->envelope	    = fftPlan->envelope;
 		transPlanY->batchSize       = fftPlan->batchSize;
 		transPlanY->transflag       = true;
-		ampfftBakePlan(fftPlan->planTY);
+		hcfftBakePlan(fftPlan->planTY);
 
 		fftPlan->baked = true;
-		return	AMPFFT_SUCCESS;
+		return	HCFFT_SUCCESS;
 		}
 
 		//check transposed
-		if (fftPlan->transposeType != AMPFFT_NOTRANSPOSE)
-		  return AMPFFT_ERROR;
+		if (fftPlan->transposeType != HCFFT_NOTRANSPOSE)
+		  return HCFFT_ERROR;
 
-		if(fftPlan->ipLayout == AMPFFT_REAL)
+		if(fftPlan->ipLayout == HCFFT_REAL)
 		{
 		  length0 = fftPlan->length[0];
 		  length1 = fftPlan->length[1];
@@ -1837,7 +1837,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 
 		  // create row plan
 		  // real to hermitian
-		  ampfftCreateDefaultPlan( &fftPlan->planX, AMPFFT_1D, &fftPlan->length[ 0 ] );
+		  hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ] );
 
 		  FFTPlan* rowPlan	= NULL;
 		  lockRAII* rowLock	= NULL;
@@ -1876,18 +1876,18 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		    rowPlan->outStride.push_back(fftPlan->outStride[2]);
 		  }
 
-		  ampfftBakePlan(fftPlan->planX);
+		  hcfftBakePlan(fftPlan->planX);
 
 	          // create col plan
 		  // complex to complex
 
-		  ampfftCreateDefaultPlan( &fftPlan->planY, AMPFFT_1D, &fftPlan->length[ 1 ] );
+		  hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
 
 		  FFTPlan* colPlan	= NULL;
 		  lockRAII* colLock	= NULL;
 		  fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
 
-		  colPlan->location     = AMPFFT_INPLACE;
+		  colPlan->location     = HCFFT_INPLACE;
 		  colPlan->length.push_back(Nt);
 
 		  colPlan->outStride[0]  = fftPlan->outStride[1];
@@ -1917,10 +1917,10 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		    colPlan->inStride.push_back(rowPlan->outStride[2]);
 		  }
 
-		  ampfftBakePlan(fftPlan->planY);
+		  hcfftBakePlan(fftPlan->planY);
 
 		}
-		else if(fftPlan->opLayout == AMPFFT_REAL)
+		else if(fftPlan->opLayout == HCFFT_REAL)
 		{
 		  length0 = fftPlan->length[0];
 		  length1 = fftPlan->length[1];
@@ -1935,7 +1935,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  // create col plan
 		  // complex to complex
 
-		  ampfftCreateDefaultPlan( &fftPlan->planY, AMPFFT_1D, &fftPlan->length[ 1 ] );
+		  hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
                   FFTPlan* colPlan	= NULL;
 		  lockRAII* colLock	= NULL;
 		  fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
@@ -1948,7 +1948,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  //this 2d is decomposed from 3d
 		  if (fftPlan->length.size()>2)
 		  {
-		    colPlan->location = AMPFFT_INPLACE;
+		    colPlan->location = HCFFT_INPLACE;
 		    colPlan->length.push_back(fftPlan->length[2]);
 		    colPlan->inStride.push_back(fftPlan->inStride[2]);
 		    colPlan->outStride[0]  = colPlan->inStride[0];
@@ -1958,7 +1958,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		  }
 		  else
 		  {
-		    colPlan->location = AMPFFT_OUTOFPLACE;
+		    colPlan->location = HCFFT_OUTOFPLACE;
 		    colPlan->outStride[0]  = Nt;
 		    colPlan->outStride.push_back(1);
 		    colPlan->oDist         = Nt*length1;
@@ -1981,19 +1981,19 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		    if(fftPlan->length.size() > 2) fftPlan->tmpBufSizeC2R *= fftPlan->length[2];
 		  }
 
-		  ampfftBakePlan(fftPlan->planY);
+		  hcfftBakePlan(fftPlan->planY);
 
 		  // create row plan
 		  // hermitian to real
-		  ampfftCreateDefaultPlan( &fftPlan->planX, AMPFFT_1D, &fftPlan->length[ 0 ]);
+		  hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
 
 		  FFTPlan* rowPlan	= NULL;
 		  lockRAII* rowLock	= NULL;
 		  fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
 
                   rowPlan->opLayout  = fftPlan->opLayout;
-		  rowPlan->ipLayout   = AMPFFT_COMPLEX;
-		  rowPlan->location     = AMPFFT_OUTOFPLACE;
+		  rowPlan->ipLayout   = HCFFT_COMPLEX;
+		  rowPlan->location     = HCFFT_OUTOFPLACE;
 		  rowPlan->length.push_back(length1);
 
 		  rowPlan->inStride[0]   = 1;
@@ -2021,22 +2021,22 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		    rowPlan->inStride.push_back(Nt*length1);
 		    rowPlan->outStride.push_back(fftPlan->outStride[2]);
 		  }
-	          ampfftBakePlan(fftPlan->planX);
+	          hcfftBakePlan(fftPlan->planX);
 		}
 
 		fftPlan->baked = true;
-		return	AMPFFT_SUCCESS;
+		return	HCFFT_SUCCESS;
 	     }
-	     case AMPFFT_3D:
+	     case HCFFT_3D:
 	     {
-	       if(fftPlan->ipLayout == AMPFFT_REAL)
+	       if(fftPlan->ipLayout == HCFFT_REAL)
 	       {
 		 size_t clLengths[] = { 1, 1, 0 };
 		 clLengths[0] = fftPlan->length[ 0 ];
 		 clLengths[1] = fftPlan->length[ 1 ];
 
 		 //create 2D xy plan
-		 ampfftCreateDefaultPlan( &fftPlan->planX, AMPFFT_2D, clLengths );
+		 hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_2D, clLengths );
 
 		 FFTPlan* xyPlan	= NULL;
 		 lockRAII* rowLock	= NULL;
@@ -2069,18 +2069,18 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		 xyPlan->outStride.push_back(fftPlan->outStride[2]);
 		 xyPlan->iDist    = fftPlan->iDist;
 		 xyPlan->oDist    = fftPlan->oDist;
-		 ampfftBakePlan(fftPlan->planX);
+		 hcfftBakePlan(fftPlan->planX);
 
 		 clLengths[0] = fftPlan->length[ 2 ];
 		 clLengths[1] = clLengths[2] = 0;
 		 //create 1D col plan
-		 ampfftCreateDefaultPlan( &fftPlan->planZ, AMPFFT_1D, clLengths );
+		 hcfftCreateDefaultPlan( &fftPlan->planZ, HCFFT_1D, clLengths );
 
 		 FFTPlan* colPlan	= NULL;
 		 lockRAII* colLock	= NULL;
 		 fftRepo.getPlan( fftPlan->planZ, colPlan, colLock );
 
-		 colPlan->location     = AMPFFT_INPLACE;
+		 colPlan->location     = HCFFT_INPLACE;
 		 colPlan->precision     = fftPlan->precision;
 		 colPlan->forwardScale  = fftPlan->forwardScale;
 		 colPlan->backwardScale = fftPlan->backwardScale;
@@ -2106,9 +2106,9 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		 colPlan->iDist    = fftPlan->oDist;
 		 colPlan->oDist    = fftPlan->oDist;
 
-		 ampfftBakePlan(fftPlan->planZ);
+		 hcfftBakePlan(fftPlan->planZ);
 		 }
-		 else if(fftPlan->opLayout == AMPFFT_REAL)
+		 else if(fftPlan->opLayout == HCFFT_REAL)
 		 {
 		   if (fftPlan->tmpBufSize == 0)
 		   {
@@ -2121,13 +2121,13 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		   clLengths[1] = clLengths[2] = 0;
 
 		   //create 1D col plan
-		   ampfftCreateDefaultPlan( &fftPlan->planZ, AMPFFT_1D, clLengths );
+		   hcfftCreateDefaultPlan( &fftPlan->planZ, HCFFT_1D, clLengths );
 
 		   FFTPlan* colPlan	= NULL;
 		   lockRAII* colLock	= NULL;
 		   fftRepo.getPlan( fftPlan->planZ, colPlan, colLock );
 
-		   colPlan->location     = AMPFFT_OUTOFPLACE;
+		   colPlan->location     = HCFFT_OUTOFPLACE;
 		   colPlan->precision     = fftPlan->precision;
 		   colPlan->forwardScale  = 1.0f;
 		   colPlan->backwardScale = 1.0f;
@@ -2160,20 +2160,20 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		     fftPlan->batchSize * fftPlan->ElementSize();
 		   }
 
-		   ampfftBakePlan(fftPlan->planZ);
+		   hcfftBakePlan(fftPlan->planZ);
 
 		   clLengths[0] = fftPlan->length[ 0 ];
 		   clLengths[1] = fftPlan->length[ 1 ];
 		   //create 2D xy plan
-		   ampfftCreateDefaultPlan( &fftPlan->planX, AMPFFT_2D, clLengths );
+		   hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_2D, clLengths );
 
 		   FFTPlan* xyPlan	= NULL;
 		   lockRAII* rowLock	= NULL;
 		   fftRepo.getPlan( fftPlan->planX, xyPlan, rowLock );
 
-		   xyPlan->ipLayout   = AMPFFT_COMPLEX;
+		   xyPlan->ipLayout   = HCFFT_COMPLEX;
 		   xyPlan->opLayout  = fftPlan->opLayout;
-		   xyPlan->location     = AMPFFT_OUTOFPLACE;
+		   xyPlan->location     = HCFFT_OUTOFPLACE;
 		   xyPlan->precision     = fftPlan->precision;
 		   xyPlan->forwardScale  = fftPlan->forwardScale;
 		   xyPlan->backwardScale = fftPlan->backwardScale;
@@ -2199,7 +2199,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		   xyPlan->iDist    = colPlan->oDist;
 		   xyPlan->oDist    = fftPlan->oDist;
 
-		   ampfftBakePlan(fftPlan->planX);
+		   hcfftBakePlan(fftPlan->planX);
 		 }
 		 else
 		 {
@@ -2215,7 +2215,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		   clLengths[1] = fftPlan->length[ 1 ];
 
 		   //create 2D xy plan
-		   ampfftCreateDefaultPlan( &fftPlan->planX, AMPFFT_2D, clLengths );
+		   hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_2D, clLengths );
 
 		   FFTPlan* xyPlan	= NULL;
 		   lockRAII* rowLock	= NULL;
@@ -2248,11 +2248,11 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		   xyPlan->iDist    = fftPlan->iDist;
 		   xyPlan->oDist    = fftPlan->oDist;
 
-		   ampfftBakePlan(fftPlan->planX);
+		   hcfftBakePlan(fftPlan->planX);
 		   clLengths[0] = fftPlan->length[ 2 ];
 		   clLengths[1] = clLengths[2] = 0;
 		   //create 1D col plan
-		   ampfftCreateDefaultPlan( &fftPlan->planZ, AMPFFT_1D, clLengths );
+		   hcfftCreateDefaultPlan( &fftPlan->planZ, HCFFT_1D, clLengths );
 
 		   FFTPlan* colPlan	= NULL;
 		   lockRAII* colLock	= NULL;
@@ -2260,7 +2260,7 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 
 		   colPlan->ipLayout   = fftPlan->ipLayout;
 		   colPlan->opLayout  = fftPlan->opLayout;
-		   colPlan->location     = AMPFFT_INPLACE;
+		   colPlan->location     = HCFFT_INPLACE;
 		   colPlan->precision     = fftPlan->precision;
 		   colPlan->forwardScale  = fftPlan->forwardScale;
 		   colPlan->backwardScale = fftPlan->backwardScale;
@@ -2287,11 +2287,11 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 		   colPlan->iDist    = fftPlan->oDist;
 		   colPlan->oDist    = fftPlan->oDist;
 
-		   ampfftBakePlan(fftPlan->planZ);
+		   hcfftBakePlan(fftPlan->planZ);
 		 }
 
 		 fftPlan->baked = true;
-		 return	AMPFFT_SUCCESS;
+		 return	HCFFT_SUCCESS;
 	      }
 	   }
 	//	For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
@@ -2305,173 +2305,173 @@ ampfftStatus FFTPlan::ampfftBakePlan(ampfftPlanHandle plHandle)
 	//	Record that we baked the plan
 	fftPlan->baked		= true;
 
-	return	AMPFFT_SUCCESS;
+	return	HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::executePlan(FFTPlan* fftPlan)
+hcfftStatus FFTPlan::executePlan(FFTPlan* fftPlan)
 {
   if(!fftPlan)
-    return AMPFFT_INVALID;
+    return HCFFT_INVALID;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftGetPlanPrecision( const  ampfftPlanHandle plHandle,  ampfftPrecision* precision )
+hcfftStatus FFTPlan::hcfftGetPlanPrecision( const  hcfftPlanHandle plHandle,  hcfftPrecision* precision )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan(plHandle, fftPlan, planLock );
-  scopedLock sLock(*planLock, _T( " ampfftGetPlanPrecision" ) );
+  scopedLock sLock(*planLock, _T( " hcfftGetPlanPrecision" ) );
 
   *precision = fftPlan->precision;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftSetPlanPrecision(  ampfftPlanHandle plHandle,  ampfftPrecision precision )
+hcfftStatus FFTPlan::hcfftSetPlanPrecision(  hcfftPlanHandle plHandle,  hcfftPrecision precision )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan(plHandle, fftPlan, planLock );
-  scopedLock sLock(*planLock, _T( " ampfftSetPlanPrecision" ) );
+  scopedLock sLock(*planLock, _T( " hcfftSetPlanPrecision" ) );
 
   //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked = false;
   fftPlan->precision = precision;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftGetPlanScale( const  ampfftPlanHandle plHandle,  ampfftDirection dir, float* scale )
+hcfftStatus FFTPlan::hcfftGetPlanScale( const  hcfftPlanHandle plHandle,  hcfftDirection dir, float* scale )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan(plHandle, fftPlan, planLock );
-  scopedLock sLock(*planLock, _T( " ampfftGetPlanScale" ) );
+  scopedLock sLock(*planLock, _T( " hcfftGetPlanScale" ) );
 
-  if( dir == AMPFFT_FORWARD)
+  if( dir == HCFFT_FORWARD)
     *scale = (float)(fftPlan->forwardScale);
   else
     *scale = (float)(fftPlan->backwardScale);
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftSetPlanScale(  ampfftPlanHandle plHandle,  ampfftDirection dir, float scale )
+hcfftStatus FFTPlan::hcfftSetPlanScale(  hcfftPlanHandle plHandle,  hcfftDirection dir, float scale )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan(plHandle, fftPlan, planLock );
-  scopedLock sLock(*planLock, _T( " ampfftSetPlanScale" ) );
+  scopedLock sLock(*planLock, _T( " hcfftSetPlanScale" ) );
 
   //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked = false;
-  if( dir == AMPFFT_FORWARD)
+  if( dir == HCFFT_FORWARD)
     fftPlan->forwardScale = scale;
   else
     fftPlan->backwardScale = scale;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftGetPlanBatchSize( const  ampfftPlanHandle plHandle, size_t* batchsize )
+hcfftStatus FFTPlan::hcfftGetPlanBatchSize( const  hcfftPlanHandle plHandle, size_t* batchsize )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan(plHandle, fftPlan, planLock );
-  scopedLock sLock(*planLock, _T( " ampfftGetPlanBatchSize" ) );
+  scopedLock sLock(*planLock, _T( " hcfftGetPlanBatchSize" ) );
 
   *batchsize = fftPlan->batchSize;
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftSetPlanBatchSize( ampfftPlanHandle plHandle, size_t batchsize )
+hcfftStatus FFTPlan::hcfftSetPlanBatchSize( hcfftPlanHandle plHandle, size_t batchsize )
 {
  FFTRepo& fftRepo = FFTRepo::getInstance( );
  FFTPlan* fftPlan = NULL;
  lockRAII* planLock = NULL;
 
  fftRepo.getPlan(plHandle, fftPlan, planLock );
- scopedLock sLock(*planLock, _T( " ampfftSetPlanBatchSize" ) );
+ scopedLock sLock(*planLock, _T( " hcfftSetPlanBatchSize" ) );
 
   //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked = false;
   fftPlan->batchSize = batchsize;
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftGetPlanDim( const ampfftPlanHandle plHandle,  ampfftDim* dim, int* size )
+hcfftStatus FFTPlan::hcfftGetPlanDim( const hcfftPlanHandle plHandle,  hcfftDim* dim, int* size )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftGetPlanDim" ) );
+  scopedLock sLock( *planLock, _T( " hcfftGetPlanDim" ) );
 
   *dim = fftPlan->dimension;
 
   switch( fftPlan->dimension )
   {
-    case AMPFFT_1D:
+    case HCFFT_1D:
     {
       *size = 1;
     }
     break;
-    case AMPFFT_2D:
+    case HCFFT_2D:
     {
       *size = 2;
     }
     break;
-    case AMPFFT_3D:
+    case HCFFT_3D:
     {
       *size = 3;
     }
     break;
     default:
-      return AMPFFT_ERROR;
+      return HCFFT_ERROR;
       break;
   }
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftSetPlanDim(  ampfftPlanHandle plHandle, const  ampfftDim dim )
+hcfftStatus FFTPlan::hcfftSetPlanDim(  hcfftPlanHandle plHandle, const  hcfftDim dim )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftGetPlanDim" ) );
+  scopedLock sLock( *planLock, _T( " hcfftGetPlanDim" ) );
 
   // We resize the vectors in the plan to keep their sizes consistent with the value of the dimension
   switch( dim )
   {
-    case AMPFFT_1D:
+    case HCFFT_1D:
     {
       fftPlan->length.resize( 1 );
       fftPlan->inStride.resize( 1 );
       fftPlan->outStride.resize( 1 );
     }
     break;
-    case AMPFFT_2D:
+    case HCFFT_2D:
     {
       fftPlan->length.resize( 2 );
       fftPlan->inStride.resize( 2 );
       fftPlan->outStride.resize( 2 );
     }
     break;
-    case AMPFFT_3D:
+    case HCFFT_3D:
     {
       fftPlan->length.resize( 3 );
       fftPlan->inStride.resize( 3 );
@@ -2479,7 +2479,7 @@ ampfftStatus FFTPlan::ampfftSetPlanDim(  ampfftPlanHandle plHandle, const  ampff
     }
     break;
     default:
-      return AMPFFT_ERROR;
+      return HCFFT_ERROR;
       break;
   }
 
@@ -2487,44 +2487,44 @@ ampfftStatus FFTPlan::ampfftSetPlanDim(  ampfftPlanHandle plHandle, const  ampff
   fftPlan->baked = false;
   fftPlan->dimension = dim;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftGetPlanLength( const  ampfftPlanHandle plHandle, const  ampfftDim dim, size_t* clLengths )
+hcfftStatus FFTPlan::hcfftGetPlanLength( const  hcfftPlanHandle plHandle, const  hcfftDim dim, size_t* clLengths )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftGetPlanLength" ) );
+  scopedLock sLock( *planLock, _T( " hcfftGetPlanLength" ) );
 
   if( clLengths == NULL )
-    return AMPFFT_ERROR;
+    return HCFFT_ERROR;
 
   if( fftPlan->length.empty( ) )
-    return AMPFFT_ERROR;
+    return HCFFT_ERROR;
 
   switch( dim )
   {
-    case AMPFFT_1D:
+    case HCFFT_1D:
     {
       clLengths[0] = fftPlan->length[0];
     }
     break;
-    case AMPFFT_2D:
+    case HCFFT_2D:
     {
       if( fftPlan->length.size() < 2 )
-        return AMPFFT_ERROR;
+        return HCFFT_ERROR;
 
       clLengths[0] = fftPlan->length[0];
       clLengths[1 ] = fftPlan->length[1];
     }
     break;
-    case AMPFFT_3D:
+    case HCFFT_3D:
     {
       if( fftPlan->length.size() < 3 )
-	return AMPFFT_ERROR;
+	return HCFFT_ERROR;
 
       clLengths[0] = fftPlan->length[0];
       clLengths[1 ] = fftPlan->length[1];
@@ -2532,52 +2532,52 @@ ampfftStatus FFTPlan::ampfftGetPlanLength( const  ampfftPlanHandle plHandle, con
     }
     break;
     default:
-      return AMPFFT_ERROR;
+      return HCFFT_ERROR;
       break;
   }
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftSetPlanLength(  ampfftPlanHandle plHandle, const  ampfftDim dim, const size_t* clLengths )
+hcfftStatus FFTPlan::hcfftSetPlanLength(  hcfftPlanHandle plHandle, const  hcfftDim dim, const size_t* clLengths )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftSetPlanLength" ) );
+  scopedLock sLock( *planLock, _T( " hcfftSetPlanLength" ) );
 
   if( clLengths == NULL )
-    return AMPFFT_ERROR;
+    return HCFFT_ERROR;
 
   //	Simplest to clear any previous contents, because it's valid for user to shrink dimension
   fftPlan->length.clear( );
   switch( dim )
   {
-    case AMPFFT_1D:
+    case HCFFT_1D:
     {
     //	Minimum length size is 1
     if( clLengths[0] == 0 )
-      return AMPFFT_ERROR;
+      return HCFFT_ERROR;
 
     fftPlan->length.push_back( clLengths[0] );
     }
     break;
-    case AMPFFT_2D:
+    case HCFFT_2D:
     {
       //	Minimum length size is 1
       if(clLengths[0] == 0 || clLengths[1] == 0 )
-         return AMPFFT_ERROR;
+         return HCFFT_ERROR;
 
       fftPlan->length.push_back( clLengths[0] );
       fftPlan->length.push_back( clLengths[1] );
     }
     break;
-    case AMPFFT_3D:
+    case HCFFT_3D:
     {
       //	Minimum length size is 1
       if(clLengths[0 ] == 0 || clLengths[1] == 0 || clLengths[2] == 0)
-        return AMPFFT_ERROR;
+        return HCFFT_ERROR;
 
       fftPlan->length.push_back( clLengths[0] );
       fftPlan->length.push_back( clLengths[1] );
@@ -2585,7 +2585,7 @@ ampfftStatus FFTPlan::ampfftSetPlanLength(  ampfftPlanHandle plHandle, const  am
     }
     break;
     default:
-      return AMPFFT_ERROR;
+      return HCFFT_ERROR;
       break;
   }
   fftPlan->dimension = dim;
@@ -2593,32 +2593,32 @@ ampfftStatus FFTPlan::ampfftSetPlanLength(  ampfftPlanHandle plHandle, const  am
   //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked = false;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftGetPlanInStride( const  ampfftPlanHandle plHandle, const  ampfftDim dim, size_t* clStrides )
+hcfftStatus FFTPlan::hcfftGetPlanInStride( const  hcfftPlanHandle plHandle, const  hcfftDim dim, size_t* clStrides )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftGetPlanInStride" ) );
+  scopedLock sLock( *planLock, _T( " hcfftGetPlanInStride" ) );
 
   if(clStrides == NULL )
-    return AMPFFT_ERROR;
+    return HCFFT_ERROR;
 
   switch( dim )
   {
-    case AMPFFT_1D:
+    case HCFFT_1D:
     {
       if(fftPlan->inStride.size( ) > 0 )
         clStrides[0] = fftPlan->inStride[0];
       else
-        return AMPFFT_ERROR;
+        return HCFFT_ERROR;
     }
     break;
-    case AMPFFT_2D:
+    case HCFFT_2D:
     {
       if( fftPlan->inStride.size( ) > 1 )
       {
@@ -2626,10 +2626,10 @@ ampfftStatus FFTPlan::ampfftGetPlanInStride( const  ampfftPlanHandle plHandle, c
 	clStrides[1] = fftPlan->inStride[1];
       }
       else
-        return AMPFFT_ERROR;
+        return HCFFT_ERROR;
     }
     break;
-    case AMPFFT_3D:
+    case HCFFT_3D:
     {
       if( fftPlan->inStride.size( ) > 2 )
       {
@@ -2638,44 +2638,44 @@ ampfftStatus FFTPlan::ampfftGetPlanInStride( const  ampfftPlanHandle plHandle, c
 	clStrides[2] = fftPlan->inStride[2];
       }
       else
-        return AMPFFT_ERROR;
+        return HCFFT_ERROR;
     }
     break;
     default:
-      return AMPFFT_ERROR;
+      return HCFFT_ERROR;
       break;
   }
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftSetPlanInStride(  ampfftPlanHandle plHandle, const  ampfftDim dim, size_t* clStrides )
+hcfftStatus FFTPlan::hcfftSetPlanInStride(  hcfftPlanHandle plHandle, const  hcfftDim dim, size_t* clStrides )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftSetPlanInStride" ) );
+  scopedLock sLock( *planLock, _T( " hcfftSetPlanInStride" ) );
 
   if( clStrides == NULL )
-    return AMPFFT_ERROR;
+    return HCFFT_ERROR;
 
   //	Simplest to clear any previous contents, because it's valid for user to shrink dimension
   fftPlan->inStride.clear( );
   switch( dim )
   {
-    case AMPFFT_1D:
+    case HCFFT_1D:
     {
       fftPlan->inStride.push_back( clStrides[0] );
     }
     break;
-    case AMPFFT_2D:
+    case HCFFT_2D:
     {
       fftPlan->inStride.push_back( clStrides[0] );
       fftPlan->inStride.push_back( clStrides[1] );
     }
     break;
-    case AMPFFT_3D:
+    case HCFFT_3D:
     {
       fftPlan->inStride.push_back( clStrides[0] );
       fftPlan->inStride.push_back( clStrides[1] );
@@ -2683,39 +2683,39 @@ ampfftStatus FFTPlan::ampfftSetPlanInStride(  ampfftPlanHandle plHandle, const  
     }
     break;
     default:
-      return AMPFFT_ERROR;
+      return HCFFT_ERROR;
       break;
   }
 
   //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked = false;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftGetPlanOutStride( const  ampfftPlanHandle plHandle, const  ampfftDim dim, size_t* clStrides )
+hcfftStatus FFTPlan::hcfftGetPlanOutStride( const  hcfftPlanHandle plHandle, const  hcfftDim dim, size_t* clStrides )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
   FFTPlan* fftPlan	= NULL;
   lockRAII* planLock	= NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftGetPlanOutStride" ) );
+  scopedLock sLock( *planLock, _T( " hcfftGetPlanOutStride" ) );
 
   if( clStrides == NULL )
-    return AMPFFT_ERROR;
+    return HCFFT_ERROR;
 
   switch( dim )
   {
-    case AMPFFT_1D:
+    case HCFFT_1D:
     {
       if( fftPlan->outStride.size() > 0 )
         clStrides[0] = fftPlan->outStride[0];
       else
-        return AMPFFT_ERROR;
+        return HCFFT_ERROR;
     }
     break;
-    case AMPFFT_2D:
+    case HCFFT_2D:
     {
       if( fftPlan->outStride.size() > 1 )
       {
@@ -2723,10 +2723,10 @@ ampfftStatus FFTPlan::ampfftGetPlanOutStride( const  ampfftPlanHandle plHandle, 
         clStrides[1] = fftPlan->outStride[1];
       }
       else
-        return AMPFFT_ERROR;
+        return HCFFT_ERROR;
      }
      break;
-     case AMPFFT_3D:
+     case HCFFT_3D:
      {
        if( fftPlan->outStride.size() > 2 )
        {
@@ -2735,42 +2735,42 @@ ampfftStatus FFTPlan::ampfftGetPlanOutStride( const  ampfftPlanHandle plHandle, 
          clStrides[2] = fftPlan->outStride[2];
        }
        else
-         return AMPFFT_ERROR;
+         return HCFFT_ERROR;
      }
      break;
      default:
-       return AMPFFT_ERROR;
+       return HCFFT_ERROR;
        break;
     }
-    return AMPFFT_SUCCESS;
+    return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftSetPlanOutStride(  ampfftPlanHandle plHandle, const  ampfftDim dim, size_t* clStrides )
+hcfftStatus FFTPlan::hcfftSetPlanOutStride(  hcfftPlanHandle plHandle, const  hcfftDim dim, size_t* clStrides )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
   FFTPlan* fftPlan	= NULL;
   lockRAII* planLock	= NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftSetPlanOutStride" ) );
+  scopedLock sLock( *planLock, _T( " hcfftSetPlanOutStride" ) );
 
   if( clStrides == NULL )
-    return AMPFFT_ERROR;
+    return HCFFT_ERROR;
 
   switch( dim )
   {
-    case AMPFFT_1D:
+    case HCFFT_1D:
     {
       fftPlan->outStride[0] = clStrides[0];
     }
     break;
-    case AMPFFT_2D:
+    case HCFFT_2D:
     {
       fftPlan->outStride[0] = clStrides[0];
       fftPlan->outStride[1] = clStrides[1];
     }
     break;
-    case AMPFFT_3D:
+    case HCFFT_3D:
     {
       fftPlan->outStride[0] = clStrides[0];
       fftPlan->outStride[1] = clStrides[1];
@@ -2778,110 +2778,110 @@ ampfftStatus FFTPlan::ampfftSetPlanOutStride(  ampfftPlanHandle plHandle, const 
     }
     break;
     default:
-      return AMPFFT_ERROR;
+      return HCFFT_ERROR;
       break;
   }
 
   //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked	= false;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftGetPlanDistance( const  ampfftPlanHandle plHandle, size_t* iDist, size_t* oDist )
+hcfftStatus FFTPlan::hcfftGetPlanDistance( const  hcfftPlanHandle plHandle, size_t* iDist, size_t* oDist )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
   FFTPlan* fftPlan	= NULL;
   lockRAII* planLock	= NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftGetPlanDistance" ) );
+  scopedLock sLock( *planLock, _T( " hcfftGetPlanDistance" ) );
 
   *iDist = fftPlan->iDist;
   *oDist = fftPlan->oDist;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftSetPlanDistance(  ampfftPlanHandle plHandle, size_t iDist, size_t oDist )
+hcfftStatus FFTPlan::hcfftSetPlanDistance(  hcfftPlanHandle plHandle, size_t iDist, size_t oDist )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan(plHandle, fftPlan, planLock );
-  scopedLock sLock(*planLock, _T( " ampfftSetPlanDistance" ) );
+  scopedLock sLock(*planLock, _T( " hcfftSetPlanDistance" ) );
 
   //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked = false;
   fftPlan->iDist = iDist;
   fftPlan->oDist = oDist;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftGetLayout( const  ampfftPlanHandle plHandle,  ampfftIpLayout* iLayout,  ampfftOpLayout* oLayout )
+hcfftStatus FFTPlan::hcfftGetLayout( const  hcfftPlanHandle plHandle,  hcfftIpLayout* iLayout,  hcfftOpLayout* oLayout )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan(plHandle, fftPlan, planLock );
-  scopedLock sLock(*planLock, _T( " ampfftGetLayout" ) );
+  scopedLock sLock(*planLock, _T( " hcfftGetLayout" ) );
 
   *iLayout = fftPlan->ipLayout;
   *oLayout = fftPlan->opLayout;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftSetLayout(  ampfftPlanHandle plHandle,  ampfftIpLayout iLayout,  ampfftOpLayout oLayout )
+hcfftStatus FFTPlan::hcfftSetLayout(  hcfftPlanHandle plHandle,  hcfftIpLayout iLayout,  hcfftOpLayout oLayout )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftSetLayout" ) );
+  scopedLock sLock( *planLock, _T( " hcfftSetLayout" ) );
 
   //	We currently only support a subset of formats
   switch( iLayout )
   {
-    case AMPFFT_COMPLEX:
+    case HCFFT_COMPLEX:
     {
-      if( oLayout == AMPFFT_COMPLEX)
-	return AMPFFT_ERROR;
+      if( oLayout == HCFFT_COMPLEX)
+	return HCFFT_ERROR;
     }
     break;
-    case AMPFFT_REAL:
+    case HCFFT_REAL:
     {
-      if(oLayout == AMPFFT_REAL)
-	return AMPFFT_ERROR;
+      if(oLayout == HCFFT_REAL)
+	return HCFFT_ERROR;
     }
     break;
     default:
-      return AMPFFT_ERROR;
+      return HCFFT_ERROR;
       break;
   }
 
   //	We currently only support a subset of formats
   switch( oLayout )
   {
-    case AMPFFT_COMPLEX:
+    case HCFFT_COMPLEX:
     {
-      if(iLayout == AMPFFT_COMPLEX)
-        return AMPFFT_ERROR;
+      if(iLayout == HCFFT_COMPLEX)
+        return HCFFT_ERROR;
     }
     break;
 
-    case AMPFFT_REAL:
+    case HCFFT_REAL:
     {
-      if(iLayout == AMPFFT_REAL)
-        return AMPFFT_ERROR;
+      if(iLayout == HCFFT_REAL)
+        return HCFFT_ERROR;
     }
     break;
     default:
-      return AMPFFT_ERROR;
+      return HCFFT_ERROR;
       break;
   }
 
@@ -2889,112 +2889,112 @@ ampfftStatus FFTPlan::ampfftSetLayout(  ampfftPlanHandle plHandle,  ampfftIpLayo
   fftPlan->baked	= false;
   fftPlan->ipLayout	= iLayout;
   fftPlan->opLayout	= oLayout;
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftGetResultLocation( const  ampfftPlanHandle plHandle,  ampfftResLocation* placeness )
+hcfftStatus FFTPlan::hcfftGetResultLocation( const  hcfftPlanHandle plHandle,  hcfftResLocation* placeness )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
   FFTPlan* fftPlan	= NULL;
   lockRAII* planLock	= NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftGetResultLocation" ) );
+  scopedLock sLock( *planLock, _T( " hcfftGetResultLocation" ) );
 
   *placeness	= fftPlan->location;
-  return	AMPFFT_SUCCESS;
+  return	HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftSetResultLocation(  ampfftPlanHandle plHandle,  ampfftResLocation placeness )
+hcfftStatus FFTPlan::hcfftSetResultLocation(  hcfftPlanHandle plHandle,  hcfftResLocation placeness )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
   FFTPlan* fftPlan	= NULL;
   lockRAII* planLock	= NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftSetResultLocation" ) );
+  scopedLock sLock( *planLock, _T( " hcfftSetResultLocation" ) );
 
   //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked		= false;
   fftPlan->location	= placeness;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftGetPlanTransposeResult( const  ampfftPlanHandle plHandle,  ampfftResTransposed * transposed )
+hcfftStatus FFTPlan::hcfftGetPlanTransposeResult( const  hcfftPlanHandle plHandle,  hcfftResTransposed * transposed )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
   FFTPlan* fftPlan	= NULL;
   lockRAII* planLock	= NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftGetResultLocation" ) );
+  scopedLock sLock( *planLock, _T( " hcfftGetResultLocation" ) );
 
   *transposed	= fftPlan->transposeType;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ampfftSetPlanTransposeResult(  ampfftPlanHandle plHandle,  ampfftResTransposed transposed )
+hcfftStatus FFTPlan::hcfftSetPlanTransposeResult(  hcfftPlanHandle plHandle,  hcfftResTransposed transposed )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
   FFTPlan* fftPlan	= NULL;
   lockRAII* planLock	= NULL;
 
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " ampfftSetResultLocation" ) );
+  scopedLock sLock( *planLock, _T( " hcfftSetResultLocation" ) );
 
   //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked		= false;
   fftPlan->transposeType	= transposed;
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::GetMax1DLength (size_t *longest ) const
+hcfftStatus FFTPlan::GetMax1DLength (size_t *longest ) const
 {
 	switch(gen)
 	{
 	case Stockham:
           return GetMax1DLengthPvt<Stockham>(longest);
 	default:
-          return AMPFFT_ERROR;
+          return HCFFT_ERROR;
 	}
 }
 
-ampfftStatus  FFTPlan::GetKernelGenKey (FFTKernelGenKeyParams & params) const
+hcfftStatus  FFTPlan::GetKernelGenKey (FFTKernelGenKeyParams & params) const
 {
 	switch(gen)
 	{
 	case Stockham:
           return GetKernelGenKeyPvt<Stockham>(params);
 	default:
-	  return AMPFFT_ERROR;
+	  return HCFFT_ERROR;
 	}
 }
 
-ampfftStatus  FFTPlan::GetWorkSizes (std::vector<size_t> & globalws, std::vector<size_t> & localws) const
+hcfftStatus  FFTPlan::GetWorkSizes (std::vector<size_t> & globalws, std::vector<size_t> & localws) const
 {
 	switch(gen)
 	{
 	case Stockham:
 	  return GetWorkSizesPvt<Stockham>(globalws, localws);
 	default:
-	  return AMPFFT_ERROR;
+	  return HCFFT_ERROR;
 	}
 }
 
-ampfftStatus  FFTPlan::GenerateKernel (const ampfftPlanHandle plHandle, FFTRepo & fftRepo) const
+hcfftStatus  FFTPlan::GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo) const
 {
         switch(gen)
 	{
 	case Stockham:
           return GenerateKernelPvt<Stockham>(plHandle, fftRepo);
 	default:
-          return AMPFFT_ERROR;
+          return HCFFT_ERROR;
 	}
 }
-ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
+hcfftStatus FFTPlan::hcfftDestroyPlan( hcfftPlanHandle* plHandle )
 {
   FFTRepo& fftRepo	= FFTRepo::getInstance( );
   FFTPlan* fftPlan	= NULL;
@@ -3004,41 +3004,41 @@ ampfftStatus FFTPlan::ampfftDestroyPlan( ampfftPlanHandle* plHandle )
 
   //	Recursively destroy subplans, that are used for higher dimensional FFT's
   if( fftPlan->planX )
-    ampfftDestroyPlan( &fftPlan->planX );
+    hcfftDestroyPlan( &fftPlan->planX );
 
   if( fftPlan->planY )
-    ampfftDestroyPlan( &fftPlan->planY );
+    hcfftDestroyPlan( &fftPlan->planY );
 
    if( fftPlan->planZ )
-    ampfftDestroyPlan( &fftPlan->planZ );
+    hcfftDestroyPlan( &fftPlan->planZ );
 
    if( fftPlan->planTX )
-    ampfftDestroyPlan( &fftPlan->planTX );
+    hcfftDestroyPlan( &fftPlan->planTX );
 
    if( fftPlan->planTY )
-    ampfftDestroyPlan( &fftPlan->planTY );
+    hcfftDestroyPlan( &fftPlan->planTY );
 
    if( fftPlan->planTZ )
-    ampfftDestroyPlan( &fftPlan->planTZ );
+    hcfftDestroyPlan( &fftPlan->planTZ );
 
    if( fftPlan->planRCcopy )
-    ampfftDestroyPlan( &fftPlan->planRCcopy );
+    hcfftDestroyPlan( &fftPlan->planRCcopy );
 
   fftRepo.deletePlan( plHandle );
 
-  return AMPFFT_SUCCESS;
+  return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::AllocateWriteBuffers ()
+hcfftStatus FFTPlan::AllocateWriteBuffers ()
 {
-	ampfftStatus status = AMPFFT_SUCCESS;
+	hcfftStatus status = HCFFT_SUCCESS;
 
 	assert (NULL == const_buffer);
 
 	assert(4 == sizeof(int));
 
 	//	Construct the constant buffer and call clEnqueueWriteBuffer
-	float ConstantBufferParams[AMPFFT_CB_SIZE];
+	float ConstantBufferParams[HCFFT_CB_SIZE];
 	memset (& ConstantBufferParams, 0, sizeof (ConstantBufferParams));
 
 	float nY = 1;
@@ -3070,77 +3070,77 @@ ampfftStatus FFTPlan::AllocateWriteBuffers ()
 		n5 = (float)batchSize;
 		break;
 	}
-	ConstantBufferParams[AMPFFT_CB_NY ] = nY;
-	ConstantBufferParams[AMPFFT_CB_NZ ] = nZ;
-	ConstantBufferParams[AMPFFT_CB_NW ] = nW;
-	ConstantBufferParams[AMPFFT_CB_N5 ] = n5;
+	ConstantBufferParams[HCFFT_CB_NY ] = nY;
+	ConstantBufferParams[HCFFT_CB_NZ ] = nZ;
+	ConstantBufferParams[HCFFT_CB_NW ] = nW;
+	ConstantBufferParams[HCFFT_CB_N5 ] = n5;
 
 	assert (/*fftPlan->*/inStride.size() == /*fftPlan->*/outStride.size());
 
 	switch (/*fftPlan->*/inStride.size()) {
 	case 1:
-		ConstantBufferParams[AMPFFT_CB_ISX] = (float)inStride[0];
-		ConstantBufferParams[AMPFFT_CB_ISY] = (float)iDist;
+		ConstantBufferParams[HCFFT_CB_ISX] = (float)inStride[0];
+		ConstantBufferParams[HCFFT_CB_ISY] = (float)iDist;
 		break;
 
 	case 2:
-		ConstantBufferParams[AMPFFT_CB_ISX] = (float)inStride[0];
-		ConstantBufferParams[AMPFFT_CB_ISY] = (float)inStride[1];
-		ConstantBufferParams[AMPFFT_CB_ISZ] = (float)iDist;
+		ConstantBufferParams[HCFFT_CB_ISX] = (float)inStride[0];
+		ConstantBufferParams[HCFFT_CB_ISY] = (float)inStride[1];
+		ConstantBufferParams[HCFFT_CB_ISZ] = (float)iDist;
 		break;
 
 	case 3:
-		ConstantBufferParams[AMPFFT_CB_ISX] = (float)inStride[0];
-		ConstantBufferParams[AMPFFT_CB_ISY] = (float)inStride[1];
-		ConstantBufferParams[AMPFFT_CB_ISZ] = (float)inStride[2];
-		ConstantBufferParams[AMPFFT_CB_ISW] = (float)iDist;
+		ConstantBufferParams[HCFFT_CB_ISX] = (float)inStride[0];
+		ConstantBufferParams[HCFFT_CB_ISY] = (float)inStride[1];
+		ConstantBufferParams[HCFFT_CB_ISZ] = (float)inStride[2];
+		ConstantBufferParams[HCFFT_CB_ISW] = (float)iDist;
 		break;
 
 	case 4:
-		ConstantBufferParams[AMPFFT_CB_ISX] = (float)inStride[0];
-		ConstantBufferParams[AMPFFT_CB_ISY] = (float)inStride[1];
-		ConstantBufferParams[AMPFFT_CB_ISZ] = (float)inStride[2];
-		ConstantBufferParams[AMPFFT_CB_ISW] = (float)inStride[3];
-		ConstantBufferParams[AMPFFT_CB_IS5] = (float)iDist;
+		ConstantBufferParams[HCFFT_CB_ISX] = (float)inStride[0];
+		ConstantBufferParams[HCFFT_CB_ISY] = (float)inStride[1];
+		ConstantBufferParams[HCFFT_CB_ISZ] = (float)inStride[2];
+		ConstantBufferParams[HCFFT_CB_ISW] = (float)inStride[3];
+		ConstantBufferParams[HCFFT_CB_IS5] = (float)iDist;
 		break;
 	}
 
 	switch (/*fftPlan->*/outStride.size()) {
 	case 1:
-		ConstantBufferParams[AMPFFT_CB_OSX] = (float)outStride[0];
-		ConstantBufferParams[AMPFFT_CB_OSY] = (float)oDist;
+		ConstantBufferParams[HCFFT_CB_OSX] = (float)outStride[0];
+		ConstantBufferParams[HCFFT_CB_OSY] = (float)oDist;
 		break;
 
 	case 2:
-		ConstantBufferParams[AMPFFT_CB_OSX] = (float)outStride[0];
-		ConstantBufferParams[AMPFFT_CB_OSY] = (float)outStride[1];
-		ConstantBufferParams[AMPFFT_CB_OSZ] = (float)oDist;
+		ConstantBufferParams[HCFFT_CB_OSX] = (float)outStride[0];
+		ConstantBufferParams[HCFFT_CB_OSY] = (float)outStride[1];
+		ConstantBufferParams[HCFFT_CB_OSZ] = (float)oDist;
 		break;
 
 	case 3:
-		ConstantBufferParams[AMPFFT_CB_OSX] = (float)outStride[0];
-		ConstantBufferParams[AMPFFT_CB_OSY] = (float)outStride[1];
-		ConstantBufferParams[AMPFFT_CB_OSZ] = (float)outStride[2];
-		ConstantBufferParams[AMPFFT_CB_OSW] = (float)oDist;
+		ConstantBufferParams[HCFFT_CB_OSX] = (float)outStride[0];
+		ConstantBufferParams[HCFFT_CB_OSY] = (float)outStride[1];
+		ConstantBufferParams[HCFFT_CB_OSZ] = (float)outStride[2];
+		ConstantBufferParams[HCFFT_CB_OSW] = (float)oDist;
 		break;
 
 	case 4:
-		ConstantBufferParams[AMPFFT_CB_OSX] = (float)outStride[0];
-		ConstantBufferParams[AMPFFT_CB_OSY] = (float)outStride[1];
-		ConstantBufferParams[AMPFFT_CB_OSZ] = (float)outStride[2];
-		ConstantBufferParams[AMPFFT_CB_OSW] = (float)outStride[3];
-		ConstantBufferParams[AMPFFT_CB_OS5] = (float)oDist;
+		ConstantBufferParams[HCFFT_CB_OSX] = (float)outStride[0];
+		ConstantBufferParams[HCFFT_CB_OSY] = (float)outStride[1];
+		ConstantBufferParams[HCFFT_CB_OSZ] = (float)outStride[2];
+		ConstantBufferParams[HCFFT_CB_OSW] = (float)outStride[3];
+		ConstantBufferParams[HCFFT_CB_OS5] = (float)oDist;
 		break;
 	}
 
-        Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(AMPFFT_CB_SIZE), ConstantBufferParams);
+        Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(HCFFT_CB_SIZE), ConstantBufferParams);
         const_buffer = new Concurrency::array_view<float>(arr);
-	return AMPFFT_SUCCESS;
+	return HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTPlan::ReleaseBuffers ()
+hcfftStatus FFTPlan::ReleaseBuffers ()
 {
-	ampfftStatus result = AMPFFT_SUCCESS;
+	hcfftStatus result = HCFFT_SUCCESS;
 
 	if( NULL != const_buffer )
 	{
@@ -3157,26 +3157,26 @@ ampfftStatus FFTPlan::ReleaseBuffers ()
                 delete intBufferRC;
 	}
 
-	return	AMPFFT_SUCCESS;
+	return	HCFFT_SUCCESS;
 }
 
 size_t FFTPlan::ElementSize() const
 {
-  return ((precision == AMPFFT_DOUBLE) ? sizeof(std::complex<double> ) : sizeof(std::complex<float>));
+  return ((precision == HCFFT_DOUBLE) ? sizeof(std::complex<double> ) : sizeof(std::complex<float>));
 }
 
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
 /*---------------------------------------------------FFTRepo--------------------------------------------------------------------------------*/
-ampfftStatus FFTRepo::createPlan( ampfftPlanHandle* plHandle, FFTPlan*& fftPlan )
+hcfftStatus FFTRepo::createPlan( hcfftPlanHandle* plHandle, FFTPlan*& fftPlan )
 {
 	scopedLock sLock( lockRepo, _T( "insertPlan" ) );
 
 	//	We keep track of this memory in our own collection class, to make sure it's freed in releaseResources
-	//	The lifetime of a plan is tracked by the client and is freed when the client calls ::ampfftDestroyPlan()
+	//	The lifetime of a plan is tracked by the client and is freed when the client calls ::hcfftDestroyPlan()
 	fftPlan	= new FFTPlan;
 
-	//	We allocate a new lock here, and expect it to be freed in ::ampfftDestroyPlan();
+	//	We allocate a new lock here, and expect it to be freed in ::hcfftDestroyPlan();
 	//	The lifetime of the lock is the same as the lifetime of the plan
 	lockRAII* lockPlan	= new lockRAII;
 
@@ -3186,38 +3186,38 @@ ampfftStatus FFTRepo::createPlan( ampfftPlanHandle* plHandle, FFTPlan*& fftPlan 
 	//	Assign the user handle the plan count (unique identifier), and bump the count for the next plan
 	*plHandle	= planCount++;
 
-	return	AMPFFT_SUCCESS;
+	return	HCFFT_SUCCESS;
 }
 
 
-ampfftStatus FFTRepo::getPlan( ampfftPlanHandle plHandle, FFTPlan*& fftPlan, lockRAII*& planLock )
+hcfftStatus FFTRepo::getPlan( hcfftPlanHandle plHandle, FFTPlan*& fftPlan, lockRAII*& planLock )
 {
 	scopedLock sLock( lockRepo, _T( "getPlan" ) );
 
 	//	First, check if we have already created a plan with this exact same FFTPlan
 	repoPlansType::iterator iter	= repoPlans.find( plHandle );
 	if( iter == repoPlans.end( ) )
-		return	AMPFFT_ERROR;
+		return	HCFFT_ERROR;
 
 	//	If plan is valid, return fill out the output pointers
 	fftPlan		= iter->second.first;
 	planLock	= iter->second.second;
 
-	return	AMPFFT_SUCCESS;
+	return	HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTRepo::deletePlan( ampfftPlanHandle* plHandle )
+hcfftStatus FFTRepo::deletePlan( hcfftPlanHandle* plHandle )
 {
 	scopedLock sLock( lockRepo, _T( "deletePlan" ) );
 
 	//	First, check if we have already created a plan with this exact same FFTPlan
 	repoPlansType::iterator iter	= repoPlans.find( *plHandle );
 	if( iter == repoPlans.end( ) )
-		return	AMPFFT_ERROR;
+		return	HCFFT_ERROR;
 
 	//	We lock the plan object while we are in the process of deleting it
 	{
-		scopedLock sLock( *iter->second.second, _T( "ampfftDestroyPlan" ) );
+		scopedLock sLock( *iter->second.second, _T( "hcfftDestroyPlan" ) );
 
 		//	Delete the FFTPlan
 		delete iter->second.first;
@@ -3232,10 +3232,10 @@ ampfftStatus FFTRepo::deletePlan( ampfftPlanHandle* plHandle )
 	//	Clear the client's handle to signify that the plan is gone
 	*plHandle = 0;
 
-	return	AMPFFT_SUCCESS;
+	return	HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTRepo::setProgramEntryPoints( const ampfftGenerators gen, const ampfftPlanHandle& handle,
+hcfftStatus FFTRepo::setProgramEntryPoints( const hcfftGenerators gen, const hcfftPlanHandle& handle,
                                              const FFTKernelGenKeyParams& fftParam, const char * kernel_fwd,
                                              const char * kernel_back)
 {
@@ -3247,11 +3247,11 @@ ampfftStatus FFTRepo::setProgramEntryPoints( const ampfftGenerators gen, const a
 	fft.EntryPoint_fwd  = kernel_fwd;
 	fft.EntryPoint_back = kernel_back;
 
-	return	AMPFFT_SUCCESS;
+	return	HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTRepo::getProgramEntryPoint( const ampfftGenerators gen, const ampfftPlanHandle& handle,
-                                            const FFTKernelGenKeyParams& fftParam, ampfftDirection dir,
+hcfftStatus FFTRepo::getProgramEntryPoint( const hcfftGenerators gen, const hcfftPlanHandle& handle,
+                                            const FFTKernelGenKeyParams& fftParam, hcfftDirection dir,
                                             std::string& kernel)
 {
 	scopedLock sLock( lockRepo, _T( "getProgramEntryPoint" ) );
@@ -3261,27 +3261,27 @@ ampfftStatus FFTRepo::getProgramEntryPoint( const ampfftGenerators gen, const am
 	fftRepo_iterator pos = mapFFTs.find( key );
 
 	if( pos == mapFFTs.end( ) )
-		return	AMPFFT_ERROR;
+		return	HCFFT_ERROR;
 
 	switch (dir) {
-	case AMPFFT_FORWARD:
+	case HCFFT_FORWARD:
 		kernel = pos->second.EntryPoint_fwd;
 		break;
-	case AMPFFT_BACKWARD:
+	case HCFFT_BACKWARD:
 		kernel = pos->second.EntryPoint_back;
 		break;
 	default:
 		assert (false);
-		return AMPFFT_ERROR;
+		return HCFFT_ERROR;
 	}
 
 	if (0 == kernel.size())
-		return	AMPFFT_ERROR;
+		return	HCFFT_ERROR;
 
-	return	AMPFFT_SUCCESS;
+	return	HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTRepo::setProgramCode( const ampfftGenerators gen, const ampfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, const std::string& kernel)
+hcfftStatus FFTRepo::setProgramCode( const hcfftGenerators gen, const hcfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, const std::string& kernel)
 {
 	scopedLock sLock( lockRepo, _T( "setProgramCode" ) );
 
@@ -3300,10 +3300,10 @@ ampfftStatus FFTRepo::setProgramCode( const ampfftGenerators gen, const ampfftPl
 
 	mapFFTs[ key ].ProgramString = prefixCopyright + kernel;
 
-	return	AMPFFT_SUCCESS;
+	return	HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTRepo::getProgramCode( const ampfftGenerators gen, const ampfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, std::string& kernel)
+hcfftStatus FFTRepo::getProgramCode( const hcfftGenerators gen, const hcfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, std::string& kernel)
 {
 
 	scopedLock sLock( lockRepo, _T( "getProgramCode" ) );
@@ -3311,13 +3311,13 @@ ampfftStatus FFTRepo::getProgramCode( const ampfftGenerators gen, const ampfftPl
 
 	fftRepo_iterator pos = mapFFTs.find( key);
 	if( pos == mapFFTs.end( ) )
-		return	AMPFFT_ERROR;
+		return	HCFFT_ERROR;
 
         kernel = pos->second.ProgramString;
-	return	AMPFFT_SUCCESS;
+	return	HCFFT_SUCCESS;
 }
 
-ampfftStatus FFTRepo::releaseResources( )
+hcfftStatus FFTRepo::releaseResources( )
 {
 	scopedLock sLock( lockRepo, _T( "releaseResources" ) );
 
@@ -3343,6 +3343,6 @@ ampfftStatus FFTRepo::releaseResources( )
 	//	Release all strings
 	mapFFTs.clear( );
 
-	return	AMPFFT_SUCCESS;
+	return	HCFFT_SUCCESS;
 }
 /*------------------------------------------------FFTRepo----------------------------------------------------------------------------------*/
