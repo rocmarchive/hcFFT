@@ -105,6 +105,8 @@ With this the C++ AMP Compiler installation is complete.
      * export LD_LIBRARY_PATH=$AMPFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
      
      * cd ~/ampfft/source/test/
+
+     * export CLAMP_NOTILECHECK=ON
      
      * make
      
