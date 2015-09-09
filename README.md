@@ -1,4 +1,4 @@
-# ** C++ AMP FFT ** #
+# ** HCFFT ** #
 
 ##Introduction: ##
 
@@ -57,21 +57,21 @@ Make sure the parent directory chosen is say ~/ or any other folder of your choi
 
 With this the C++ AMP Compiler installation is complete.
 
-### B. AMPFFT Installation
+### B. HCFFT Installation
 
-(i) Clone MCW AMPFFT source codes
+(i) Clone MCW HCFFT source codes
 
       * cd ~/
    
-      * git clone https://bitbucket.org/multicoreware/ampfft.git 
+      * git clone https://bitbucket.org/multicoreware/hcfft.git 
 
-      * cd ~/ampfft
+      * cd ~/hcfft
 
 (ii) Platform-specific build
 
 (a) For Linux:
 
-       * cd ~/ampfft/Build/linux
+       * cd ~/hcfft/Build/linux
        
        * export MCWCPPAMPROOT=<path_to>/mcw_cppamp35/ (Here path_to points to parent folder of mcw_cppamp. ~/ in our case)
 
@@ -85,26 +85,26 @@ With this the C++ AMP Compiler installation is complete.
 
      * cd Build/vc11-x86
 
-     * make-solutions.bat (This creates a Visual studio solution for ampfft Library) 
+     * make-solutions.bat (This creates a Visual studio solution for hcfft Library) 
 
  2. For 64-bit:
 
      * cd Build/vc11-x86_64
 
-     * make-solutions.bat (This creates a Visual Studio solution for ampfft Library)
+     * make-solutions.bat (This creates a Visual Studio solution for hcfft Library)
 
 
 ### C. Unit testing
 
 1. FFT R2C and C2R Testing: 
 
-     * export AMPFFT_LIBRARY_PATH = ~/ampfft/Build/linux
+     * export HCFFT_LIBRARY_PATH = ~/hcfft/Build/linux
      
      * export MCWCPPAMPROOT=~/mcw_cppamp35/
      
-     * export LD_LIBRARY_PATH=$AMPFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
+     * export LD_LIBRARY_PATH=$HCFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
      
-     * cd ~/ampfft/source/test/
+     * cd ~/hcfft/source/test/
 
      * export CLAMP_NOTILECHECK=ON
      
