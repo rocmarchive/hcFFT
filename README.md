@@ -34,8 +34,6 @@ Make sure the parent directory chosen is say ~/ or any other folder of your choi
 
        * cd ~/mcw_cppamp35/src/
 
-       * git checkout master
-
        * git checkout 4fb5922
 
   (b) Create a build directory and configure using CMake.
@@ -112,10 +110,6 @@ With this the C++ AMP Compiler installation is complete.
      
      * make
      
-     * To test ./fft N1 N2
+     * chmod +x run.sh
 
-     * make clean all ( This is needed before next run (./fft N1 N2 ) because it will flush out all the previously generated kernels for given input sizes N1 and N2)
-
-**NOTE : Please Do "make clean all" before every run of fft executable "./fft N1 N2" **
-
-     
+     * ./run.sh N1 N2
