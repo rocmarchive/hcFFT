@@ -514,6 +514,8 @@ namespace StockhamGenerator
 		bool rcFull;
 		bool rcSimple;
 
+		bool realSpecial;
+		bool halfLds;
 		bool enableGrouping;
 		bool linearRegs;
 		Pass<PR> *nextPass;
