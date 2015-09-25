@@ -32,6 +32,12 @@ using namespace Concurrency::graphics;
 #define ARG_CHECK(_proposition)	\
 { bool btmp = (_proposition);	assert (btmp); if (! btmp)	return HCFFT_ERROR; }
 
+enum BlockComputeType
+{
+	BCT_C2R,	// Column to row
+	BCT_R2C,	// Row to column
+};
+
 static inline bool IsPo2 (size_t u) {
 	return (u != 0) &&  (0 == (u & (u-1)));
 }
