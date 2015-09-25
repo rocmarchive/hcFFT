@@ -278,8 +278,58 @@ struct FFTKernelGenKeyParams {
 	bool                     fft_ldsPadding;    // default padding is false
 	bool                     fft_3StepTwiddle;  // This is one pass of the "3-step" algorithm;
 	                                            // so extra twiddles are applied on output.
+
+	bool			 fft_twiddleFront;	// do twiddle scaling at the beginning pass
+
+	bool			 fft_realSpecial;	// this is the flag to control the special case step (4th step)
+	                                            // in the 5-step real 1D large breakdown
+	size_t			 fft_realSpecial_Nr;
+
+	bool			 transOutHorizontal;	// tiles traverse the output buffer in horizontal direction
+
+	bool			 blockCompute;
+	BlockComputeType	 blockComputeType;
+	size_t			 blockSIMD;
+	size_t			 blockLDS;
+
 	bool                     fft_UseFMA;        // *** TODO
 	bool                     fft_RCsimple;
+
+	// Default constructor
+	FFTKernelGenKeyParams()
+	{
+		fft_DataDim = 0;
+		for(int i=0; i<5; i++)
+		{
+			fft_N[i] = 0;
+			fft_inStride[i] = 0;
+			fft_outStride[i] = 0;
+		}
+
+		fft_placeness = HCFFT_OUTOFPLACE;
+		fft_inputLayout = HCFFT_REAL;
+		fft_outputLayout = HCFFT_COMPLEX;
+		fft_precision = HCFFT_SINGLE;
+		fft_fwdScale = fft_backScale = 0.0;
+		fft_SIMD = 0;
+		fft_LDSsize = 0;
+		fft_R = 0;
+		fft_MaxWorkGroupSize = 0;
+		fft_3StepTwiddle = false;
+		fft_twiddleFront = false;
+
+		transOutHorizontal = false;
+
+		fft_realSpecial = false;
+		fft_realSpecial_Nr = 0;
+
+		fft_RCsimple = false;
+
+		blockCompute = false;
+		blockComputeType = BCT_R2C;
+		blockSIMD = 0;
+		blockLDS = 0;
+	}
 };
 
 class FFTRepo;
