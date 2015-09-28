@@ -2164,7 +2164,22 @@ namespace StockhamGenerator
 			// Set half lds for real transforms
 			halfLds = r2c2r ? true : halfLds;
 
-			bool linearRegs = halfLds ? true : false;
+			linearRegs = halfLds;
+
+			realSpecial = params.fft_realSpecial;
+
+			blockCompute = params.blockCompute;
+			blockComputeType = params.blockComputeType;
+			// Make sure we can utilize all Lds if we are going to
+			// use blocked columns to compute FFTs
+			if(blockCompute)
+			{
+				assert(length <= 256);  // 256 parameter comes from prototype experiments
+							// largest length at which block column possible given 32KB LDS limit
+							// if LDS limit is different this number need to be changed appropriately
+				halfLds = false;
+				linearRegs = true;
+			}
 
 			assert( ((length*numTrans)%workGroupSize) == 0 );
 			cnPerWI = (numTrans * length) / workGroupSize;
