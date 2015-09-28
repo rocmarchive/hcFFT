@@ -100,6 +100,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
 		std::string entryPoint;
 		fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, HCFFT_BACKWARD, entryPoint);
 	}
+        return HCFFT_SUCCESS;
 }
 
 //	This routine will query the OpenCL context for it's devices
@@ -126,7 +127,6 @@ hcfftStatus FFTPlan::SetEnvelope ()
 
 hcfftStatus FFTPlan::GetEnvelope (const FFTEnvelope ** ppEnvelope) const
 {
-	if(&envelope == NULL) assert(false);
 	*ppEnvelope = &envelope;
 	return HCFFT_SUCCESS;
 }
@@ -399,7 +399,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
 				}
 
-				return	HCFFT_SUCCESS;
+				return	status;
 			}
 			break;
 		}
@@ -549,9 +549,17 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 				}
 			}
 
-			return	HCFFT_SUCCESS;
+			return	status;
 		}
-	}
+                break;
+
+      case HCFFT_3D:
+                {
+                        return status;
+                        break;
+                }        
+
+      }
 
 	FFTKernelGenKeyParams fftParams;
 	//	Translate the user plan into the structure that we use to map plans to clPrograms
@@ -598,6 +606,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 		{
 			switch( fftPlan->opLayout )
 			{
+                                case HCFFT_REAL:
 				case HCFFT_COMPLEX:
 				{
 					if( fftPlan->location == HCFFT_INPLACE )
@@ -634,7 +643,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
         void * kernelHandle = NULL;
         typedef void (FUNC_FFTFwd)(std::map<int, void*> *vectArr);
-        FUNC_FFTFwd * FFTcall;
+        FUNC_FFTFwd * FFTcall = NULL;
 
         char cwd[1024];
         if (getcwd(cwd, sizeof(cwd)) != NULL)
@@ -690,6 +699,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
         dlclose(kernelHandle);
         kernelHandle = NULL;
+        return status;
 }
 
 hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
@@ -3127,7 +3137,7 @@ hcfftStatus FFTPlan::AllocateWriteBuffers ()
 
         Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(HCFFT_CB_SIZE), ConstantBufferParams);
         const_buffer = new Concurrency::array_view<float>(arr);
-	return HCFFT_SUCCESS;
+	return status;
 }
 
 hcfftStatus FFTPlan::ReleaseBuffers ()
@@ -3149,7 +3159,7 @@ hcfftStatus FFTPlan::ReleaseBuffers ()
                 delete intBufferRC;
 	}
 
-	return	HCFFT_SUCCESS;
+	return result;
 }
 
 size_t FFTPlan::ElementSize() const
