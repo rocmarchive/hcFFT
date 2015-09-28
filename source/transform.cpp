@@ -2308,14 +2308,6 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 	return	HCFFT_SUCCESS;
 }
 
-hcfftStatus FFTPlan::executePlan(FFTPlan* fftPlan)
-{
-  if(!fftPlan)
-    return HCFFT_INVALID;
-
-  return HCFFT_SUCCESS;
-}
-
 hcfftStatus FFTPlan::hcfftGetPlanPrecision( const  hcfftPlanHandle plHandle,  hcfftPrecision* precision )
 {
   FFTRepo& fftRepo = FFTRepo::getInstance( );

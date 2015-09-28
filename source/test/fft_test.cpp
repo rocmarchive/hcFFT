@@ -82,7 +82,6 @@ int main(int argc,char* argv[])
   plan.hcfftEnqueueTransform(planhandle, dir, &inpAr, &opAr, NULL);
   opAr.synchronize();
 
-  status = plan.executePlan(&plan);
   status = plan.hcfftDestroyPlan(&planhandle);
 
 #if PRINT
@@ -141,7 +140,6 @@ int main(int argc,char* argv[])
     exit(0);
   }
   cout<<" TEST PASSED"<<endl;
-  status = plan1.executePlan(&plan);
   status = plan1.hcfftDestroyPlan(&planhandle);
 
  }
