@@ -1314,10 +1314,11 @@ namespace StockhamGenerator
 		}
           public:
 		Pass(	size_t positionVal, size_t lengthVal, size_t radixVal, size_t cnPerWIVal,
-				size_t L, size_t LS, size_t R, bool linearRegsVal, bool r2cVal, bool c2rVal, bool rcFullVal, bool rcSimpleVal) :
+			size_t L, size_t LS, size_t R, bool linearRegsVal, bool halfLdsVal,
+			bool r2cVal, bool c2rVal, bool rcFullVal, bool rcSimpleVal, bool realSpecialVal) :
 			position(positionVal), length(lengthVal), radix(radixVal), cnPerWI(cnPerWIVal),
-			algL(L), algLS(LS), algR(R), linearRegs(linearRegsVal),
-			r2c(r2cVal), c2r(c2rVal), rcFull(rcFullVal), rcSimple(rcSimpleVal),
+			algL(L), algLS(LS), algR(R), linearRegs(linearRegsVal), halfLds(halfLdsVal),
+			r2c(r2cVal), c2r(c2rVal), rcFull(rcFullVal), rcSimple(rcSimpleVal), realSpecial(realSpecialVal),
 			enableGrouping(true),
 			numB1(0), numB2(0), numB4(0),
 			nextPass(NULL)
@@ -1348,6 +1349,10 @@ namespace StockhamGenerator
 
 				assert(numButterfly == (numB4*4 + numB2*2 + numB1));
 			}
+
+			// if only half LDS can be used, we need the passes to share registers
+			// and hence they need to be linear registers
+			if(halfLds) assert(linearRegs);
 		}
 
 		size_t GetNumB1() const { return numB1; }
@@ -2210,7 +2215,7 @@ namespace StockhamGenerator
 					R /= rad;
 
 					radices.push_back(rad);
-					passes.push_back(Pass<PR>(i, length, rad, cnPerWI, L, LS, R, linearRegs, r2c, c2r, rcFull, rcSimple));
+					passes.push_back(Pass<PR>(i, length, rad, cnPerWI, L, LS, R, linearRegs, halfLds, r2c, c2r, rcFull, rcSimple, realSpecial));
 
 					LS *= rad;
 				}
@@ -2220,7 +2225,7 @@ namespace StockhamGenerator
 			else
 			{
 				// Possible radices
-				size_t cRad[] = {10,8,6,5,4,3,2,1}; // Must be in descending order
+				size_t cRad[] = {10,8,7,6,5,4,3,2,1}; // Must be in descending order
 				size_t cRadSize = (sizeof(cRad)/sizeof(cRad[0]));
 
 				while(true)
@@ -2232,7 +2237,6 @@ namespace StockhamGenerator
 					{
 						rad = cRad[r];
 
-						if( (rad == 16) && !linearRegs ) continue; // temporary - fix this !!!
 						if((rad > cnPerWI) || (cnPerWI%rad))
 							continue;
 
@@ -2245,7 +2249,7 @@ namespace StockhamGenerator
 					L = LS * rad;
 					R /= rad;
 					radices.push_back(rad);
-					passes.push_back(Pass<PR>(pid, length, rad, cnPerWI, L, LS, R, linearRegs, r2c, c2r, rcFull, rcSimple));
+					passes.push_back(Pass<PR>(pid, length, rad, cnPerWI, L, LS, R, linearRegs, halfLds, r2c, c2r, rcFull, rcSimple, realSpecial));
 
 					pid++;
 					LS *= rad;
