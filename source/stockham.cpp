@@ -2117,72 +2117,23 @@ namespace StockhamGenerator
 							batch += " + (me/"; batch += SztToStr(workGroupSizePerTrans); batch += "))"; }
 		}
 
-		switch(params.fft_DataDim)
+		str += "\t"; str += off; str += " = ";
+		std::string nextBatch = batch;
+		for(size_t i=(params.fft_DataDim - 1); i>1; i--)
 		{
-			case 5:
-				{
-					str += "\t{\n\tunsigned int ocalc1 = ";
-					str += batch; str += "%"; str += SztToStr(params.fft_N[1] * params.fft_N[2] * params.fft_N[3]);
-					str += ";\n";
+			size_t currentLength = 1;
+			for(int j=1; j<i; j++) currentLength *= params.fft_N[j];
 
-					str += "\tunsigned int ocalc0 = ";
-					str += "ocalc1"; str += "%"; str += SztToStr(params.fft_N[1] * params.fft_N[2]);
-					str += ";\n";
+			str += "("; str += nextBatch; str += "/"; str += SztToStr(currentLength);
+			str += ")*"; str += SztToStr(pStride[i]); str += " + ";
 
-					str += "\t"; str += off; str += " = ";
-					str += "("; str += batch; str += "/"; str += SztToStr(params.fft_N[1] * params.fft_N[2] * params.fft_N[3]);
-					str += ")*"; str += SztToStr(pStride[4]); str += " + ";
-
-					str += "(ocalc1"; str += "/"; str += SztToStr(params.fft_N[1] * params.fft_N[2]); str += ")*";
-					str += SztToStr(pStride[3]); str += " + ";
-
-					str += "(ocalc0"; str += "/"; str += SztToStr(params.fft_N[1]); str += ")*";
-					str += SztToStr(pStride[2]); str += " + ";
-					str += "(ocalc0"; str += "%"; str += SztToStr(params.fft_N[1]); str += ")*";
-					str += SztToStr(pStride[1]); str += ";\n";
-
-					str += "\t}\n";
-				}
-				break;
-			case 4:
-				{
-					str += "\t{\n\tunsigned int ocalc0 = ";
-					str += batch; str += "%"; str += SztToStr(params.fft_N[1] * params.fft_N[2]);
-					str += ";\n";
-
-					str += "\t"; str += off; str += " = ";
-					str += "("; str += batch; str += "/"; str += SztToStr(params.fft_N[1] * params.fft_N[2]); str += ")*";
-					str += SztToStr(pStride[3]); str += " + ";
-
-					str += "(ocalc0"; str += "/"; str += SztToStr(params.fft_N[1]); str += ")*";
-					str += SztToStr(pStride[2]); str += " + ";
-					str += "(ocalc0"; str += "%"; str += SztToStr(params.fft_N[1]); str += ")*";
-					str += SztToStr(pStride[1]); str += ";\n";
-
-					str += "\t}\n";
-				}
-				break;
-			case 3:
-				{
-					str += "\t"; str += off; str += " = ";
-					str += "("; str += batch; str += "/"; str += SztToStr(params.fft_N[1]); str += ")*";
-					str += SztToStr(pStride[2]); str += " + ";
-					str += "("; str += batch; str += "%"; str += SztToStr(params.fft_N[1]); str += ")*";
-					str += SztToStr(pStride[1]); str += ";\n";
-				}
-				break;
-			case 2:
-				{
-					str += "\t"; str += off; str += " = ";
-					str += batch; str += "*"; str += SztToStr(pStride[1]); str += ";\n";
-				}
-				break;
-			default:
-				assert(false);
-			}
-
-			return str;
+			nextBatch = "(" + nextBatch + "%" + SztToStr(currentLength) + ")";
 		}
+
+		str += nextBatch; str += "*"; str += SztToStr(pStride[1]); str += ";\n";
+
+		return str;
+	}
 
     public:
         Kernel( const FFTKernelGenKeyParams &paramsVal) :
