@@ -2744,12 +2744,22 @@ namespace StockhamGenerator
 				str += "\n";
 
 				// Allocate LDS
-				size_t ldsSize = halfLds ? length*numTrans : 2*length*numTrans;
-				if(numPasses > 1)
+				if(blockCompute)
 				{
-					str += "\n\t";
-					str += "tile_static "; str += rType; str += " lds[";
-					str += SztToStr(ldsSize); str += "];\n";
+					str += "\n\t"; str += "tile_static "; str += r2Type; str += " lds[";
+					str += SztToStr(blockLDS); str += "];\n";
+				}
+				else
+				{
+					size_t ldsSize = halfLds ? length*numTrans : 2*length*numTrans;
+					ldsSize = ldsInterleaved ? ldsSize/2 : ldsSize;
+
+					if(numPasses > 1)
+					{
+						str += "\n\t";
+						str += "tile_static "; str += ldsInterleaved ? r2Type: rType; str += " lds[";
+						str += SztToStr(ldsSize); str += "];\n";
+					}
 				}
 
 				// Declare memory pointers
@@ -2781,7 +2791,7 @@ namespace StockhamGenerator
 				}
 
 				// Setup registers if needed
-				if(halfLds)
+				if(linearRegs)
 				{
 					str += "\t"; str += RegBaseType<PR>(2);
 					str += " "; str += IterRegs("", false);
@@ -2796,7 +2806,7 @@ namespace StockhamGenerator
 					totalBatch += SztToStr(params.fft_N[i+1]); totalBatch += " * ";
 					i++;
 				}
-				totalBatch += "cb["; totalBatch += SztToStr(i); totalBatch += "])";
+				totalBatch += "cb[0])";
 
 				// Conditional read-write ('rw') for arbitrary batch number
 				if(r2c2r && !rcSimple)
