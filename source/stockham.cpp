@@ -193,35 +193,29 @@ namespace StockhamGenerator
 			return;
 		}
 
-		size_t baseRadix[] = {5,3,2}; // list only supported primes
+		size_t baseRadix[] = {7,5,3,2}; // list only supported primes
 		size_t baseRadixSize = sizeof(baseRadix)/sizeof(baseRadix[0]);
 
 		size_t l = length;
-		std::map<size_t, size_t> primeFactors;
 		std::map<size_t, size_t> primeFactorsExpanded;
 		for(size_t r=0; r<baseRadixSize; r++)
 		{
 			size_t rad = baseRadix[r];
-			size_t p = 0;
 			size_t e = 1;
 			while(!(l%rad))
 			{
 				l /= rad;
 				e *= rad;
-				p++;
 			}
 
-			primeFactors[rad] = p;
 			primeFactorsExpanded[rad] = e;
 		}
 
 		assert(l == 1); // Makes sure the number is composed of only supported primes
 
-		if (primeFactorsExpanded[2] == length)	// Length is pure power of 2
+		if		(primeFactorsExpanded[2] == length)	// Length is pure power of 2
 		{
-			//if(length == 1024) { workGroupSize = 128;  numTrans = 1; }
 			if		(length >= 1024)	{ workGroupSize = (MAX_WGS >= 256) ? 256 : MAX_WGS; numTrans = 1; }
-			//else if (length == 512)		{ workGroupSize = (MAX_WGS >= 128) ? 128 : MAX_WGS; numTrans = 1; }
 			else if (length == 512)		{ workGroupSize = 64; numTrans = 1; }
 			else if	(length >= 16)		{ workGroupSize = 64;  numTrans = 256/length; }
 			else						{ workGroupSize = 64;  numTrans = 128/length; }
@@ -229,70 +223,74 @@ namespace StockhamGenerator
 		else if	(primeFactorsExpanded[3] == length) // Length is pure power of 3
 		{
 			workGroupSize = (MAX_WGS >= 256) ? 243 : 27;
-			if(length >= 3*workGroupSize)	numTrans = 1;
-			else							numTrans = (3*workGroupSize)/length;
+			numTrans = length >= 3*workGroupSize ? 1 : (3*workGroupSize)/length;
 		}
 		else if	(primeFactorsExpanded[5] == length) // Length is pure power of 5
 		{
 			workGroupSize = (MAX_WGS >= 128) ? 125 : 25;
-			if(length >= 5*workGroupSize)	numTrans = 1;
-			else							numTrans = (5*workGroupSize)/length;
+			numTrans = length >= 5*workGroupSize ? 1 : (5*workGroupSize)/length;
 		}
-		else
+		else if	(primeFactorsExpanded[7] == length) // Length is pure power of 7
 		{
-			size_t leastNumPerWI; // least number of elements in one work item
-			size_t maxWorkGroupSize; // maximum work group size desired
-
-			if		(primeFactorsExpanded[2] * primeFactorsExpanded[3] == length) // Length is mix of 2&3 only
-			{
-				if(!(length%12))	{ leastNumPerWI = 12; maxWorkGroupSize = (MAX_WGS >= 128) ? 128 : MAX_WGS; }
-				else				{ leastNumPerWI = 6;  maxWorkGroupSize = (MAX_WGS >= 256) ? 256 : MAX_WGS; }
-			}
-			else if	(primeFactorsExpanded[2] * primeFactorsExpanded[5] == length) // Length is mix of 2&5 only
-			{
-				if(!(length%20))	{ leastNumPerWI = 20; maxWorkGroupSize = 64; }
-				else				{ leastNumPerWI = 10; maxWorkGroupSize = (MAX_WGS >= 128) ? 128 : MAX_WGS; }
-			}
-			else if (primeFactorsExpanded[3] * primeFactorsExpanded[5] == length) // Length is mix of 3&5 only
-			{
-				leastNumPerWI = 15;
-				maxWorkGroupSize = 64;
-			}
-			else
-			{
-				leastNumPerWI = 30;
-				maxWorkGroupSize = 64;
-			}
+			workGroupSize = 49;
+			numTrans = length >= 7*workGroupSize ? 1 : (7*workGroupSize)/length;
+		} else {
+			size_t leastNumPerWI = 1; // least number of elements in one work item
+			size_t maxWorkGroupSize = MAX_WGS; // maximum work group size desired
 
 
-			// Make sure the work group size does not exceed MAX_WGS
-			// for large problems sizes, this means doing more work per work-item
-			size_t lnpi;
-			size_t ft = 1;
-			while(1)
-			{
-				lnpi = leastNumPerWI * ft++;
-				if(length%lnpi) continue;
+			if        (primeFactorsExpanded[2] * primeFactorsExpanded[3] == length) {
+				if (length % 12 == 0) {
+					leastNumPerWI = 12; maxWorkGroupSize = 128;
+				} else {
+					leastNumPerWI =  6; maxWorkGroupSize = 256;
+				}
+			} else if (primeFactorsExpanded[2] * primeFactorsExpanded[5] == length) {
+				if (length % 20 == 0) {
+					leastNumPerWI = 20; maxWorkGroupSize = 64;
+				} else {
+					leastNumPerWI = 10; maxWorkGroupSize = 128;
+				}
+			} else if (primeFactorsExpanded[2] * primeFactorsExpanded[7] == length) {
+					leastNumPerWI = 14; maxWorkGroupSize = 64;
+			} else if (primeFactorsExpanded[3] * primeFactorsExpanded[5] == length) {
+				    leastNumPerWI = 15; maxWorkGroupSize = 128;
+			} else if (primeFactorsExpanded[3] * primeFactorsExpanded[7] == length) {
+				    leastNumPerWI = 21; maxWorkGroupSize = 128;
+			} else if (primeFactorsExpanded[5] * primeFactorsExpanded[7] == length) {
+				    leastNumPerWI = 35; maxWorkGroupSize = 64;
+			} else if (primeFactorsExpanded[2] * primeFactorsExpanded[3] * primeFactorsExpanded[5] == length) {
+				    leastNumPerWI = 30; maxWorkGroupSize = 64;
+			} else if (primeFactorsExpanded[2] * primeFactorsExpanded[3] * primeFactorsExpanded[7] == length) {
+				    leastNumPerWI = 42; maxWorkGroupSize = 60;
+			} else if (primeFactorsExpanded[2] * primeFactorsExpanded[5] * primeFactorsExpanded[7] == length) {
+				    leastNumPerWI = 70; maxWorkGroupSize = 36;
+			} else if (primeFactorsExpanded[3] * primeFactorsExpanded[5] * primeFactorsExpanded[7] == length) {
+				    leastNumPerWI =105; maxWorkGroupSize = 24;
+			} else {
+				    leastNumPerWI =210; maxWorkGroupSize = 12;
+			}
 
-				if( (length/lnpi) <= MAX_WGS )
-				{
+			if (maxWorkGroupSize > MAX_WGS)
+				maxWorkGroupSize = MAX_WGS;
+			assert (leastNumPerWI > 0 && length % leastNumPerWI == 0);
+
+			for (size_t lnpi = leastNumPerWI; lnpi <= length; lnpi += leastNumPerWI) {
+				if (length % lnpi != 0) continue;
+
+				if (length / lnpi <= MAX_WGS) {
 					leastNumPerWI = lnpi;
 					break;
 				}
 			}
 
-			numTrans = 1;
-			size_t n=1;
-			while( ((n*length)/leastNumPerWI) <= maxWorkGroupSize )
-			{
-				numTrans = n;
-				n++;
-			}
-
-			workGroupSize = (numTrans*length)/leastNumPerWI;
-			assert(workGroupSize <= MAX_WGS);
+			numTrans = maxWorkGroupSize / (length / leastNumPerWI);
+			numTrans = numTrans < 1 ? 1 : numTrans;
+			workGroupSize = numTrans * (length / leastNumPerWI);
 		}
+		assert(workGroupSize <= MAX_WGS);
 	}
+
 	// Twiddle factors table
        class TwiddleTable
        {
@@ -1641,7 +1639,9 @@ namespace StockhamGenerator
 
 			// Function arguments
 			passStr += "(";
-			passStr += "unsigned int rw, unsigned int b, unsigned int me, unsigned int inOffset, unsigned int outOffset, ";
+			passStr += "unsigned int rw, unsigned int b, ";
+			if(realSpecial) passStr += "uint t, ";
+			passStr += "unsigned int me, unsigned int inOffset, unsigned int outOffset, ";
 
 			// For now, interleaved support is there for only global buffers
 			// TODO : add support for LDS interleaved
@@ -1736,9 +1736,15 @@ namespace StockhamGenerator
 				}
 				else
 				{
-					passStr += regB1Type; passStr += " *"; passStr += bufferInRe; passStr += ", ";
-//                                        passStr += "unsigned int iOffset,";
-					passStr += regB1Type; passStr += " *"; passStr += bufferInIm; passStr += ", ";
+					if(inInterleaved)
+					{
+						passStr += regB2Type; passStr += " *"; passStr += bufferInRe;  passStr += ", ";
+					}
+					else
+					{
+						passStr += regB1Type; passStr += " *"; passStr += bufferInRe; passStr += ", ";
+						passStr += regB1Type; passStr += " *"; passStr += bufferInIm; passStr += ", ";
+					}
 				}
 
 
@@ -1758,9 +1764,15 @@ namespace StockhamGenerator
 				}
 				else
 				{
-					passStr += regB1Type; passStr += " *"; passStr += bufferOutRe; passStr += ", ";
-//                                        passStr += "unsigned int oOffset,";
-					passStr += regB1Type; passStr += " *"; passStr += bufferOutIm;
+					if(outInterleaved)
+					{
+						passStr += regB2Type; passStr += " *"; passStr += bufferOutRe;
+					}
+					else
+					{
+						passStr += regB1Type; passStr += " *"; passStr += bufferOutRe; passStr += ", ";
+						passStr += regB1Type; passStr += " *"; passStr += bufferOutIm;
+					}
 				}
 			}
 
@@ -1770,10 +1782,13 @@ namespace StockhamGenerator
 				passStr += ", "; passStr += IterRegArgs();
 			}
 
-			passStr += ", const array_view<const ";
-                        passStr += regB2Type;
-                        passStr += ",1> &";
-                        passStr += TwTableName();
+			if(length > 1)
+			{
+				passStr += ", const array_view<const ";
+	                        passStr += regB2Type;
+				passStr += ",1> &";
+				passStr += TwTableName();
+			}
                         passStr += ", Concurrency::tiled_index<";
                         passStr += SztToStr(lWorkSize);
                         passStr += ", 1> tidx) restrict(amp)\n{\n";
@@ -1992,6 +2007,24 @@ namespace StockhamGenerator
 				}
 			}
 
+			passStr += "\n";
+
+			// 3-step twiddle multiplies done in the front
+			bool tw3Done = false;
+			if(fft_3StepTwiddle && (position == 0))
+			{
+				tw3Done = true;
+				if(linearRegs)
+				{
+					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+				}
+				else
+				{
+					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
+					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 4, numB4, 2*numB2 + numB1, passStr);
+				}
+			}
 
 			passStr += "\n";
 
@@ -2019,7 +2052,7 @@ namespace StockhamGenerator
 			passStr += "\n";
 
 			// 3-step twiddle multiplies
-			if(fft_3StepTwiddle)
+			if(fft_3StepTwiddle && !tw3Done)
 			{
 				assert(nextPass == NULL);
 				if(linearRegs)
@@ -2035,7 +2068,7 @@ namespace StockhamGenerator
 			}
 
 			// Write back from registers
-			if(linearRegs)
+			if(halfLds)
 			{
 				// In this case, we have to write & again read back for the next pass since we are
 				// using only half the lds. Number of barriers will increase at the cost of halving the lds.
