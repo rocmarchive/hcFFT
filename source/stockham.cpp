@@ -629,7 +629,7 @@ namespace StockhamGenerator
 		// SweepRegs is to iterate through the registers to do the three basic operations:
 		// reading, twiddle multiplication, writing
 		void SweepRegs(	size_t flag, bool fwd, bool interleaved, size_t stride, size_t component,
-						double scale,
+						double scale, bool frontTwiddle,
 						const std::string &bufferRe, const std::string &bufferIm, const std::string &offset,
 						size_t regC, size_t numB, size_t numPrev, std::string &passStr) const
 		{
@@ -721,6 +721,149 @@ namespace StockhamGenerator
 						passStr += regIndexB; passStr += ".y) ";
 						if(scale != 1.0f) { passStr += " * "; passStr += FloatToStr(scale); passStr += FloatSuffix<PR>(); }
 						passStr += ";";
+
+						butterflyIndex++;
+					}
+				}
+
+				return;
+			}
+
+			// block to rearrange reads of adjacent memory locations together
+			if(linearRegs && (flag == SR_READ))
+			{
+				for(size_t r=0; r<radix; r++)
+				{
+					for(size_t i=0; i<numB; i++)
+					{
+						for(size_t c=cStart; c<cEnd; c++) // component loop: 0 - real, 1 - imaginary
+						{
+							std::string tail;
+							std::string regIndex;
+							regIndex = "(R";
+							std::string buffer;
+
+							// Read real & imag at once
+							if(interleaved && (component == SR_COMP_BOTH))
+							{
+								assert(bufferRe.compare(bufferIm) == 0); // Make sure Real & Imag buffer strings are same for interleaved data
+								buffer = bufferRe;
+								RegBaseAndCountAndPos("", i*radix + r, regIndex); regIndex += "[0])";
+								tail = ";";
+							}
+							else
+							{
+								if(c == 0)
+								{
+									RegBaseAndCountAndPos("", i*radix + r, regIndex); regIndex += "[0]).x";
+									buffer = bufferRe;
+									tail = interleaved ? ".x;" : ";";
+								}
+								else
+								{
+									RegBaseAndCountAndPos("", i*radix + r, regIndex); regIndex += "[0]).y";
+									buffer = bufferIm;
+									tail = interleaved ? ".y;" : ";";
+								}
+							}
+
+
+							passStr += "\n\t";
+							passStr += regIndex;
+							passStr += " = "; passStr += buffer;
+							passStr += "["; passStr += offset; passStr += " + ( "; passStr += SztToStr(numPrev); passStr += " + ";
+							passStr += "me*"; passStr += SztToStr(numButterfly); passStr += " + ";
+							passStr += SztToStr(i); passStr += " + ";
+							passStr += SztToStr(r*length/radix); passStr += " )*";
+							passStr += SztToStr(stride); passStr += "]"; passStr += tail;
+
+								// Since we read real & imag at once, we break the loop
+							if(interleaved && (component == SR_COMP_BOTH) )
+								break;
+						}
+					}
+				}
+				return;
+			}
+
+			// block to rearrange writes of adjacent memory locations together
+			if(linearRegs && (flag == SR_WRITE) && (nextPass == NULL))
+			{
+				for(size_t r=0; r<radix; r++)
+				{
+					butterflyIndex = numPrev;
+
+					for(size_t i=0; i<numB; i++)
+					{
+						if(realSpecial && (nextPass == NULL) && (r > (radix/2)))
+							break;
+
+						if(realSpecial && (nextPass == NULL) && (r == radix/2) && (i != 0))
+							break;
+
+						if(realSpecial && (nextPass == NULL) && (r == radix/2) && (i == 0))
+							passStr += "\n\t}\n\tif( rw && !me)\n\t{";
+
+						for(size_t c=cStart; c<cEnd; c++) // component loop: 0 - real, 1 - imaginary
+						{
+							std::string tail;
+							std::string regIndex;
+							regIndex = "(R";
+							std::string buffer;
+
+							// Write real & imag at once
+							if(interleaved && (component == SR_COMP_BOTH))
+							{
+								assert(bufferRe.compare(bufferIm) == 0); // Make sure Real & Imag buffer strings are same for interleaved data
+								buffer = bufferRe;
+								RegBaseAndCountAndPos("", i*radix + r, regIndex); regIndex += "[0])";
+								tail = "";
+							}
+							else
+							{
+								if(c == 0)
+								{
+									RegBaseAndCountAndPos("", i*radix + r, regIndex); regIndex += "[0]).x";
+									buffer = bufferRe;
+									tail = interleaved ? ".x" : "";
+								}
+								else
+								{
+									RegBaseAndCountAndPos("", i*radix + r, regIndex); regIndex += "[0]).y";
+									buffer = bufferIm;
+									tail = interleaved ? ".y" : "";
+								}
+							}
+
+							passStr += "\n\t";
+							passStr += buffer; passStr += "["; passStr += offset; passStr += " + ( ";
+
+							if( (numButterfly * workGroupSize) > algLS )
+							{
+								passStr += "(("; passStr += SztToStr(numButterfly);
+								passStr += "*me + "; passStr += SztToStr(butterflyIndex); passStr += ")/";
+								passStr += SztToStr(algLS); passStr += ")*"; passStr += SztToStr(algL); passStr += " + (";
+								passStr += SztToStr(numButterfly); passStr += "*me + "; passStr += SztToStr(butterflyIndex);
+								passStr += ")%"; passStr += SztToStr(algLS); passStr += " + ";
+							}
+							else
+							{
+								passStr += SztToStr(numButterfly); passStr += "*me + "; passStr += SztToStr(butterflyIndex);
+								passStr += " + ";
+							}
+
+							passStr += SztToStr(r*algLS); passStr += " )*"; passStr += SztToStr(stride); passStr += "]";
+							passStr += tail; passStr += " = "; passStr += regIndex;
+							if(scale != 1.0f) { passStr += " * "; passStr += FloatToStr(scale); passStr += FloatSuffix<PR>(); }
+							passStr += ";";
+
+							// Since we write real & imag at once, we break the loop
+							if(interleaved && (component == SR_COMP_BOTH))
+								break;
+						}
+
+						if(realSpecial && (nextPass == NULL) && (r == radix/2) && (i == 0))
+							passStr += "\n\t}\n\tif(rw)\n\t{";
 
 						butterflyIndex++;
 					}
@@ -844,26 +987,81 @@ namespace StockhamGenerator
 							{
 								passStr += "\n\t{\n\t\t"; passStr += twType; passStr += " W = ";
 								passStr += tw3StepFunc; passStr += "( ";
-								passStr += "(("; passStr += SztToStr(numButterfly); passStr += "*me + ";
-								passStr += SztToStr(butterflyIndex);
-								passStr += ")%"; passStr += SztToStr(algLS); passStr += " + ";
-								passStr += SztToStr(r*algLS); passStr += ") * b "; passStr += ");\n\t\t";
+
+								if(frontTwiddle)
+								{
+									assert(linearRegs);
+									passStr += "("; passStr += "me*"; passStr += SztToStr(numButterfly);
+									passStr += " + "; passStr += SztToStr(i); passStr += " + ";
+									passStr += SztToStr(r*length/radix); passStr += ") * b";
+								}
+								else
+								{
+									passStr += "(("; passStr += SztToStr(numButterfly); passStr += "*me + ";
+									passStr += SztToStr(butterflyIndex);
+									passStr += ")%"; passStr += SztToStr(algLS); passStr += " + ";
+									passStr += SztToStr(r*algLS); passStr += ") * b";
+								}
+
+								passStr += " );\n\t\t";
 							}
 
 							passStr += rType; passStr += " TR, TI;\n\t\t";
-							if(fwd)
+							if(realSpecial && (flag == SR_TWMUL_3STEP))
 							{
-								passStr += "TR = (W.x * "; passStr += regRealIndex; passStr += ") - (W.y * ";
-								passStr += regImagIndex; passStr += ");\n\t\t";
-								passStr += "TI = (W.y * "; passStr += regRealIndex; passStr += ") + (W.x * ";
-								passStr += regImagIndex; passStr += ");\n\t\t";
+								if(fwd)
+								{
+									passStr += "if(t==0)\n\t\t{\n\t\t";
+
+									passStr += "TR = (W.x * "; passStr += regRealIndex; passStr += ") - (W.y * ";
+									passStr += regImagIndex; passStr += ");\n\t\t";
+									passStr += "TI = (W.y * "; passStr += regRealIndex; passStr += ") + (W.x * ";
+									passStr += regImagIndex; passStr += ");\n\t\t";
+
+									passStr += "}\n\t\telse\n\t\t{\n\t\t";
+
+									passStr += "TR = (W.x * "; passStr += regRealIndex; passStr += ") + (W.y * ";
+									passStr += regImagIndex; passStr += ");\n\t\t";
+									passStr += "TI = (W.y * "; passStr += regRealIndex; passStr += ") - (W.x * ";
+									passStr += regImagIndex; passStr += ");\n\t\t";
+
+									passStr += "}\n\t\t";
+								}
+								else
+								{
+									passStr += "if(t==0)\n\t\t{\n\t\t";
+
+									passStr += "TR = (W.x * "; passStr += regRealIndex; passStr += ") + (W.y * ";
+									passStr += regImagIndex; passStr += ");\n\t\t";
+									passStr += "TI = (W.y * "; passStr += regRealIndex; passStr += ") - (W.x * ";
+									passStr += regImagIndex; passStr += ");\n\t\t";
+
+									passStr += "}\n\t\telse\n\t\t{\n\t\t";
+
+									passStr += "TR = (W.x * "; passStr += regRealIndex; passStr += ") - (W.y * ";
+									passStr += regImagIndex; passStr += ");\n\t\t";
+									passStr += "TI = (W.y * "; passStr += regRealIndex; passStr += ") + (W.x * ";
+									passStr += regImagIndex; passStr += ");\n\t\t";
+
+									passStr += "}\n\t\t";
+								}
 							}
 							else
 							{
-								passStr += "TR =  (W.x * "; passStr += regRealIndex; passStr += ") + (W.y * ";
-								passStr += regImagIndex; passStr += ");\n\t\t";
-								passStr += "TI = -(W.y * "; passStr += regRealIndex; passStr += ") + (W.x * ";
-								passStr += regImagIndex; passStr += ");\n\t\t";
+								if(fwd)
+								{
+									passStr += "TR = (W.x * "; passStr += regRealIndex; passStr += ") - (W.y * ";
+									passStr += regImagIndex; passStr += ");\n\t\t";
+									passStr += "TI = (W.y * "; passStr += regRealIndex; passStr += ") + (W.x * ";
+									passStr += regImagIndex; passStr += ");\n\t\t";
+								}
+								else
+								{
+									passStr += "TR =  (W.x * "; passStr += regRealIndex; passStr += ") + (W.y * ";
+									passStr += regImagIndex; passStr += ");\n\t\t";
+									passStr += "TI = -(W.y * "; passStr += regRealIndex; passStr += ") + (W.x * ";
+									passStr += regImagIndex; passStr += ");\n\t\t";
+								}
 							}
 
 							passStr += regRealIndex; passStr += " = TR;\n\t\t";
@@ -880,6 +1078,15 @@ namespace StockhamGenerator
 					{
 						for(size_t r=0; r<radix; r++)
 						{
+							if(realSpecial && (nextPass == NULL) && (r > (radix/2)))
+								break;
+
+							if(realSpecial && (nextPass == NULL) && (r == radix/2) && (i != 0))
+								break;
+
+							if(realSpecial && (nextPass == NULL) && (r == radix/2) && (i == 0))
+								passStr += "\n\t}\n\tif( rw && !me)\n\t{";
+
 							for(size_t c=cStart; c<cEnd; c++) // component loop: 0 - real, 1 - imaginary
 							{
 								std::string tail;
@@ -944,6 +1151,10 @@ namespace StockhamGenerator
 								if(interleaved && (component == SR_COMP_BOTH) && linearRegs)
 									break;
 							}
+
+							if(realSpecial && (nextPass == NULL) && (r == radix/2) && (i == 0))
+								passStr += "\n\t}\n\tif(rw)\n\t{";
+
 						}
 
 						butterflyIndex++;
@@ -1585,8 +1796,8 @@ namespace StockhamGenerator
 				if(position == 0)
 				{
 					passStr += "\n\tif(rw)\n\t{";
-					if(gIn) { SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr);}
-                                        else { SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr); }
+					if(gIn) { SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr);}
+                                        else { SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr); }
 					passStr += "\n\t}\n";
 
 					if(rcSimple)
@@ -1599,8 +1810,8 @@ namespace StockhamGenerator
 					else
 					{
 						passStr += "\n\tif(rw > 1)\n\t{";
-						if(gIn) { SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset2", 1, numB1, 0, passStr); }
-                                                else { SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, bufferInRe2, bufferInIm2, "inOffset", 1, numB1, 0, passStr); }
+						if(gIn) { SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset2", 1, numB1, 0, passStr); }
+                                                else { SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe2, bufferInIm2, "inOffset", 1, numB1, 0, passStr); }
 						passStr += "\n\t}\n";
 
 						passStr += "\telse\n\t{";
@@ -1678,7 +1889,7 @@ namespace StockhamGenerator
 					}
 
 					passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
-					SweepRegs(SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr);
+					SweepRegs(SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr);
 					passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
 
 
@@ -1734,24 +1945,24 @@ namespace StockhamGenerator
 					}
 
 					passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
-					SweepRegs(SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr);
+					SweepRegs(SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr);
 					passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
 				}
 			}
 			else
 			{
-				if( (!linearRegs) || (linearRegs && (position == 0)) )
+				if( (!halfLds) || (halfLds && (position == 0)) )
 				{
 					passStr += "\n\tif(rw)\n\t{";
                                         if(gIn) {
-					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr);
-					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset", 2, numB2, numB1, passStr);
-					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset", 4, numB4, 2*numB2 + numB1, passStr);
+					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr);
+					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset", 2, numB2, numB1, passStr);
+					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset", 4, numB4, 2*numB2 + numB1, passStr);
                                         }
                                         else {
-					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
-					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "inOffset", 2, numB2, numB1, passStr);
-					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "inOffset", 4, numB4, 2*numB2 + numB1, passStr);
+					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
+					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 2, numB2, numB1, passStr);
+					SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 4, numB4, 2*numB2 + numB1, passStr);
                                         }
 
 					passStr += "\n\t}\n";
@@ -1764,9 +1975,9 @@ namespace StockhamGenerator
 			// Twiddle multiply
 			if( (position > 0) && (radix > 1) )
 			{
-				SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
-				SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
-				SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 4, numB4, 2*numB2 + numB1, passStr);
+				SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+				SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
+				SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 4, numB4, 2*numB2 + numB1, passStr);
 			}
 
 			// Butterfly calls
@@ -1790,13 +2001,13 @@ namespace StockhamGenerator
 				assert(nextPass == NULL);
 				if(linearRegs)
 				{
-					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
 				}
 				else
 				{
-					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
-					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
-					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, bufferInRe, bufferInIm, "", 4, numB4, 2*numB2 + numB1, passStr);
+					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
+					SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 4, numB4, 2*numB2 + numB1, passStr);
 				}
 			}
 
@@ -1812,8 +2023,8 @@ namespace StockhamGenerator
 					{
 						if(!singlePass)
 						{
-							if(gIn) { SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr); }
-                                                        else { SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr); }
+							if(gIn) { SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr); }
+                                                        else { SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr); }
 							passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 							if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset + iOffset", passStr); }
                                                         else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset", passStr); }
@@ -1849,8 +2060,8 @@ namespace StockhamGenerator
 							passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 
 
-							if(gIn) { SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr); }
-                                                        else { SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr); }
+							if(gIn) { SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr); }
+                                                        else { SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr); }
 							passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 							if(gIn) { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset + iOffset", passStr); }
                                                         else { SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset", passStr); }
@@ -1917,46 +2128,46 @@ namespace StockhamGenerator
 					else if(c2r)
 					{
 						passStr += "\n\tif(rw)\n\t{";
-						if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr); }
-                                                else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
+						if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr); }
+                                                else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
 						passStr += "\n\t}\n";
 
 						if(!rcSimple)
 						{
 							passStr += "\n\tif(rw > 1)\n\t{";
-							if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset2", 1, numB1, 0, passStr); }
-                                                        else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, bufferOutRe2, bufferOutIm2, "outOffset", 1, numB1, 0, passStr); }
+							if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset2", 1, numB1, 0, passStr); }
+                                                        else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe2, bufferOutIm2, "outOffset", 1, numB1, 0, passStr); }
 							passStr += "\n\t}\n";
 						}
 					}
 					else
 					{
 						passStr += "\n\tif(rw)\n\t{";
-						if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr); }
-                                                else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
+						if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr); }
+                                                else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
 						passStr += "\n\t}\n";
 					}
 				}
 				else
 				{
 					passStr += "\n\tif(rw)\n\t{";
-					if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr); }
-                                        else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
+					if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr); }
+                                        else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
 					passStr += "\n\t}\n";
 					passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 					passStr += "\n\tif(rw)\n\t{";
-					if(gOut) { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, nextPass->GetNumB1(), 0, passStr); }
-                                        else { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr); }
+					if(gOut) { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, nextPass->GetNumB1(), 0, passStr); }
+                                        else { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr); }
 					passStr += "\n\t}\n";
 					passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 					passStr += "\n\tif(rw)\n\t{";
-					if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr); }
-                                        else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
+					if(gOut) { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr); }
+                                        else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
 					passStr += "\n\t}\n";
 					passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 					passStr += "\n\tif(rw)\n\t{";
-					if(gOut) { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, nextPass->GetNumB1(), 0, passStr); }
-                                        else { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr); }
+					if(gOut) { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, nextPass->GetNumB1(), 0, passStr); }
+                                        else { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr); }
 					passStr += "\n\t}\n";
 					passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 				}
@@ -1965,14 +2176,14 @@ namespace StockhamGenerator
 			{
 				passStr += "\n\tif(rw)\n\t{";
 				if(gOut) {
-                                SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr);
-				SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 2, numB2, numB1, passStr);
-				SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset + oOffset", 4, numB4, 2*numB2 + numB1, passStr);
+                                SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr);
+				SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 2, numB2, numB1, passStr);
+				SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 4, numB4, 2*numB2 + numB1, passStr);
 				}
                                 else {
-                                SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
-				SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset", 2, numB2, numB1, passStr);
-				SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, bufferOutRe, bufferOutIm, "outOffset", 4, numB4, 2*numB2 + numB1, passStr);
+                                SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+				SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 2, numB2, numB1, passStr);
+				SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 4, numB4, 2*numB2 + numB1, passStr);
 				}
                                 passStr += "\n\t}\n";
 			}
