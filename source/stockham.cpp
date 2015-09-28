@@ -1995,6 +1995,7 @@ namespace StockhamGenerator
 							// for passing intermediate data between the passes, if this is set
 							// then each pass-function should accept same set of registers
 
+	bool linearRegs;
 	// Future optimization ideas
 	// bool limitRegs;				// TODO: Incrementally write to LDS, thereby using same set of registers for more than 1 butterflies
 	// bool combineReadTwMul;			// TODO: Combine reading into registers and Twiddle multiply
@@ -2004,13 +2005,19 @@ namespace StockhamGenerator
 	bool rcFull;
 	bool rcSimple;
 
+	bool blockCompute;						// When we have to compute FFT in blocks (either read or write is along columns)
+	BlockComputeType blockComputeType;
+	size_t blockWidth, blockWGS, blockLDS;
+
+	bool realSpecial;
+
 	const FFTKernelGenKeyParams params;		// key params
 
 	inline std::string IterRegs(const std::string &pfx, bool initComma = true)
 	{
 		std::string str = "";
 
-		if(halfLds)
+		if(linearRegs)
 		{
 			if(initComma) str += ", ";
 
@@ -2031,6 +2038,9 @@ namespace StockhamGenerator
 		const size_t *iStride, *oStride;
 
 		if(r2c2r)
+			return false;
+
+		if(realSpecial)
 			return false;
 
 		if(params.fft_placeness == HCFFT_INPLACE)
