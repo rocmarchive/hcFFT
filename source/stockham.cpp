@@ -2062,6 +2062,38 @@ namespace StockhamGenerator
 		return possible;
        }
 
+	inline std::string OffsetCalcBlock(const std::string &off, bool input = true)
+	{
+		std::string str;
+
+		const size_t *pStride = input ? params.fft_inStride : params.fft_outStride;
+
+		str += "\t"; str += off; str += " = ";
+		std::string nextBatch = "batch";
+		for(size_t i=(params.fft_DataDim - 1); i>2; i--)
+		{
+			size_t currentLength = 1;
+			for(int j=2; j<i; j++) currentLength *= params.fft_N[j];
+			currentLength *= (params.fft_N[1]/blockWidth);
+
+			str += "("; str += nextBatch; str += "/"; str += SztToStr(currentLength);
+			str += ")*"; str += SztToStr(pStride[i]); str += " + ";
+
+			nextBatch = "(" + nextBatch + "%" + SztToStr(currentLength) + ")";
+		}
+
+		str += "("; str += nextBatch; str += "/"; str += SztToStr(params.fft_N[1]/blockWidth);
+		str += ")*"; str += SztToStr(pStride[2]); str += " + ("; str += nextBatch;
+		str += "%"; str += SztToStr(params.fft_N[1]/blockWidth); str += ")*";
+		if( (input && (blockComputeType == BCT_R2C)) || (!input && (blockComputeType == BCT_C2R)) )
+			str += SztToStr(blockWidth*length);
+		else
+			str += SztToStr(blockWidth);
+		str += ";\n";
+
+		return str;
+	}
+
 	inline std::string OffsetCalc(const std::string &off, bool input = true, bool rc_second_index = false)
 	{
 		std::string str;
