@@ -3013,55 +3013,83 @@ namespace StockhamGenerator
 					str += "0, 0, ";
 					str += inBuf; str += outBuf;
 					str += IterRegs("&");
-                                        str += ",";
-                                        str += TwTableName();
+					if(length > 1)
+					{
+						str += ",";
+						str += TwTableName();
+					}
 					str += ",tidx);\n";
 				}
 				else
 				{
 					for(typename std::vector<Pass<PR> >::const_iterator p = passes.begin(); p != passes.end(); p++)
 					{
+						std::string exTab = "";
+						if(blockCompute || realSpecial) exTab = "\t";
+
+						str += exTab;
 						str += "\t";
 						str += PassName(plHandle, p->GetPosition(), fwd);
 						str += "(";
 
 						std::string ldsOff;
-						if(numTrans > 1)
+						if(blockCompute)
 						{
-							ldsOff += "(me/"; ldsOff += SztToStr(workGroupSizePerTrans);
-							ldsOff += ")*"; ldsOff += SztToStr(length);
+							ldsOff += "t*"; ldsOff += SztToStr(length*(blockWGS/workGroupSizePerTrans)); ldsOff += " + (me/";
+							ldsOff += SztToStr(workGroupSizePerTrans); ldsOff += ")*"; ldsOff += SztToStr(length);
 						}
 						else
 						{
-							ldsOff += "0";
+							if(numTrans > 1)
+							{
+								ldsOff += "(me/"; ldsOff += SztToStr(workGroupSizePerTrans);
+								ldsOff += ")*"; ldsOff += SztToStr(length);
+							}
+							else
+							{
+								ldsOff += "0";
+							}
 						}
 
 						std::string ldsArgs;
 						if(halfLds) { ldsArgs += "lds, lds"; }
-						else		{ ldsArgs += "lds, lds + "; ldsArgs += SztToStr(length*numTrans); }
+						else		{	if(ldsInterleaved) { ldsArgs += "lds"; }
+										else { ldsArgs += "lds, lds + "; ldsArgs += SztToStr(length*numTrans); } }
 
-						str += rw; str += me;
+						str += rw;
+						if(params.fft_realSpecial) str += "t, ";
+						str += me;
+
 						if(p == passes.begin()) // beginning pass
 						{
-							str += "0, ";
+							str += blockCompute ? ldsOff : "0";
+							str += ", ";
 							str += ldsOff;
 							str += ", ";
 							str += inBuf;
 							str += ldsArgs; str += IterRegs("&");
-                                                        str += ",";
-                                                        str += TwTableName(); str += ",tidx);\n";
-							if(!halfLds) str += "\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
+							if(length > 1)
+							{
+								str += ",";
+								str += TwTableName();
+							}
+							str += ",tidx);\n";
+							if(!halfLds) { str += exTab; str += "\t tidx.barrier.wait_with_tile_static_memory_fence();\n"; }
 						}
 						else if((p+1) == passes.end()) // ending pass
 						{
 							str += ldsOff;
 							str += ", ";
-							str += "0, ";
+							str += blockCompute ? ldsOff : "0";
+							str += ", ";
 							str += ldsArgs; str += ", ";
 							str += outBuf;
 							str += IterRegs("&");
+							if(length > 1)
+							{
                                                         str += ",";
                                                         str += TwTableName();
+							}
                                                         str += ",tidx);\n";
 						}
 						else // intermediate pass
@@ -3071,9 +3099,14 @@ namespace StockhamGenerator
 							str += ldsOff;
 							str += ", ";
 							str += ldsArgs; str += ", ";
-							str += ldsArgs; str += IterRegs("&"); str += ",";
-                                                        str += TwTableName(); str += ",tidx);\n";
-							if(!halfLds) str += "\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
+							str += ldsArgs; str += IterRegs("&");
+							if(length > 1)
+							{
+								str += ",";
+								str += TwTableName();
+							}
+							str += ",tidx);\n";
+							if(!halfLds) { str += exTab; str += "\t tidx.barrier.wait_with_tile_static_memory_fence();\n"; }
 						}
 					}
 				}
