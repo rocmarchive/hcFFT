@@ -419,8 +419,6 @@ public:
   hcfftStatus	hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, Concurrency::array_view<float, 1> *inputBuffers,
                                        Concurrency::array_view<float, 1> *outputBuffers, Concurrency::array_view<float, 1> *tmpBuffer);
 
-  hcfftStatus executePlan(FFTPlan*);
-
   hcfftStatus	hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 
   hcfftStatus	hcfftSetPlanPrecision(hcfftPlanHandle plHandle, hcfftPrecision precision );
