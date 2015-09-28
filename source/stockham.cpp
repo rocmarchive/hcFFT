@@ -81,14 +81,15 @@ namespace StockhamGenerator
 {
 // Experimental End ===========================================
 
-#define RADIX_TABLE_COMMON 	{     2048,           256,             1,         4,     8, 8, 8, 4, 0, 0, 0, 0, 0, 0, 0, 0 },	\
-							{      512,            64,             1,         3,     8, 8, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0 },	\
-							{      256,            64,             1,         4,     4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0 },	\
-							{       64,            64,             4,         3,     4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0 },	\
-							{       32,            64,            16,         2,     8, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },	\
-							{       16,            64,            16,         2,     4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },	\
-							{        4,            64,            32,         2,     2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },	\
-							{        2,            64,            64,         1,     2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+#define RADIX_TABLE_COMMON                              {     2048,           256,             1,         4,    { 8, 8, 8, 4, 0, 0, 0, 0, 0, 0, 0, 0 } },  \
+                                                        {      512,            64,             1,         3,    { 8, 8, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },  \
+                                                        {      256,            64,             1,         4,    { 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0 } },  \
+                                                        {       64,            64,             4,         3,    { 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },  \
+                                                        {       32,            64,            16,         2,    { 8, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },  \
+                                                        {       16,            64,            16,         2,    { 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },  \
+                                                        {        4,            64,            32,         2,    { 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },  \
+                                                        {        2,            64,            64,         1,    { 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+
 
     template <Precision PR>
 	class KernelCoreSpecs
@@ -117,10 +118,10 @@ namespace StockhamGenerator
 					RADIX_TABLE_COMMON
 
 					//  Length, WorkGroupSize, NumTransforms, NumPasses,  Radices
-					{     4096,           256,             1,         4,     8, 8, 8, 8, 0, 0, 0, 0, 0, 0, 0, 0 },
-					{     1024,           128,             1,         4,     8, 8, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0 },
-					{      128,            64,             4,         3,     8, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-					{        8,            64,            32,         2,     4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+					{     4096,           256,             1,         4,     { 8, 8, 8, 8, 0, 0, 0, 0, 0, 0, 0, 0 } },
+					{     1024,           128,             1,         4,     { 8, 8, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0 } },
+					{      128,            64,             4,         3,     { 8, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+					{        8,            64,            32,         2,     { 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 
 					};
 
@@ -136,10 +137,10 @@ namespace StockhamGenerator
 					RADIX_TABLE_COMMON
 
 					//  Length, WorkGroupSize, NumTransforms, NumPasses,  Radices
-					{     1024,           128,             1,         4,     8, 8, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0 },
-					//{      128,            64,             1,         7,     2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0 },
-					{      128,            64,             4,         3,     8, 8, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-					{        8,            64,            16,         3,     2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+					{     1024,           128,             1,         4,    { 8, 8, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0 } },
+					//{      128,            64,             1,         7,   { 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0 } },
+					{      128,            64,             4,         3,    { 8, 8, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+					{        8,            64,            16,         3,    { 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
 
 					};
 
@@ -1548,11 +1549,10 @@ namespace StockhamGenerator
 		Pass(	size_t positionVal, size_t lengthVal, size_t radixVal, size_t cnPerWIVal,
 			size_t L, size_t LS, size_t R, bool linearRegsVal, bool halfLdsVal,
 			bool r2cVal, bool c2rVal, bool rcFullVal, bool rcSimpleVal, bool realSpecialVal) :
-			position(positionVal), length(lengthVal), radix(radixVal), cnPerWI(cnPerWIVal),
-			algL(L), algLS(LS), algR(R), linearRegs(linearRegsVal), halfLds(halfLdsVal),
-			r2c(r2cVal), c2r(c2rVal), rcFull(rcFullVal), rcSimple(rcSimpleVal), realSpecial(realSpecialVal),
-			enableGrouping(true),
-			numB1(0), numB2(0), numB4(0),
+			position(positionVal), algL(L), algLS(LS), algR(R), length(lengthVal), radix(radixVal), 
+			cnPerWI(cnPerWIVal), numB1(0), numB2(0), numB4(0),
+                        r2c(r2cVal), c2r(c2rVal), rcFull(rcFullVal), rcSimple(rcSimpleVal), realSpecial(realSpecialVal),
+                        halfLds(halfLdsVal), enableGrouping(true), linearRegs(linearRegsVal),
 			nextPass(NULL)
 		{
 			assert(radix <= length);
@@ -1645,8 +1645,8 @@ namespace StockhamGenerator
 
 			// For now, interleaved support is there for only global buffers
 			// TODO : add support for LDS interleaved
-			if(inInterleaved)  assert(gIn);
-			if(outInterleaved) assert(gOut);
+		//	if(inInterleaved)  assert(gIn);
+		//	if(outInterleaved) assert(gOut);
 
 			if(r2c || c2r)
 			{

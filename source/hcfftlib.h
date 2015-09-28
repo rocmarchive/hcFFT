@@ -399,7 +399,7 @@ public:
   bool RCsimple;
 
   FFTPlan() : dimension (HCFFT_1D), ipLayout (HCFFT_COMPLEX),
-              opLayout (HCFFT_COMPLEX), location (HCFFT_INPLACE),
+              opLayout (HCFFT_COMPLEX), direction(HCFFT_FORWARD), location (HCFFT_INPLACE),
               transposeType (HCFFT_NOTRANSPOSE), precision (HCFFT_SINGLE),
               batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0),
               baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
@@ -407,7 +407,7 @@ public:
               uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
 	      intBuffer( NULL ), tmpBufSizeRC(0), intBufferRC(NULL), tmpBufSizeC2R(0),
 	      intBufferC2R(NULL), transflag(false),large1D(0), large2D(false),
-              const_buffer(NULL), RCsimple(false), direction(HCFFT_FORWARD)
+              const_buffer(NULL), RCsimple(false)
   {};
 
   hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle,hcfftDim dimension, const size_t *length);
