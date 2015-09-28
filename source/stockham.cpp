@@ -3111,6 +3111,71 @@ namespace StockhamGenerator
 					}
 				}
 
+				if(realSpecial)
+				{
+					size_t Nt = 1 + length/2;
+					str += 	"\n\t\tif( (bt == 0) || (2*bt == ";
+					str += SztToStr(params.fft_realSpecial_Nr); str += ") ) break;\n";
+
+					str += "\t\tgbOut += ("; str += SztToStr(params.fft_realSpecial_Nr);
+					str += " - 2*bt)*"; str += SztToStr(Nt); str += ";\n";
+					str += "\t\tb = "; str += SztToStr(params.fft_realSpecial_Nr);
+					str += " - b;\n\n";
+				}
+
+				if(blockCompute || realSpecial)
+				{
+					str += "\n\t}\n\n";
+				}
+
+
+
+				// Write data from LDS for blocked access
+				if(blockCompute)
+				{
+
+					size_t loopCount = (length * blockWidth)/blockWGS;
+					
+					str += "\t tidx.barrier.wait_with_tile_static_memory_fence();\n\n";
+					str += "\n\tfor(uint t=0; t<"; str += SztToStr(loopCount);
+					str += "; t++)\n\t{\n";
+
+					if(blockComputeType == BCT_R2C)
+					{
+						str += "\t\tR0 = lds[t*"; str += SztToStr(blockWGS/blockWidth); str += " + ";
+						str += "(me%"; str+= SztToStr(blockWidth); str+= ")*"; str += SztToStr(length); str += " + ";
+						str += "(me/"; str+= SztToStr(blockWidth); str+= ")];"; str +="\n";
+					}
+					else
+					{
+						str += "\t\tR0 = lds[t*"; str += SztToStr(blockWGS); str += " + me];"; str +="\n";
+					}
+
+					for(size_t c=0; c<2; c++)
+					{
+						std::string comp = "";
+						std::string writeBuf = (params.fft_placeness == HCFFT_INPLACE) ? "gb" : "gbOut";
+						if(!outInterleaved) comp = c ? ".y" : ".x";
+						if(!outInterleaved)
+							writeBuf = (params.fft_placeness == HCFFT_INPLACE) ? (c ? "gbIm" : "gbRe") : (c ? "gbOutIm" : "gbOutRe");
+
+						if(blockComputeType == BCT_R2C)
+						{
+							str += "\t\t"; str += writeBuf; str += "[(me%"; str+= SztToStr(blockWidth); str += ") + ";
+							str += "(me/"; str+= SztToStr(blockWidth); str+= ")*"; str += SztToStr(params.fft_outStride[0]);
+							str += " + t*"; str += SztToStr(params.fft_outStride[0]*blockWGS/blockWidth); str += "] = R0"; str+= comp; str += ";\n";
+						}
+						else
+						{
+							str += "\t\t"; str += writeBuf; str += "[me + t*"; str += SztToStr(blockWGS); str += "] = R0"; str+= comp; str += ";\n";
+						}
+
+						if(outInterleaved) break;
+					}
+					
+					str += "\t}\n\n";		
+				}
+
 				str += " });\n}}\n\n";
 
 				first = 1;
