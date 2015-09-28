@@ -2350,19 +2350,28 @@ namespace StockhamGenerator
 			inInterleaved  = (params.fft_inputLayout == HCFFT_COMPLEX)  ? true : false;
 			outInterleaved = (params.fft_outputLayout == HCFFT_COMPLEX) ? true : false;
 
+			// use interleaved LDS when halfLds constraint absent
+			bool ldsInterleaved = inInterleaved || outInterleaved;
+			ldsInterleaved = halfLds ? false : ldsInterleaved;
+			ldsInterleaved = blockCompute ? true : ldsInterleaved;
+
 			bool inReal;  // Input is real format
 			bool outReal; // Output is real format
 			inReal  = (params.fft_inputLayout == HCFFT_REAL) ? true : false;
 			outReal = (params.fft_outputLayout == HCFFT_REAL) ? true : false;
 
-			size_t large1D = params.fft_N[0] * params.fft_N[1];
+			size_t large1D = 0;
+			if(params.fft_realSpecial)
+				large1D = params.fft_N[0] * params.fft_realSpecial_Nr;
+			else
+				large1D = params.fft_N[0] * params.fft_N[1];
 
-                       if(!first)
+                        if(!first)
 			{
 			// Pragma
 			str += hcHeader();
 
-			std::string sfx = FloatSuffix<PR>();
+			std::string sfx = FloatSuffix<PR>()+"\n";
 
 			// Vector type
 			str += "#define fvect2 "; str += RegBaseType<PR>(2); str += "\n\n";
@@ -2378,10 +2387,20 @@ namespace StockhamGenerator
 
 			str += "#define C3QA 0.50000000000000000000000000000000"; str += sfx; str += "\n";
 			str += "#define C3QB 0.86602540378443864676372317075294"; str += sfx; str += "\n";
+
+			str += "#define C7Q1 -1.16666666666666651863693004997913" + sfx;
+			str += "#define C7Q2  0.79015646852540022404554065360571" + sfx;
+			str += "#define C7Q3  0.05585426728964774240049351305970" + sfx;
+			str += "#define C7Q4  0.73430220123575240531721419756650" + sfx;
+			str += "#define C7Q5  0.44095855184409837868031445395900" + sfx;
+			str += "#define C7Q6  0.34087293062393136944265847887436" + sfx;
+			str += "#define C7Q7 -0.53396936033772524066165487965918" + sfx;
+			str += "#define C7Q8  0.87484229096165666561546458979137" + sfx;
+
 			str += "\n";
                        }
 
-			bool cReg = halfLds ? true : false;
+			bool cReg = linearRegs ? true : false;
 
 			// Generate butterflies for all unique radices
 			std::list<size_t> uradices;
@@ -2426,7 +2445,6 @@ namespace StockhamGenerator
 				}
 
 				double scale = fwd ? params.fft_fwdScale : params.fft_backScale;
-				bool tw3Step = false;
 
 				for(p = passes.begin(); p != passes.end(); p++)
 				{
@@ -2435,8 +2453,25 @@ namespace StockhamGenerator
 					bool gIn = false, gOut = false;
 					bool inIlvd = false, outIlvd = false;
 					bool inRl = false, outRl = false;
-					if(p == passes.begin())		{ inIlvd  = inInterleaved;  inRl  = inReal;  gIn  = true; ins  = params.fft_inStride[0];  }
-					if((p+1) == passes.end())	{ outIlvd = outInterleaved; outRl = outReal; gOut = true; outs = params.fft_outStride[0]; s = scale; tw3Step = params.fft_3StepTwiddle; }
+					bool tw3Step = false;
+
+					if(p == passes.begin() && params.fft_twiddleFront ) { tw3Step = params.fft_3StepTwiddle; }
+					if((p+1) == passes.end())	{ s = scale; if(!params.fft_twiddleFront) tw3Step = params.fft_3StepTwiddle; }
+
+					if(blockCompute && !r2c2r)
+					{
+						inIlvd = ldsInterleaved;
+						outIlvd = ldsInterleaved;
+					}
+					else
+					{
+						if(p == passes.begin())		{ inIlvd  = inInterleaved;  inRl  = inReal;  gIn  = true; ins  = params.fft_inStride[0];  }
+						if((p+1) == passes.end())	{ outIlvd = outInterleaved; outRl = outReal; gOut = true; outs = params.fft_outStride[0]; }
+
+						if(p != passes.begin())		{ inIlvd = ldsInterleaved; }
+						if((p+1) != passes.end())	{ outIlvd = ldsInterleaved; }
+					}
+
 					p->GeneratePass(plHandle, fwd, str, tw3Step, inIlvd, outIlvd, inRl, outRl, ins, outs, s, lWorkSize[0], gIn, gOut);
 				}
 
