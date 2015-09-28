@@ -2818,16 +2818,20 @@ namespace StockhamGenerator
 				}
 				else
 				{
-					if(numTrans > 1)
+					if( (numTrans > 1) && !blockCompute )
 					{
 						str += "\tunsigned int rw = (me < ("; str += totalBatch;
 						str += " - batch*"; str += SztToStr(numTrans); str += ")*";
 						str += SztToStr(workGroupSizePerTrans); str += ") ? 1 : 0;\n\n";
 					}
+					else
+					{
+						str += "\tunsigned int rw = 1;\n\n";
+					}
 				}
 
 				// Transform index for 3-step twiddles
-				if(params.fft_3StepTwiddle)
+				if(params.fft_3StepTwiddle && !blockCompute)
 				{
 					if(numTrans == 1)
 					{
@@ -2840,6 +2844,11 @@ namespace StockhamGenerator
 					}
 
 					str += SztToStr(params.fft_N[1]); str += ";\n\n";
+
+					if(params.fft_realSpecial)
+					{
+						str += "\tunsigned int bt = b;\n\n";
+					}
 				}
 				else
 				{
@@ -2860,17 +2869,73 @@ namespace StockhamGenerator
 				{
 					if(params.fft_placeness == HCFFT_INPLACE)
 					{
-						str += OffsetCalc("iOffset", true);
+						if(blockCompute)
+							str += OffsetCalcBlock("iOffset", true);
+						else
+							str += OffsetCalc("iOffset", true);
 
 						str += "\t";
 					}
 					else
 					{
-						str += OffsetCalc("iOffset", true);
-						str += OffsetCalc("oOffset", false);
+						if(blockCompute)
+						{
+							str += OffsetCalcBlock("iOffset", true);
+							str += OffsetCalcBlock("oOffset", false);
+						}
+						else
+						{
+							str += OffsetCalc("iOffset", true);
+							str += OffsetCalc("oOffset", false);
+						}
 
 						str += "\t";
 					}
+				}
+
+				// Read data into LDS for blocked access
+				if(blockCompute)
+				{
+					size_t loopCount = (length * blockWidth)/blockWGS;
+
+					str += "\n\tfor(uint t=0; t<"; str += SztToStr(loopCount);
+					str += "; t++)\n\t{\n";
+
+					for(size_t c=0; c<2; c++)
+					{
+						std::string comp = "";
+						std::string readBuf = (params.fft_placeness == HCFFT_INPLACE) ? "gb" : "gbIn";
+						if(!inInterleaved) comp = c ? ".y" : ".x";
+						if(!inInterleaved)
+							readBuf = (params.fft_placeness == HCFFT_INPLACE) ? (c ? "gbInIm" : "gbInRe") : (c ? "gbInIm" : "gbInRe");
+
+						if(blockComputeType == BCT_C2R)
+						{
+							str += "\t\tR0"; str+= comp; str+= " = "; str += readBuf; str += "[(me%"; str+= SztToStr(blockWidth); str += ") + ";
+							str += "(me/"; str+= SztToStr(blockWidth); str+= ")*"; str += SztToStr(params.fft_inStride[0]);
+							str += " + t*"; str += SztToStr(params.fft_inStride[0]*blockWGS/blockWidth); str += "];\n";
+						}
+						else
+						{
+							str += "\t\tR0"; str+= comp; str+= " = "; str += readBuf; str += "[me + t*"; str += SztToStr(blockWGS); str += "];\n";
+						}
+
+						if(inInterleaved) break;
+					}
+
+					if(blockComputeType == BCT_C2R)
+					{
+						str += "\t\tlds[t*"; str += SztToStr(blockWGS/blockWidth); str += " + ";
+						str += "(me%"; str+= SztToStr(blockWidth); str+= ")*"; str += SztToStr(length); str += " + ";
+						str += "(me/"; str+= SztToStr(blockWidth); str+= ")] = R0;"; str +="\n";
+					}
+					else
+					{
+						str += "\t\tlds[t*"; str += SztToStr(blockWGS); str += " + me] = R0;"; str +="\n";
+					}
+
+					str += "\t}\n\n";
+					str += "\t tidx.barrier.wait_with_tile_static_memory_fence();\n\n";
 				}
 
 				// Set rw and 'me' per transform
@@ -2916,6 +2981,27 @@ namespace StockhamGenerator
 						if(outInterleaved)	outBuf = "gbOut, oOffset";
 						else				outBuf = "gbOutRe, oOffset, gbOutIm";
 					}
+				}
+
+				if(blockCompute)
+				{
+					str += "\n\tfor(uint t=0; t<"; str += SztToStr(blockWidth/(blockWGS/workGroupSizePerTrans));
+					str += "; t++)\n\t{\n\n";
+
+					inBuf = "lds, ";
+					outBuf = "lds";
+
+					if(params.fft_3StepTwiddle)
+					{
+						str += "\t\tb = (batch%"; str += SztToStr(params.fft_N[1]/blockWidth); str += ")*";
+						str += SztToStr(blockWidth); str += " + t*"; str += SztToStr(blockWGS/workGroupSizePerTrans);
+						str += " + (me/"; str += SztToStr(workGroupSizePerTrans); str += ");\n\n";
+					}
+				}
+
+				if(realSpecial)
+				{
+					str += "\n\tfor(uint t=0; t<2; t++)\n\t{\n\n";
 				}
 
 				// Call passes
