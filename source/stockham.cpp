@@ -2274,7 +2274,70 @@ namespace StockhamGenerator
 			if(numPasses > 1)
 				for(size_t i=0; i < (numPasses - 1); i++)
 					passes[i].SetNextPass(&passes[i+1]);
+
+			if(blockCompute)
+			{
+				blockWidth = BlockSizes::BlockWidth(length);
+				blockWGS = BlockSizes::BlockWorkGroupSize(length);
+				blockLDS = BlockSizes::BlockLdsSize(length);
+			}
+			else
+			{
+				blockWidth = blockWGS = blockLDS = 0;
+			}
 		}
+
+	class BlockSizes
+	{
+	public:
+		enum ValType
+		{
+			BS_VT_WGS,
+			BS_VT_BWD,
+			BS_VT_LDS,
+		};
+
+		static size_t BlockLdsSize(size_t N) { return GetValue(N, BS_VT_LDS); }
+		static size_t BlockWidth(size_t N) { return GetValue(N, BS_VT_BWD); }
+		static size_t BlockWorkGroupSize(size_t N) { return GetValue(N, BS_VT_WGS); }
+
+	private:
+
+		static size_t GetValue(size_t N, ValType vt)
+		{
+			size_t wgs; // preferred work group size
+			size_t bwd; // block width to be used
+			size_t lds; // LDS size to be used for the block
+
+			KernelCoreSpecs<PR> kcs;
+			size_t t_wgs, t_nt;
+			kcs.GetWGSAndNT(N, t_wgs, t_nt);
+
+			switch(N)
+			{
+			case 256:	bwd = 8/PrecisionWidth<PR>();   wgs = (bwd > t_nt) ? 256 : t_wgs; break;
+			case 128:	bwd = 8/PrecisionWidth<PR>();   wgs = (bwd > t_nt) ? 128 : t_wgs; break;
+			case 64:	bwd = 16/PrecisionWidth<PR>();  wgs = (bwd > t_nt) ? 128 : t_wgs; break;
+			case 32:	bwd = 32/PrecisionWidth<PR>();  wgs = (bwd > t_nt) ? 64  : t_wgs; break;
+			case 16:	bwd = 64/PrecisionWidth<PR>();  wgs = (bwd > t_nt) ? 64  : t_wgs; break;
+			case 8:		bwd = 128/PrecisionWidth<PR>(); wgs = (bwd > t_nt) ? 64  : t_wgs; break;
+			default:	assert(false);
+			}
+
+			// block width cannot be less than numTrans, math in other parts of code depend on this assumption
+			assert(bwd >= t_nt);
+
+			lds = N*bwd;
+
+			switch(vt)
+			{
+			case BS_VT_WGS: return wgs;
+			case BS_VT_BWD: return bwd;
+			case BS_VT_LDS: return lds;
+			default: assert(false); return 0;
+			}
+		}
+	};
 
         void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize)
 		{
