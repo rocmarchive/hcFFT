@@ -1252,7 +1252,14 @@ namespace StockhamGenerator
 						std::string oddpadd = oddp ? " (me/2) + " : " ";
 
 						std::string idxStr, idxStrRev;
-						idxStr += SztToStr(bid); idxStr += "*me +"; idxStr += oddpadd; idxStr += SztToStr(lid);
+						if((length <= 2) || ((length & (length - 1)) != 0))
+						{
+							idxStr += SztToStr(bid); idxStr += "*me +"; idxStr += oddpadd; idxStr += SztToStr(lid);
+						}
+						else
+						{
+							idxStr += "me + "; idxStr += SztToStr(1 + length*(r%bid)/numCR); idxStr += oddpadd;
+						}
 						idxStrRev += SztToStr(length); idxStrRev += " - ("; idxStrRev += idxStr; idxStrRev += " )";
 
 						bool act = ( fwd || ((cid == 0) && (!batch2)) || ((cid != 0) && batch2) );
@@ -1367,7 +1374,15 @@ namespace StockhamGenerator
 							if(fwd)
 							{
 								std::string idxStr, idxStrRev;
+								if((length <= 2) || ((length & (length - 1)) != 0))
+								{
 								idxStr += SztToStr(length/(2*workGroupSize)); idxStr += "*me +"; idxStr += oddpadd; idxStr += SztToStr(lid);
+								}
+								else
+								{
+								idxStr += "me + "; idxStr += SztToStr(1 + length*(r%bid)/numCR); idxStr += oddpadd;
+								}
+
 								idxStrRev += SztToStr(length); idxStrRev += " - ("; idxStrRev += idxStr; idxStrRev += " )";
 
 								std::string val1Str, val2Str;
@@ -1433,7 +1448,15 @@ namespace StockhamGenerator
 							else
 							{
 								std::string idxStr, idxStrRev;
+								if((length <= 2) || ((length & (length - 1)) != 0))
+								{
 								idxStr += SztToStr(bid); idxStr += "*me +"; idxStr += oddpadd; idxStr += SztToStr(lid);
+								}
+								else
+								{
+								idxStr += "me + "; idxStr += SztToStr(1 + length*(r%bid)/numCR); idxStr += oddpadd;
+								}
+
 								idxStrRev += SztToStr(length); idxStrRev += " - ("; idxStrRev += idxStr; idxStrRev += " )";
 
 								passStr += "\n\t";
