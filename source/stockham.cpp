@@ -3073,7 +3073,7 @@ namespace StockhamGenerator
 					totalBatch += SztToStr(params.fft_N[i+1]); totalBatch += " * ";
 					i++;
 				}
-				totalBatch += "cb[0])";
+				totalBatch += "cb[1])";
 
 				// Conditional read-write ('rw') for arbitrary batch number
 				if(r2c2r && !rcSimple)
