@@ -17,5 +17,3 @@ $(TARGET):fft_test.cpp
 clean:
 	-rm -f $(TARGET)
 	-rm -f fft_test.o
-	-rm -f ../kernel*.cpp
-	-rm -f ../libFFTKernel*.so
