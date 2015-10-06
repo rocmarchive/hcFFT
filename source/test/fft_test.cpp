@@ -61,9 +61,7 @@ int main(int argc,char* argv[])
   {
     cout<<" set result error "<<endl;
   }
-  cout<< " hcfftSetResultLocation status "<<status<<endl; 
 
-  cout<<" bake plan "<<status<<endl;
   Concurrency::array_view<float, 1> inpAr(realsize, input );
   Concurrency::array_view<float, 1> inpAr1(realsize, inputz );
   Concurrency::array_view<float, 1> opAr(cmplexsize, output );
@@ -109,7 +107,6 @@ int main(int argc,char* argv[])
   {
     cout<<" set result error "<<endl;
   }
-  cout<< " hcfftSetResultLocation status "<<status<<endl; 
 
   dir = HCFFT_BACKWARD;
   status = plan1.hcfftSetLayout(planhandle, HCFFT_COMPLEX, HCFFT_REAL);
@@ -139,7 +136,6 @@ int main(int argc,char* argv[])
     cout<<" Mismatch at  "<<i<<" input "<<input[i]<<" amp "<<inpAr1[i]<<endl;
     exit(0);
   }
-  cout<<" TEST PASSED"<<endl;
   status = plan1.hcfftDestroyPlan(&planhandle);
 
  }
