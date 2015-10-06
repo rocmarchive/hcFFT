@@ -50,9 +50,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
 	WriteKernel( plHandle, gen, fftParams);
 
         char cwd[1024];
-        if (getcwd(cwd, sizeof(cwd)) != NULL)
-          std::cout << "Current working dir: "<<cwd<<std::endl;
-        else
+        if (getcwd(cwd, sizeof(cwd)) == NULL)
 	  std::cout<< "getcwd() error"<<std::endl;
 
         std::string pwd(cwd);
@@ -62,15 +60,11 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
         compilerPath = getenv ("MCWCPPAMPROOT");
         if(!compilerPath)
           std::cout<<"No Compiler Path Variable found. Please export MCWCPPAMPROOT "<<std::endl;
-        else
-          std::cout<< "The Compiler path is: "<<compilerPath<<std::endl;
 
         char *CLPath = (char*)calloc(100, 1);
         CLPath = getenv ("AMDAPPSDKROOT");
         if(!CLPath)
           std::cout<<"No OpenCL path Variable found. Please export AMDAPPSDKROOT "<<std::endl;
-        else
-          std::cout<<"The  OpenCL path is: "<<CLPath<<std::endl;
 
         string fftLibPath = pwd + "/../../Build/linux/";
 
@@ -646,9 +640,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
         FUNC_FFTFwd * FFTcall = NULL;
 
         char cwd[1024];
-        if (getcwd(cwd, sizeof(cwd)) != NULL)
-          std::cout << "Current working dir: "<<cwd<<std::endl;
-        else
+        if (getcwd(cwd, sizeof(cwd)) == NULL)
 	  std::cout<< "getcwd() error"<<std::endl;
 
         std::string pwd(cwd);
@@ -660,10 +652,6 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
         {
           std::cout << "Failed to load Kernel: "<< kernellib.c_str()<<std::endl;
           return HCFFT_ERROR;
-        }
-        else
-        {
-          std::cout<<"Loaded Kernel: "<<kernellib.c_str()<<std::endl;
         }
 
         if(dir == HCFFT_FORWARD)
