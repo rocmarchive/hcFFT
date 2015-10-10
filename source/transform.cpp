@@ -460,85 +460,97 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
 				return HCFFT_SUCCESS;
 			}
-
-			if ( (fftPlan->large2D || fftPlan->length.size()>2) &&
-				(fftPlan->ipLayout != HCFFT_REAL) && (fftPlan->opLayout != HCFFT_REAL))
-			{
-				if (fftPlan->location==HCFFT_INPLACE)
-				{
-					//deal with row first
-					hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, NULL, localIntBuffer );
-
-					//deal with column
-					hcfftEnqueueTransform( fftPlan->planY, dir, clInputBuffers, NULL, localIntBuffer );
-				}
-				else
-				{
-					//deal with row first
-					hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, localIntBuffer );
-
-					//deal with column
-					hcfftEnqueueTransform( fftPlan->planY, dir, clOutputBuffers, NULL, localIntBuffer );
-				}
-			}
 			else
 			{
-				if(fftPlan->ipLayout == HCFFT_REAL)
+				if ( (fftPlan->large2D || fftPlan->length.size()>2) &&
+					(fftPlan->ipLayout != HCFFT_REAL) && (fftPlan->opLayout != HCFFT_REAL))
 				{
 					if (fftPlan->location==HCFFT_INPLACE)
 					{
-						// deal with row
-						hcfftEnqueueTransform( fftPlan->planX, HCFFT_FORWARD, clInputBuffers, NULL, localIntBuffer );
+						//deal with row first
+						hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, NULL, localIntBuffer );
 
-						// deal with column
-						hcfftEnqueueTransform( fftPlan->planY, HCFFT_FORWARD, clInputBuffers, NULL, localIntBuffer );
+						//deal with column
+						hcfftEnqueueTransform( fftPlan->planY, dir, clInputBuffers, NULL, localIntBuffer );
 					}
 					else
 					{
-						// deal with row
-						hcfftEnqueueTransform( fftPlan->planX, HCFFT_FORWARD, clInputBuffers, clOutputBuffers, localIntBuffer );
+						//deal with row first
+						hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, localIntBuffer );
 
-						// deal with column
-						hcfftEnqueueTransform( fftPlan->planY, HCFFT_FORWARD, clOutputBuffers, NULL, localIntBuffer );
+						//deal with column
+						hcfftEnqueueTransform( fftPlan->planY, dir, clOutputBuffers, NULL, localIntBuffer );
 					}
-				}
-				else if(fftPlan->opLayout == HCFFT_REAL)
-				{
-					Concurrency::array_view<float, 1> *out_local, *int_local, *out_y;
-
-					if(fftPlan->length.size() > 2)
-					{
-						out_local = clOutputBuffers;
-						int_local = NULL;
-						out_y = clInputBuffers;
-					}
-					else
-					{
-						out_local = (fftPlan->location == HCFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
-						int_local = fftPlan->tmpBufSizeC2R ? fftPlan->intBufferC2R : localIntBuffer;
-						out_y = int_local;
-					}
-					// deal with column
-					hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, clInputBuffers, int_local, localIntBuffer );
-
-					// deal with row
-					hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, out_y, out_local, localIntBuffer );
-
 				}
 				else
 				{
-					//deal with row first
-					hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, localIntBuffer, localIntBuffer );
-
-					if (fftPlan->location == HCFFT_INPLACE)
+					if(fftPlan->ipLayout == HCFFT_REAL)
 					{
-						//deal with column
-						hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clInputBuffers, localIntBuffer );
+						if (fftPlan->location==HCFFT_INPLACE)
+						{
+							// deal with row
+							hcfftEnqueueTransform( fftPlan->planX, HCFFT_FORWARD, clInputBuffers, NULL, localIntBuffer );
+
+							// deal with column
+							hcfftEnqueueTransform( fftPlan->planY, HCFFT_FORWARD, clInputBuffers, NULL, localIntBuffer );
+						}
+						else
+						{
+							// deal with row
+							hcfftEnqueueTransform( fftPlan->planX, HCFFT_FORWARD, clInputBuffers, clOutputBuffers, localIntBuffer );
+
+							// deal with column
+							hcfftEnqueueTransform( fftPlan->planY, HCFFT_FORWARD, clOutputBuffers, NULL, localIntBuffer );
+						}
+					}
+					else if(fftPlan->opLayout == HCFFT_REAL)
+					{
+						Concurrency::array_view<float, 1> *out_local, *int_local, *out_y;
+
+						if(fftPlan->location == HCFFT_INPLACE)
+						{
+							out_local = NULL;
+							int_local = NULL;
+							out_y = clInputBuffers;
+						}
+						else
+						{
+							if(fftPlan->length.size() > 2)
+							{
+								out_local = clOutputBuffers;
+								int_local = NULL;
+								out_y = clInputBuffers;
+							}
+							else
+							{
+								out_local = clOutputBuffers;
+								int_local = fftPlan->intBufferC2R;
+								out_y = int_local;
+							}
+						}
+
+						// deal with column
+						hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, clInputBuffers, int_local, localIntBuffer );
+
+						// deal with row
+						hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, out_y, out_local, localIntBuffer );
+
 					}
 					else
 					{
-						//deal with column
-						hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clOutputBuffers, localIntBuffer );
+						//deal with row first
+						hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, localIntBuffer, localIntBuffer );
+
+						if (fftPlan->location == HCFFT_INPLACE)
+						{
+							//deal with column
+							hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clInputBuffers, localIntBuffer );
+						}
+						else
+						{
+							//deal with column
+							hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clOutputBuffers, localIntBuffer );
+						}
 					}
 				}
 			}
@@ -1562,469 +1574,1028 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 	      }
 	      break;
 	    case HCFFT_2D:
-	    {
-	      size_t length0 = fftPlan->length[0];
-	      size_t length1 = fftPlan->length[1];
-
-	      if (fftPlan->cacheSize)
-	      {
-	        length0 += fftPlan->cacheSize & 0xFF;
-	        length1 += (fftPlan->cacheSize >> 8) & 0xFF;
-		if (length0 * length1 > 2 * fftPlan->length[0] * fftPlan->length[1])
 		{
-		  length0 = fftPlan->length[0];
-		  length1 = fftPlan->length[1];
+			if (fftPlan->transflag) //Transpose for 2D
+			{
+				fftPlan->baked		= true;
+				return	HCFFT_SUCCESS;
+			}
+
+			size_t length0 = fftPlan->length[0];
+			size_t length1 = fftPlan->length[1];
+
+			if (fftPlan->length[0]==256 && fftPlan->length[1]==256)
+			{
+				length0 += 8;
+				length1 += 1;
+			}
+			else if (fftPlan->length[0]==512 && fftPlan->length[1]==512)
+			{
+				length0 += 1;
+				length1 += 1;//length1 += 0;
+			}
+			else if (fftPlan->length[0]==1024 && fftPlan->length[1]==512)
+			{
+				length0 += 2;
+				length1 += 2;//length1 += 0;
+			}
+			else if (fftPlan->length[0]==1024 && fftPlan->length[1]==1024)
+			{
+				length0 += 1;
+				length1 += 1;//length1 += 0;
+			}
+
+
+			if (fftPlan->length[0] > Large1DThreshold ||
+				fftPlan->length[1] > Large1DThreshold)
+				fftPlan->large2D = true;
+
+			while (1 && (fftPlan->ipLayout != HCFFT_REAL) && (fftPlan->opLayout != HCFFT_REAL))
+			{
+				//break;
+
+				if (fftPlan->length.size() != 2) break;
+				if (!(IsPo2(fftPlan->length[0])) || !(IsPo2(fftPlan->length[1])))
+					break;
+				if (fftPlan->length[1] < 32) break;
+				//TBD: restrict the use large2D in x!=y case becase we will need two temp buffers
+				//     (1) for 2D usage (2) for 1D large usage
+				//if (fftPlan->large2D) break;
+				//Performance show 512 is the good case with transpose
+				//if user want the result to be transposed, then we will.
+				if (fftPlan->length[0] < 512 && fftPlan->transposeType == HCFFT_NOTRANSPOSE) break;
+				if (fftPlan->length[0] < 32) break;
+				//x!=y case, we need tmp buffer, currently temp buffer only support interleaved format
+				//if (fftPlan->length[0] != fftPlan->length[1] && fftPlan->outputLayout == HCFFT_COMPLEX_PLANAR) break;
+				if (fftPlan->inStride[0] != 1 || fftPlan->outStride[0] != 1 ||
+					fftPlan->inStride[1] != fftPlan->length[0] || fftPlan->outStride[1] != fftPlan->length[0])
+					break;
+				//if (fftPlan->placeness != HCFFT_INPLACE || fftPlan->inputLayout != HCFFT_COMPLEX_PLANAR)
+				//	break;
+				//if (fftPlan->batchsize != 1) break;
+				//if (fftPlan->precision != HCFFT_SINGLE) break;
+
+				fftPlan->transflag = true;
+
+				//create row plan,
+				// x=y & x!=y, In->In for inplace, In->out for outofplace
+				hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
+
+				FFTPlan* rowPlan	= NULL;
+				lockRAII* rowLock	= NULL;
+				fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
+
+				rowPlan->ipLayout     = fftPlan->ipLayout;
+				rowPlan->opLayout    = fftPlan->opLayout;
+				rowPlan->location       = fftPlan->location;
+				rowPlan->outStride[0]    = fftPlan->outStride[0];
+				rowPlan->outStride.push_back(fftPlan->outStride[1]);
+				rowPlan->oDist           = fftPlan->oDist;
+				rowPlan->precision       = fftPlan->precision;
+				rowPlan->forwardScale    = 1.0f;
+				rowPlan->backwardScale   = 1.0f;
+				rowPlan->tmpBufSize      = 0;
+
+				rowPlan->gen			 = fftPlan->gen;
+				rowPlan->envelope		 = fftPlan->envelope;
+				rowPlan->batchSize       = fftPlan->batchSize;
+				rowPlan->inStride[0]     = fftPlan->inStride[0];
+				rowPlan->length.push_back(fftPlan->length[1]);
+				rowPlan->inStride.push_back(fftPlan->inStride[1]);
+				rowPlan->iDist           = fftPlan->iDist;
+
+				hcfftBakePlan(fftPlan->planX);
+
+				//Create transpose plan for first transpose
+				//x=y: inplace. x!=y inplace: in->tmp, outofplace out->tmp
+				size_t clLengths[] = { 1, 1, 0 };
+				clLengths[0] = fftPlan->length[0];
+				clLengths[1] = fftPlan->length[1];
+
+				bool xyflag = (clLengths[0]==clLengths[1]) ? false : true;
+				if (xyflag && fftPlan->tmpBufSize==0 && fftPlan->length.size()<=2)
+				{
+					// we need tmp buffer for x!=y case
+					// we assume the tmp buffer is packed interleaved
+					fftPlan->tmpBufSize = length0 * length1 *
+						fftPlan->batchSize * fftPlan->ElementSize();
+				}
+
+				hcfftCreateDefaultPlan(&fftPlan->planTX, HCFFT_2D, clLengths);
+
+				FFTPlan* transPlanX	= NULL;
+				lockRAII* transLockX	= NULL;
+				fftRepo.getPlan( fftPlan->planTX, transPlanX, transLockX );
+
+				transPlanX->ipLayout     = fftPlan->opLayout;
+				transPlanX->precision       = fftPlan->precision;
+				transPlanX->tmpBufSize      = 0;
+				transPlanX->envelope		= fftPlan->envelope;
+				transPlanX->batchSize       = fftPlan->batchSize;
+				transPlanX->inStride[0]     = fftPlan->outStride[0];
+				transPlanX->inStride[1]     = fftPlan->outStride[1];
+				transPlanX->iDist           = fftPlan->oDist;
+				transPlanX->transflag       = true;
+
+				if (xyflag)
+				{
+					transPlanX->opLayout    = HCFFT_COMPLEX;
+					transPlanX->location       = HCFFT_OUTOFPLACE;
+					transPlanX->outStride[0]    = 1;
+					transPlanX->outStride[1]    = clLengths[0];
+					transPlanX->oDist           = clLengths[0] * clLengths[1];
+				}
+				else
+				{
+					transPlanX->opLayout    = fftPlan->opLayout;
+					transPlanX->location       = HCFFT_INPLACE;
+					transPlanX->outStride[0]    = fftPlan->outStride[0];
+					transPlanX->outStride[1]    = fftPlan->outStride[1];
+					transPlanX->oDist           = fftPlan->oDist;
+				}
+
+				hcfftBakePlan(fftPlan->planTX);
+
+				//create second row plan
+				//x!=y: tmp->tmp, x=y case: In->In or Out->Out
+				//if Transposed result is a choice x!=y: tmp->In or out
+				hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ]);
+
+				FFTPlan* colPlan	= NULL;
+				lockRAII* colLock	= NULL;
+				fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
+
+				if (xyflag)
+				{
+					colPlan->ipLayout     = HCFFT_COMPLEX;
+					colPlan->inStride[0]     = 1;
+					colPlan->inStride.push_back(clLengths[1]);
+					colPlan->iDist           = clLengths[0] * clLengths[1];
+
+					if (fftPlan->transposeType == HCFFT_NOTRANSPOSE)
+					{
+						colPlan->opLayout    = HCFFT_COMPLEX;
+						colPlan->outStride[0]    = 1;
+						colPlan->outStride.push_back(clLengths[1]);
+						colPlan->oDist           = clLengths[0] * clLengths[1];
+						colPlan->location       = HCFFT_INPLACE;
+					}
+					else
+					{
+						colPlan->opLayout    = fftPlan->opLayout;
+						colPlan->outStride[0]    = fftPlan->outStride[0];
+						colPlan->outStride.push_back(clLengths[1] * fftPlan->outStride[0]);
+						colPlan->oDist           = fftPlan->oDist;
+						colPlan->location       = HCFFT_OUTOFPLACE;
+					}
+				}
+				else
+				{
+					colPlan->ipLayout     = fftPlan->opLayout;
+					colPlan->opLayout    = fftPlan->opLayout;
+					colPlan->outStride[0]    = fftPlan->outStride[0];
+					colPlan->outStride.push_back(fftPlan->outStride[1]);
+					colPlan->oDist           = fftPlan->oDist;
+					colPlan->inStride[0]     = fftPlan->outStride[0];
+					colPlan->inStride.push_back(fftPlan->outStride[1]);
+					colPlan->iDist           = fftPlan->oDist;
+					colPlan->location       = HCFFT_INPLACE;
+				}
+
+				colPlan->precision       = fftPlan->precision;
+				colPlan->forwardScale    = fftPlan->forwardScale;
+				colPlan->backwardScale   = fftPlan->backwardScale;
+				colPlan->tmpBufSize      = 0;
+
+				colPlan->gen			 = fftPlan->gen;
+				colPlan->envelope		 = fftPlan->envelope;
+				colPlan->batchSize       = fftPlan->batchSize;
+				colPlan->length.push_back(fftPlan->length[0]);
+
+				hcfftBakePlan(fftPlan->planY);
+
+				if (fftPlan->transposeType == HCFFT_TRANSPOSED)
+				{
+					fftPlan->baked = true;
+					return	HCFFT_SUCCESS;
+				}
+
+				//Create transpose plan for second transpose
+				//x!=y case tmp->In or Out, x=y case In->In or Out->out
+				clLengths[0] = fftPlan->length[1];
+				clLengths[1] = fftPlan->length[0];
+				hcfftCreateDefaultPlan( &fftPlan->planTY, HCFFT_2D, clLengths );
+
+				FFTPlan* transPlanY	= NULL;
+				lockRAII* transLockY	= NULL;
+				fftRepo.getPlan( fftPlan->planTY, transPlanY, transLockY );
+
+				if (xyflag)
+				{
+					transPlanY->ipLayout     = HCFFT_COMPLEX;
+					transPlanY->location       = HCFFT_OUTOFPLACE;
+					transPlanY->inStride[0]     = 1;
+					transPlanY->inStride[1]     = clLengths[0];
+					transPlanY->iDist           = clLengths[0] * clLengths[1];
+				}
+				else
+				{
+					transPlanY->ipLayout     = fftPlan->opLayout;
+					transPlanY->location       = HCFFT_INPLACE;
+					transPlanY->inStride[0]     = fftPlan->outStride[0];
+					transPlanY->inStride[1]     = fftPlan->outStride[1];
+					transPlanY->iDist           = fftPlan->oDist;
+				}
+				transPlanY->opLayout    = fftPlan->opLayout;
+				transPlanY->outStride[0]    = fftPlan->outStride[0];
+				transPlanY->outStride[1]    = fftPlan->outStride[1];
+				transPlanY->oDist           = fftPlan->oDist;
+				transPlanY->precision       = fftPlan->precision;
+				transPlanY->tmpBufSize      = 0;
+				transPlanY->envelope	    = fftPlan->envelope;
+				transPlanY->batchSize       = fftPlan->batchSize;
+				transPlanY->transflag       = true;
+
+				hcfftBakePlan(fftPlan->planTY);
+
+				fftPlan->baked = true;
+				return	HCFFT_SUCCESS;
+			}
+
+			//check transposed
+			if (fftPlan->transposeType != HCFFT_NOTRANSPOSE)
+				return HCFFT_ERROR;
+
+
+			if(fftPlan->ipLayout == HCFFT_REAL)
+			{
+				length0 = fftPlan->length[0];
+				length1 = fftPlan->length[1];
+
+				size_t Nt = (1 + length0/2);
+
+
+				// create row plan
+				// real to hermitian
+
+				//create row plan
+				hcfftCreateDefaultPlan(&fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
+
+				FFTPlan* rowPlan	= NULL;
+				lockRAII* rowLock	= NULL;
+				fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
+
+
+				rowPlan->opLayout  = fftPlan->opLayout;
+				rowPlan->ipLayout  = fftPlan->ipLayout;
+				rowPlan->location     = fftPlan->location;
+				rowPlan->length.push_back(length1);
+
+				rowPlan->inStride[0]  = fftPlan->inStride[0];
+				rowPlan->inStride.push_back(fftPlan->inStride[1]);
+				rowPlan->iDist         = fftPlan->iDist;
+
+				rowPlan->precision     = fftPlan->precision;
+				rowPlan->forwardScale  = 1.0f;
+				rowPlan->backwardScale = 1.0f;
+				rowPlan->tmpBufSize    = 0;
+
+				rowPlan->gen			= fftPlan->gen;
+				rowPlan->envelope		= fftPlan->envelope;
+
+				rowPlan->batchSize    = fftPlan->batchSize;
+
+				rowPlan->outStride[0]  = fftPlan->outStride[0];
+				rowPlan->outStride.push_back(fftPlan->outStride[1]);
+				rowPlan->oDist         = fftPlan->oDist;
+
+				//this 2d is decomposed from 3d
+				for (size_t index=2; index < fftPlan->length.size(); index++)
+				{
+					rowPlan->length.push_back(fftPlan->length[index]);
+					rowPlan->inStride.push_back(fftPlan->inStride[index]);
+					rowPlan->outStride.push_back(fftPlan->outStride[index]);
+				}
+
+
+				hcfftBakePlan(fftPlan->planX);
+
+				if( (rowPlan->inStride[0] == 1) && (rowPlan->outStride[0] == 1) &&
+					( ((rowPlan->inStride[1] == Nt*2) && (rowPlan->location == HCFFT_INPLACE)) ||
+					  ((rowPlan->inStride[1] == length0) && (rowPlan->location == HCFFT_OUTOFPLACE)) )
+					&& (rowPlan->outStride[1] == Nt) )
+				{
+					// calc temp buf size
+					if (fftPlan->tmpBufSize==0)
+					{
+						fftPlan->tmpBufSize = Nt * length1 * fftPlan->batchSize * fftPlan->ElementSize();
+
+						for (size_t index=2; index < fftPlan->length.size(); index++)
+						{
+							fftPlan->tmpBufSize *= fftPlan->length[index];
+						}
+					}
+
+					// create first transpose plan
+
+					//Transpose
+					// output --> tmp
+					size_t transLengths[2] = { length0, length1 };
+					hcfftCreateDefaultPlan( &fftPlan->planTX, HCFFT_2D, transLengths );
+
+					FFTPlan* trans1Plan	= NULL;
+					lockRAII* trans1Lock	= NULL;
+					fftRepo.getPlan( fftPlan->planTX, trans1Plan, trans1Lock );
+
+					trans1Plan->transflag = true;
+
+					transLengths[0] = Nt;
+					hcfftSetPlanLength( fftPlan->planTX, HCFFT_2D, transLengths );
+
+					switch(fftPlan->opLayout)
+					{
+						case HCFFT_COMPLEX:
+						{
+							trans1Plan->opLayout = HCFFT_COMPLEX;
+							trans1Plan->ipLayout  = HCFFT_COMPLEX;
+						}
+						default: 
+							assert(false);
+					}
+
+					trans1Plan->location     = HCFFT_OUTOFPLACE;
+					trans1Plan->precision     = fftPlan->precision;
+					trans1Plan->tmpBufSize    = 0;
+					trans1Plan->batchSize     = fftPlan->batchSize;
+					trans1Plan->envelope	  = fftPlan->envelope;
+					trans1Plan->forwardScale  = 1.0f;
+					trans1Plan->backwardScale = 1.0f;
+
+					trans1Plan->inStride[0]   = 1;
+					trans1Plan->inStride[1]   = Nt;
+					trans1Plan->outStride[0]  = 1;
+					trans1Plan->outStride[1]  = length1;
+					trans1Plan->iDist         = rowPlan->oDist;
+					trans1Plan->oDist		  = Nt*length1;
+
+					for (size_t index=2; index < fftPlan->length.size(); index++)
+					{
+						trans1Plan->length.push_back(fftPlan->length[index]);
+						trans1Plan->inStride.push_back(rowPlan->outStride[index]);
+						trans1Plan->outStride.push_back(trans1Plan->oDist);
+						trans1Plan->oDist *= fftPlan->length[index];
+					}
+
+					hcfftBakePlan(fftPlan->planTX);
+
+
+					// Create column plan as a row plan
+					hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ]);
+
+					FFTPlan* colPlan	= NULL;
+					lockRAII* colLock	= NULL;
+					fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
+
+					colPlan->opLayout  = trans1Plan->opLayout;
+					colPlan->ipLayout   = trans1Plan->opLayout;
+					colPlan->location     = HCFFT_INPLACE;
+					colPlan->length.push_back(Nt);
+
+					colPlan->inStride[0]  = 1;
+					colPlan->inStride.push_back(length1);
+					colPlan->iDist         = Nt*length1;
+
+					colPlan->outStride[0]  = 1;
+					colPlan->outStride.push_back(length1);
+					colPlan->oDist         = Nt*length1;
+
+					colPlan->precision     = fftPlan->precision;
+					colPlan->forwardScale  = fftPlan->forwardScale;
+					colPlan->backwardScale = fftPlan->backwardScale;
+					colPlan->tmpBufSize    = 0;
+
+					colPlan->gen			= fftPlan->gen;
+					colPlan->envelope		= fftPlan->envelope;
+
+					colPlan->batchSize    = fftPlan->batchSize;
+
+					//this 2d is decomposed from 3d
+					for (size_t index=2; index < fftPlan->length.size(); index++)
+					{
+						colPlan->length.push_back(fftPlan->length[index]);
+						colPlan->inStride.push_back(colPlan->iDist);
+						colPlan->outStride.push_back(colPlan->oDist);
+						colPlan->iDist *= fftPlan->length[index];
+						colPlan->oDist *= fftPlan->length[index];
+					}
+
+					hcfftBakePlan(fftPlan->planY);
+
+					if (fftPlan->transposeType == HCFFT_TRANSPOSED)
+					{
+						fftPlan->baked = true;
+						return	HCFFT_SUCCESS;
+					}
+
+					// create second transpose plan
+
+					//Transpose
+					//output --> tmp
+					size_t trans2Lengths[2] = { length1, length0 };
+					hcfftCreateDefaultPlan(&fftPlan->planTY, HCFFT_2D, trans2Lengths );
+
+					FFTPlan* trans2Plan	= NULL;
+					lockRAII* trans2Lock	= NULL;
+					fftRepo.getPlan( fftPlan->planTY, trans2Plan, trans2Lock );
+
+					trans2Plan->transflag = true;
+
+					trans2Lengths[1] = Nt;
+					hcfftSetPlanLength( fftPlan->planTY, HCFFT_2D, trans2Lengths );
+
+					switch(fftPlan->opLayout)
+					{
+					case HCFFT_COMPLEX:
+						{
+							trans2Plan->opLayout = HCFFT_COMPLEX;
+							trans2Plan->ipLayout  = HCFFT_COMPLEX;
+						}
+						break;
+					default: assert(false);
+					}
+
+					trans2Plan->location     = HCFFT_OUTOFPLACE;
+					trans2Plan->precision     = fftPlan->precision;
+					trans2Plan->tmpBufSize    = 0;
+					trans2Plan->batchSize     = fftPlan->batchSize;
+					trans2Plan->envelope	  = fftPlan->envelope;
+					trans2Plan->forwardScale  = 1.0f;
+					trans2Plan->backwardScale = 1.0f;
+
+					trans2Plan->inStride[0]   = 1;
+					trans2Plan->inStride[1]   = length1;
+					trans2Plan->outStride[0]  = 1;
+					trans2Plan->outStride[1]  = Nt;
+					trans2Plan->iDist         = Nt*length1;
+					trans2Plan->oDist		  = fftPlan->oDist;
+
+					trans2Plan->transflag     = true;
+
+					for (size_t index=2; index < fftPlan->length.size(); index++)
+					{
+						trans2Plan->length.push_back(fftPlan->length[index]);
+						trans2Plan->inStride.push_back(trans2Plan->iDist);
+						trans2Plan->iDist *= fftPlan->length[index];
+						trans2Plan->outStride.push_back(fftPlan->outStride[index]);
+
+					}
+
+					hcfftBakePlan(fftPlan->planTY);
+
+				}
+				else
+				{
+					// create col plan
+					// complex to complex
+
+					hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
+
+					FFTPlan* colPlan	= NULL;
+					lockRAII* colLock	= NULL;
+					fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
+
+					switch(fftPlan->opLayout)
+					{
+					case HCFFT_COMPLEX:
+						{
+							colPlan->opLayout = HCFFT_COMPLEX;
+							colPlan->ipLayout  = HCFFT_COMPLEX;
+						}
+						break;
+					default: assert(false);
+					}
+
+					colPlan->location     = HCFFT_INPLACE;
+					colPlan->length.push_back(Nt);
+
+					colPlan->outStride[0]  = fftPlan->outStride[1];
+					colPlan->outStride.push_back(fftPlan->outStride[0]);
+					colPlan->oDist         = fftPlan->oDist;
+
+
+					colPlan->precision     = fftPlan->precision;
+					colPlan->forwardScale  = fftPlan->forwardScale;
+					colPlan->backwardScale = fftPlan->backwardScale;
+					colPlan->tmpBufSize    = fftPlan->tmpBufSize;
+
+					colPlan->gen			= fftPlan->gen;
+					colPlan->envelope			= fftPlan->envelope;
+
+					colPlan->batchSize = fftPlan->batchSize;
+
+					colPlan->inStride[0]  = rowPlan->outStride[1];
+					colPlan->inStride.push_back(rowPlan->outStride[0]);
+					colPlan->iDist         = rowPlan->oDist;
+
+					//this 2d is decomposed from 3d
+					for (size_t index=2; index < fftPlan->length.size(); index++)
+					{
+						colPlan->length.push_back(fftPlan->length[index]);
+						colPlan->outStride.push_back(fftPlan->outStride[index]);
+						colPlan->inStride.push_back(rowPlan->outStride[index]);
+					}
+
+					hcfftBakePlan(fftPlan->planY);
+				}
+
+			}
+			else if(fftPlan->opLayout == HCFFT_REAL)
+			{
+				length0 = fftPlan->length[0];
+				length1 = fftPlan->length[1];
+
+				size_t Nt = (1 + length0/2);
+				if (fftPlan->tmpBufSize==0)
+				{
+					fftPlan->tmpBufSize = Nt * length1 * fftPlan->batchSize * fftPlan->ElementSize();
+					for (size_t index=2; index < fftPlan->length.size(); index++)
+						fftPlan->tmpBufSize *= fftPlan->length[index];
+				}
+
+				if ((fftPlan->tmpBufSizeC2R==0) && (fftPlan->location == HCFFT_OUTOFPLACE) && (fftPlan->length.size() == 2))
+				{
+					fftPlan->tmpBufSizeC2R = fftPlan->tmpBufSize;
+				}
+
+				if( (fftPlan->inStride[0] == 1) && (fftPlan->outStride[0] == 1) &&
+					( ((fftPlan->outStride[1] == Nt*2) && (fftPlan->oDist == Nt*2*length1) && (fftPlan->location == HCFFT_INPLACE)) ||
+						((fftPlan->outStride[1] == length0) && (fftPlan->oDist == length0*length1) && (fftPlan->location == HCFFT_OUTOFPLACE)) )
+					&& (fftPlan->inStride[1] == Nt) && (fftPlan->iDist == Nt*length1) )
+				{
+					// create first transpose plan
+
+					//Transpose
+					// input --> tmp
+					size_t transLengths[2] = { length0, length1 };
+					hcfftCreateDefaultPlan( &fftPlan->planTY, HCFFT_2D, transLengths);
+
+					FFTPlan* trans1Plan	= NULL;
+					lockRAII* trans1Lock	= NULL;
+					fftRepo.getPlan( fftPlan->planTY, trans1Plan, trans1Lock );
+
+					trans1Plan->transflag = true;
+
+					transLengths[0] = Nt;
+					hcfftSetPlanLength( fftPlan->planTY, HCFFT_2D, transLengths );
+
+					switch(fftPlan->ipLayout)
+					{
+					case HCFFT_COMPLEX:
+						{
+							trans1Plan->opLayout = HCFFT_COMPLEX;
+							trans1Plan->ipLayout  = HCFFT_COMPLEX;
+						}
+						break;
+					default: assert(false);
+					}
+
+					trans1Plan->location     = HCFFT_OUTOFPLACE;
+					trans1Plan->precision     = fftPlan->precision;
+					trans1Plan->tmpBufSize    = 0;
+					trans1Plan->batchSize     = fftPlan->batchSize;
+					trans1Plan->envelope	  = fftPlan->envelope;
+					trans1Plan->forwardScale  = 1.0f;
+					trans1Plan->backwardScale = 1.0f;
+
+					trans1Plan->inStride[0]   = 1;
+					trans1Plan->inStride[1]   = Nt;
+					trans1Plan->outStride[0]  = 1;
+					trans1Plan->outStride[1]  = length1;
+					trans1Plan->iDist         = fftPlan->iDist;
+					trans1Plan->oDist		  = Nt*length1;
+
+					for (size_t index=2; index < fftPlan->length.size(); index++)
+					{
+						trans1Plan->length.push_back(fftPlan->length[index]);
+						trans1Plan->inStride.push_back(fftPlan->inStride[index]);
+						trans1Plan->outStride.push_back(trans1Plan->oDist);
+						trans1Plan->oDist *= fftPlan->length[index];
+					}
+
+					hcfftBakePlan(fftPlan->planTY);
+
+					// create col plan
+					// complex to complex
+
+					hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
+
+					FFTPlan* colPlan	= NULL;
+					lockRAII* colLock	= NULL;
+					fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
+
+					colPlan->length.push_back(Nt);
+
+					colPlan->inStride[0]  = 1;
+					colPlan->inStride.push_back(length1);
+					colPlan->iDist         = trans1Plan->oDist;
+
+					colPlan->location = HCFFT_INPLACE;
+					colPlan->ipLayout = HCFFT_COMPLEX;
+					colPlan->opLayout = HCFFT_COMPLEX;
+
+					colPlan->outStride[0]  = colPlan->inStride[0];
+					colPlan->outStride.push_back(colPlan->inStride[1]);
+					colPlan->oDist         = colPlan->iDist;
+
+					for (size_t index=2; index < fftPlan->length.size(); index++)
+					{
+						colPlan->length.push_back(fftPlan->length[index]);
+						colPlan->inStride.push_back(trans1Plan->outStride[index]);
+						colPlan->outStride.push_back(trans1Plan->outStride[index]);
+					}
+
+
+					colPlan->precision     = fftPlan->precision;
+					colPlan->forwardScale  = 1.0f;
+					colPlan->backwardScale = 1.0f;
+					colPlan->tmpBufSize    = 0;
+
+					colPlan->gen			= fftPlan->gen;
+					colPlan->envelope		= fftPlan->envelope;
+
+					colPlan->batchSize = fftPlan->batchSize;
+
+					hcfftBakePlan(fftPlan->planY);
+
+					// create second transpose plan
+
+					//Transpose
+					//tmp --> output
+					size_t trans2Lengths[2] = { length1, length0 };
+					hcfftCreateDefaultPlan( &fftPlan->planTX, HCFFT_2D, trans2Lengths );
+
+					FFTPlan* trans2Plan	= NULL;
+					lockRAII* trans2Lock	= NULL;
+					fftRepo.getPlan( fftPlan->planTX, trans2Plan, trans2Lock );
+
+					trans2Plan->transflag = true;
+
+					trans2Lengths[1] = Nt;
+					hcfftSetPlanLength( fftPlan->planTX, HCFFT_2D, trans2Lengths );
+
+
+					trans2Plan->opLayout = HCFFT_COMPLEX;
+					trans2Plan->ipLayout  = HCFFT_COMPLEX;
+
+
+					trans2Plan->location     = HCFFT_OUTOFPLACE;
+					trans2Plan->precision     = fftPlan->precision;
+					trans2Plan->tmpBufSize    = 0;
+					trans2Plan->batchSize     = fftPlan->batchSize;
+					trans2Plan->envelope	  = fftPlan->envelope;
+					trans2Plan->forwardScale  = 1.0f;
+					trans2Plan->backwardScale = 1.0f;
+
+					trans2Plan->inStride[0]   = 1;
+					trans2Plan->inStride[1]   = length1;
+					trans2Plan->outStride[0]  = 1;
+					trans2Plan->outStride[1]  = Nt;
+					trans2Plan->iDist         = colPlan->oDist;
+					trans2Plan->oDist		  = Nt*length1;
+
+					trans2Plan->transflag     = true;
+
+					for (size_t index=2; index < fftPlan->length.size(); index++)
+					{
+						trans2Plan->length.push_back(fftPlan->length[index]);
+						trans2Plan->inStride.push_back(colPlan->outStride[index]);
+						trans2Plan->outStride.push_back(trans2Plan->oDist);
+						trans2Plan->oDist *= fftPlan->length[index];
+
+					}
+
+					hcfftBakePlan(fftPlan->planTX);
+
+					// create row plan
+					// hermitian to real
+
+					//create row plan
+					hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
+
+					FFTPlan* rowPlan	= NULL;
+					lockRAII* rowLock	= NULL;
+					fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
+
+					rowPlan->opLayout  = fftPlan->opLayout;
+					rowPlan->ipLayout   = HCFFT_COMPLEX;
+
+					rowPlan->length.push_back(length1);
+
+					rowPlan->outStride[0]  = fftPlan->outStride[0];
+					rowPlan->outStride.push_back(fftPlan->outStride[1]);
+					rowPlan->oDist         = fftPlan->oDist;
+
+					rowPlan->inStride[0]  = trans2Plan->outStride[0];
+					rowPlan->inStride.push_back(trans2Plan->outStride[1]);
+					rowPlan->iDist         = trans2Plan->oDist;
+
+					for (size_t index=2; index < fftPlan->length.size(); index++)
+					{
+						rowPlan->length.push_back(fftPlan->length[index]);
+						rowPlan->inStride.push_back(trans2Plan->outStride[index]);
+						rowPlan->outStride.push_back(fftPlan->outStride[index]);
+					}
+
+					if (fftPlan->location == HCFFT_INPLACE)
+					{
+						rowPlan->location     = HCFFT_INPLACE;
+					}
+					else
+					{
+						rowPlan->location     = HCFFT_OUTOFPLACE;
+					}
+
+
+					rowPlan->precision     = fftPlan->precision;
+					rowPlan->forwardScale  = fftPlan->forwardScale;
+					rowPlan->backwardScale = fftPlan->backwardScale;
+					rowPlan->tmpBufSize    = 0;
+
+					rowPlan->gen			= fftPlan->gen;
+					rowPlan->envelope		= fftPlan->envelope;
+
+					rowPlan->batchSize    = fftPlan->batchSize;
+
+					hcfftBakePlan(fftPlan->planX);
+				}
+				else
+				{
+
+					// create col plan
+					// complex to complex
+
+					hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ]);
+
+					FFTPlan* colPlan	= NULL;
+					lockRAII* colLock	= NULL;
+					fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
+
+
+					switch(fftPlan->ipLayout)
+					{
+					case HCFFT_COMPLEX:
+					{
+						colPlan->opLayout = HCFFT_COMPLEX;
+						colPlan->ipLayout  = HCFFT_COMPLEX;
+					}
+					break;
+					default: assert(false);
+					}
+
+					colPlan->length.push_back(Nt);
+
+					colPlan->inStride[0]  = fftPlan->inStride[1];
+					colPlan->inStride.push_back(fftPlan->inStride[0]);
+					colPlan->iDist         = fftPlan->iDist;
+
+
+					if (fftPlan->location == HCFFT_INPLACE)
+					{
+						colPlan->location = HCFFT_INPLACE;
+					}
+					else
+					{
+						if(fftPlan->length.size() > 2)
+							colPlan->location = HCFFT_INPLACE;
+						else
+							colPlan->location = HCFFT_OUTOFPLACE;
+					}
+
+					if(colPlan->location == HCFFT_INPLACE)
+					{
+						colPlan->outStride[0]  = colPlan->inStride[0];
+						colPlan->outStride.push_back(colPlan->inStride[1]);
+						colPlan->oDist         = colPlan->iDist;
+
+						for (size_t index=2; index < fftPlan->length.size(); index++)
+						{
+							colPlan->length.push_back(fftPlan->length[index]);
+							colPlan->inStride.push_back(fftPlan->inStride[index]);
+							colPlan->outStride.push_back(fftPlan->inStride[index]);
+						}
+					}
+					else
+					{
+						colPlan->outStride[0]  = Nt;
+						colPlan->outStride.push_back(1);
+						colPlan->oDist         = Nt*length1;
+
+						for (size_t index=2; index < fftPlan->length.size(); index++)
+						{
+							colPlan->length.push_back(fftPlan->length[index]);
+							colPlan->inStride.push_back(fftPlan->inStride[index]);
+							colPlan->outStride.push_back(colPlan->oDist);
+							colPlan->oDist *= fftPlan->length[index];
+						}
+					}
+
+					colPlan->precision     = fftPlan->precision;
+					colPlan->forwardScale  = 1.0f;
+					colPlan->backwardScale = 1.0f;
+					colPlan->tmpBufSize    = 0;
+
+					colPlan->gen		= fftPlan->gen;
+					colPlan->envelope	= fftPlan->envelope;
+
+					colPlan->batchSize = fftPlan->batchSize;
+
+					hcfftBakePlan(fftPlan->planY);
+
+					// create row plan
+					// hermitian to real
+
+					//create row plan
+					hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
+
+					FFTPlan* rowPlan	= NULL;
+					lockRAII* rowLock	= NULL;
+					fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
+
+					rowPlan->opLayout  = fftPlan->opLayout;
+					rowPlan->ipLayout   = HCFFT_COMPLEX;
+
+					rowPlan->length.push_back(length1);
+
+					rowPlan->outStride[0]  = fftPlan->outStride[0];
+					rowPlan->outStride.push_back(fftPlan->outStride[1]);
+					rowPlan->oDist         = fftPlan->oDist;
+
+					if (fftPlan->location == HCFFT_INPLACE)
+					{
+						rowPlan->location     = HCFFT_INPLACE;
+
+						rowPlan->inStride[0]  = colPlan->outStride[1];
+						rowPlan->inStride.push_back(colPlan->outStride[0]);
+						rowPlan->iDist         = colPlan->oDist;
+
+						for (size_t index=2; index < fftPlan->length.size(); index++)
+						{
+							rowPlan->length.push_back(fftPlan->length[index]);
+							rowPlan->inStride.push_back(colPlan->outStride[index]);
+							rowPlan->outStride.push_back(fftPlan->outStride[index]);
+						}
+					}
+					else
+					{
+						rowPlan->location     = HCFFT_OUTOFPLACE;
+
+						rowPlan->inStride[0]   = 1;
+						rowPlan->inStride.push_back(Nt);
+						rowPlan->iDist         = Nt*length1;
+
+						for (size_t index=2; index < fftPlan->length.size(); index++)
+						{
+							rowPlan->length.push_back(fftPlan->length[index]);
+							rowPlan->outStride.push_back(fftPlan->outStride[index]);
+							rowPlan->inStride.push_back(rowPlan->iDist);
+							rowPlan->iDist *= fftPlan->length[index];
+						}
+					}
+
+
+					rowPlan->precision     = fftPlan->precision;
+					rowPlan->forwardScale  = fftPlan->forwardScale;
+					rowPlan->backwardScale = fftPlan->backwardScale;
+					rowPlan->tmpBufSize    = 0;
+
+					rowPlan->gen			= fftPlan->gen;
+					rowPlan->envelope		= fftPlan->envelope;
+
+					rowPlan->batchSize    = fftPlan->batchSize;
+
+
+					hcfftBakePlan(fftPlan->planX);
+				}
+			}
+			else
+			{
+				if (fftPlan->tmpBufSize==0 && fftPlan->length.size()<=2)
+				{
+					fftPlan->tmpBufSize = length0 * length1 *
+					fftPlan->batchSize * fftPlan->ElementSize();
+				}
+
+				//create row plan
+				hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
+
+				FFTPlan* rowPlan	= NULL;
+				lockRAII* rowLock	= NULL;
+				fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
+
+				rowPlan->ipLayout   = fftPlan->ipLayout;
+				if (fftPlan->large2D || fftPlan->length.size()>2)
+				{
+					rowPlan->opLayout  = fftPlan->opLayout;
+					rowPlan->location     = fftPlan->location;
+					rowPlan->outStride[0]  = fftPlan->outStride[0];
+					rowPlan->outStride.push_back(fftPlan->outStride[1]);
+					rowPlan->oDist         = fftPlan->oDist;
+				}
+				else
+				{
+					rowPlan->opLayout  = HCFFT_COMPLEX;
+					rowPlan->location     = HCFFT_OUTOFPLACE;
+					rowPlan->outStride[0]  = length1;//1;
+					rowPlan->outStride.push_back(1);//length0);
+					rowPlan->oDist         = length0 * length1;
+				}
+				rowPlan->precision     = fftPlan->precision;
+				rowPlan->forwardScale  = 1.0f;
+				rowPlan->backwardScale = 1.0f;
+				rowPlan->tmpBufSize    = fftPlan->tmpBufSize;
+
+				rowPlan->gen		= fftPlan->gen;
+				rowPlan->envelope	= fftPlan->envelope;
+
+				// This is the row fft, the first elements distance between the first two FFTs is the distance of the first elements
+				// of the first two rows in the original buffer.
+				rowPlan->batchSize    = fftPlan->batchSize;
+				rowPlan->inStride[0]  = fftPlan->inStride[0];
+
+				//pass length and other info to kernel, so the kernel knows this is decomposed from higher dimension
+				rowPlan->length.push_back(fftPlan->length[1]);
+				rowPlan->inStride.push_back(fftPlan->inStride[1]);
+
+				//this 2d is decomposed from 3d
+				if (fftPlan->length.size()>2)
+				{
+					rowPlan->length.push_back(fftPlan->length[2]);
+					rowPlan->inStride.push_back(fftPlan->inStride[2]);
+					rowPlan->outStride.push_back(fftPlan->outStride[2]);
+				}
+
+				rowPlan->iDist    = fftPlan->iDist;
+
+				hcfftBakePlan(fftPlan->planX);
+
+				//create col plan
+				hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
+
+				FFTPlan* colPlan	= NULL;
+				lockRAII* colLock	= NULL;
+				fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
+
+				if (fftPlan->large2D || fftPlan->length.size()>2)
+				{
+					colPlan->ipLayout   = fftPlan->opLayout;
+					colPlan->location     = HCFFT_INPLACE;
+					colPlan->inStride[0]   = fftPlan->outStride[1];
+					colPlan->inStride.push_back(fftPlan->outStride[0]);
+					colPlan->iDist         = fftPlan->oDist;
+				}
+				else
+				{
+					colPlan->ipLayout   = HCFFT_COMPLEX;
+					colPlan->location     = HCFFT_OUTOFPLACE;
+					colPlan->inStride[0]   = 1;//length0;
+					colPlan->inStride.push_back(length1);//1);
+					colPlan->iDist         = length0 * length1;
+				}
+
+				colPlan->opLayout  = fftPlan->opLayout;
+				colPlan->precision     = fftPlan->precision;
+				colPlan->forwardScale  = fftPlan->forwardScale;
+				colPlan->backwardScale = fftPlan->backwardScale;
+				colPlan->tmpBufSize    = fftPlan->tmpBufSize;
+
+				colPlan->gen	= fftPlan->gen;
+				colPlan->envelope	= fftPlan->envelope;
+
+				// This is a column FFT, the first elements distance between each FFT is the distance of the first two
+				// elements in the original buffer. Like a transpose of the matrix
+				colPlan->batchSize = fftPlan->batchSize;
+				colPlan->outStride[0] = fftPlan->outStride[1];
+
+				//pass length and other info to kernel, so the kernel knows this is decomposed from higher dimension
+				colPlan->length.push_back(fftPlan->length[0]);
+				colPlan->outStride.push_back(fftPlan->outStride[0]);
+				colPlan->oDist    = fftPlan->oDist;
+
+				//this 2d is decomposed from 3d
+				if (fftPlan->length.size()>2)
+				{
+					//assert(fftPlan->large2D);
+					colPlan->length.push_back(fftPlan->length[2]);
+					colPlan->inStride.push_back(fftPlan->outStride[2]);
+					colPlan->outStride.push_back(fftPlan->outStride[2]);
+				}
+
+				hcfftBakePlan(fftPlan->planY);
+			}
+
+			fftPlan->baked = true;
+			return	HCFFT_SUCCESS;
 		}
-	      }
-	      else
-	      {
-	        if(fftPlan->length[0]==256 && fftPlan->length[1]==256)
-		{
-		  length0 += 8;
-		  length1 += 1;
-		}
-		else if (fftPlan->length[0]==512 && fftPlan->length[1]==512)
-		{
-		  length0 += 1;
-		  length1 += 1;
-		}
-		else if (fftPlan->length[0]==1024 && fftPlan->length[1]==512)
-		{
-		  length0 += 2;
-		  length1 += 2;
-		}
-		else if (fftPlan->length[0]==1024 && fftPlan->length[1]==1024)
-		{
-		  length0 += 1;
-		  length1 += 1;
-		}
-	      }
-
-	      if(fftPlan->length[0] > Large1DThreshold || fftPlan->length[1] > Large1DThreshold)
-		 fftPlan->large2D = true;
-
-	      while (1 && (fftPlan->ipLayout != HCFFT_REAL) && (fftPlan->opLayout != HCFFT_REAL))
-	      {
-	        if (fftPlan->transflag) //Transpose for 2D
-		{
-		  fftPlan->GenerateKernel( plHandle, fftRepo);
-		  CompileKernels(plHandle, fftPlan->gen, fftPlan);
-                  fftPlan->baked		= true;
-		  return	HCFFT_SUCCESS;
-		}
-
-                // TODO : Check for a better way to do this.
-                bool isnvidia = false;
-
-                // nvidia gpus are failing when doing transpose for 2D FFTs
-                if (isnvidia) break;
-
-		if (fftPlan->length.size() != 2) break;
-		if (!(IsPo2(fftPlan->length[0])) || !(IsPo2(fftPlan->length[1])))
-		  break;
-		if (fftPlan->length[1] < 32) break;
-
-                if (fftPlan->length[0] < 512 && fftPlan->transposeType == HCFFT_NOTRANSPOSE) break;
-		if (fftPlan->length[0] < 32) break;
-
-                if (fftPlan->inStride[0] != 1 || fftPlan->outStride[0] != 1 ||
-		fftPlan->inStride[1] != fftPlan->length[0] || fftPlan->outStride[1] != fftPlan->length[0])
-		  break;
-		fftPlan->transflag = true;
-		//create row plan,
-		// x=y & x!=y, In->In for inplace, In->out for outofplace
-                hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ] );
-
-		FFTPlan* rowPlan	= NULL;
-		lockRAII* rowLock	= NULL;
-		fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
-
-		rowPlan->ipLayout     = fftPlan->ipLayout;
-		rowPlan->opLayout    = fftPlan->opLayout;
-		rowPlan->location       = fftPlan->location;
-		rowPlan->outStride[0]    = fftPlan->outStride[0];
-		rowPlan->outStride.push_back(fftPlan->outStride[1]);
-		rowPlan->oDist           = fftPlan->oDist;
-		rowPlan->precision       = fftPlan->precision;
-		rowPlan->forwardScale    = 1.0f;
-		rowPlan->backwardScale   = 1.0f;
-		rowPlan->tmpBufSize      = 0;
-		rowPlan->bLdsComplex     = fftPlan->bLdsComplex;
-		rowPlan->uLdsFraction    = fftPlan->uLdsFraction;
-		rowPlan->ldsPadding      = fftPlan->ldsPadding;
-		rowPlan->gen		 = fftPlan->gen;
-		rowPlan->envelope	 = fftPlan->envelope;
-		rowPlan->batchSize       = fftPlan->batchSize;
-		rowPlan->inStride[0]     = fftPlan->inStride[0];
-		rowPlan->length.push_back(fftPlan->length[1]);
-		rowPlan->inStride.push_back(fftPlan->inStride[1]);
-		rowPlan->iDist           = fftPlan->iDist;
-
-		hcfftBakePlan(fftPlan->planX);
-
-		//Create transpose plan for first transpose
-		//x=y: inplace. x!=y inplace: in->tmp, outofplace out->tmp
-		size_t clLengths[] = { 1, 1, 0 };
-		clLengths[0] = fftPlan->length[0];
-		clLengths[1] = fftPlan->length[1];
-
-		bool xyflag = (clLengths[0]==clLengths[1]) ? false : true;
-		if (xyflag && fftPlan->tmpBufSize==0 && fftPlan->length.size()<=2)
-		{
-		  // we need tmp buffer for x!=y case
-		  // we assume the tmp buffer is packed interleaved
-		  fftPlan->tmpBufSize = length0 * length1 * fftPlan->batchSize * fftPlan->ElementSize();
-		}
-		hcfftCreateDefaultPlan( &fftPlan->planTX, HCFFT_2D, clLengths );
-
-		FFTPlan* transPlanX	= NULL;
-		lockRAII* transLockX	= NULL;
-		fftRepo.getPlan( fftPlan->planTX, transPlanX, transLockX );
-
-		transPlanX->ipLayout     = fftPlan->opLayout;
-		transPlanX->precision       = fftPlan->precision;
-		transPlanX->tmpBufSize      = 0;
-		transPlanX->gen		    = Transpose;
-		transPlanX->envelope        = fftPlan->envelope;
-		transPlanX->batchSize       = fftPlan->batchSize;
-		transPlanX->inStride[0]     = fftPlan->outStride[0];
-		transPlanX->inStride[1]     = fftPlan->outStride[1];
-		transPlanX->iDist           = fftPlan->oDist;
-		transPlanX->transflag       = true;
-
-		if (xyflag)
-		{
-		  transPlanX->opLayout    = HCFFT_COMPLEX;
-		  transPlanX->location       = HCFFT_OUTOFPLACE;
-		  transPlanX->outStride[0]    = 1;
-		  transPlanX->outStride[1]    = clLengths[0];
-		  transPlanX->oDist           = clLengths[0] * clLengths[1];
-		}
-		else
-		{
-		  transPlanX->opLayout    = fftPlan->opLayout;
-		  transPlanX->location       = HCFFT_INPLACE;
-		  transPlanX->outStride[0]    = fftPlan->outStride[0];
-		  transPlanX->outStride[1]    = fftPlan->outStride[1];
-		  transPlanX->oDist           = fftPlan->oDist;
-		}
-
-		hcfftBakePlan(fftPlan->planTX);
-
-		//create second row plan
-		//x!=y: tmp->tmp, x=y case: In->In or Out->Out
-		//if Transposed result is a choice x!=y: tmp->In or out
-		hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
-
-		FFTPlan* colPlan	= NULL;
-		lockRAII* colLock	= NULL;
-		fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
-
-		if (xyflag)
-		{
-		  colPlan->ipLayout     = HCFFT_COMPLEX;
-		  colPlan->inStride[0]     = 1;
-		  colPlan->inStride.push_back(clLengths[1]);
-		  colPlan->iDist           = clLengths[0] * clLengths[1];
-
-		  if (fftPlan->transposeType == HCFFT_NOTRANSPOSE)
-		  {
-		    colPlan->opLayout    = HCFFT_COMPLEX;
-		    colPlan->outStride[0]    = 1;
-		    colPlan->outStride.push_back(clLengths[1]);
-		    colPlan->oDist           = clLengths[0] * clLengths[1];
-		    colPlan->location       = HCFFT_INPLACE;
-		  }
-		  else
-		  {
-		    colPlan->opLayout    = fftPlan->opLayout;
-		    colPlan->outStride[0]    = fftPlan->outStride[0];
-		    colPlan->outStride.push_back(clLengths[1] * fftPlan->outStride[0]);
-		    colPlan->oDist           = fftPlan->oDist;
-		    colPlan->location       = HCFFT_OUTOFPLACE;
-		  }
-		}
-		else
-		{
-		  colPlan->ipLayout     = fftPlan->opLayout;
-		  colPlan->opLayout    = fftPlan->opLayout;
-		  colPlan->outStride[0]    = fftPlan->outStride[0];
-		  colPlan->outStride.push_back(fftPlan->outStride[1]);
-		  colPlan->oDist           = fftPlan->oDist;
-		  colPlan->inStride[0]     = fftPlan->outStride[0];
-		  colPlan->inStride.push_back(fftPlan->outStride[1]);
-		  colPlan->iDist           = fftPlan->oDist;
-		  colPlan->location       = HCFFT_INPLACE;
-		}
-		colPlan->precision       = fftPlan->precision;
-		colPlan->forwardScale    = fftPlan->forwardScale;
-		colPlan->backwardScale   = fftPlan->backwardScale;
-		colPlan->tmpBufSize      = 0;
-		colPlan->bLdsComplex     = fftPlan->bLdsComplex;
-		colPlan->uLdsFraction    = fftPlan->uLdsFraction;
-		colPlan->ldsPadding      = fftPlan->ldsPadding;
-		colPlan->gen		 = fftPlan->gen;
-		colPlan->envelope	 = fftPlan->envelope;
-		colPlan->batchSize       = fftPlan->batchSize;
-		colPlan->length.push_back(fftPlan->length[0]);
-
-	        hcfftBakePlan(fftPlan->planY);
-
-		if (fftPlan->transposeType == HCFFT_TRANSPOSED)
-		{
-		  fftPlan->baked = true;
-		  return HCFFT_SUCCESS;
-		}
-
-		//Create transpose plan for second transpose
-		//x!=y case tmp->In or Out, x=y case In->In or Out->out
-		clLengths[0] = fftPlan->length[1];
-		clLengths[1] = fftPlan->length[0];
-		hcfftCreateDefaultPlan( &fftPlan->planTY, HCFFT_2D, clLengths );
-
-		FFTPlan* transPlanY	= NULL;
-		lockRAII* transLockY	= NULL;
-		fftRepo.getPlan( fftPlan->planTY, transPlanY, transLockY);
-		if (xyflag)
-		{
-		  transPlanY->ipLayout     = HCFFT_COMPLEX;
-		  transPlanY->location       = HCFFT_OUTOFPLACE;
-		  transPlanY->inStride[0]     = 1;
-		  transPlanY->inStride[1]     = clLengths[0];
-		  transPlanY->iDist           = clLengths[0] * clLengths[1];
-		}
-		else
-		{
-		  transPlanY->ipLayout     = fftPlan->opLayout;
-		  transPlanY->location       = HCFFT_INPLACE;
-		  transPlanY->inStride[0]     = fftPlan->outStride[0];
-		  transPlanY->inStride[1]     = fftPlan->outStride[1];
-		  transPlanY->iDist           = fftPlan->oDist;
-		}
-		transPlanY->opLayout    = fftPlan->opLayout;
-		transPlanY->outStride[0]    = fftPlan->outStride[0];
-		transPlanY->outStride[1]    = fftPlan->outStride[1];
-		transPlanY->oDist           = fftPlan->oDist;
-		transPlanY->precision       = fftPlan->precision;
-		transPlanY->tmpBufSize      = 0;
-		transPlanY->gen		    = Transpose;
-		transPlanY->envelope	    = fftPlan->envelope;
-		transPlanY->batchSize       = fftPlan->batchSize;
-		transPlanY->transflag       = true;
-		hcfftBakePlan(fftPlan->planTY);
-
-		fftPlan->baked = true;
-		return	HCFFT_SUCCESS;
-		}
-
-		//check transposed
-		if (fftPlan->transposeType != HCFFT_NOTRANSPOSE)
-		  return HCFFT_ERROR;
-
-		if(fftPlan->ipLayout == HCFFT_REAL)
-		{
-		  length0 = fftPlan->length[0];
-		  length1 = fftPlan->length[1];
-
-		  size_t Nt = (1 + length0/2);
-		  if (fftPlan->tmpBufSize==0)
-		  {
-		    fftPlan->tmpBufSize = Nt * length1 * fftPlan->batchSize * fftPlan->ElementSize();
-		    if(fftPlan->length.size() > 2) fftPlan->tmpBufSize *= fftPlan->length[2];
-		  }
-
-		  // create row plan
-		  // real to hermitian
-		  hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ] );
-
-		  FFTPlan* rowPlan	= NULL;
-		  lockRAII* rowLock	= NULL;
-		  fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
-
-		  rowPlan->opLayout  = fftPlan->opLayout;
-		  rowPlan->ipLayout  = fftPlan->ipLayout;
-		  rowPlan->location     = fftPlan->location;
-		  rowPlan->length.push_back(length1);
-
-		  rowPlan->inStride[0]  = fftPlan->inStride[0];
-		  rowPlan->inStride.push_back(fftPlan->inStride[1]);
-		  rowPlan->iDist         = fftPlan->iDist;
-
-		  rowPlan->precision     = fftPlan->precision;
-		  rowPlan->forwardScale  = 1.0f;
-		  rowPlan->backwardScale = 1.0f;
-		  rowPlan->tmpBufSize    = fftPlan->tmpBufSize;
-		  rowPlan->bLdsComplex   = fftPlan->bLdsComplex;
-		  rowPlan->uLdsFraction  = fftPlan->uLdsFraction;
-		  rowPlan->ldsPadding    = fftPlan->ldsPadding;
-		  rowPlan->gen		 = fftPlan->gen;
-		  rowPlan->envelope	 = fftPlan->envelope;
-
-		  rowPlan->batchSize    = fftPlan->batchSize;
-
-		  rowPlan->outStride[0]  = fftPlan->outStride[0];
-		  rowPlan->outStride.push_back(fftPlan->outStride[1]);
-		  rowPlan->oDist         = fftPlan->oDist;
-
-		  //this 2d is decomposed from 3d
-		  if (fftPlan->length.size()>2)
-		  {
-		    rowPlan->length.push_back(fftPlan->length[2]);
-		    rowPlan->inStride.push_back(fftPlan->inStride[2]);
-		    rowPlan->outStride.push_back(fftPlan->outStride[2]);
-		  }
-
-		  hcfftBakePlan(fftPlan->planX);
-
-	          // create col plan
-		  // complex to complex
-
-		  hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
-
-		  FFTPlan* colPlan	= NULL;
-		  lockRAII* colLock	= NULL;
-		  fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
-
-		  colPlan->location     = HCFFT_INPLACE;
-		  colPlan->length.push_back(Nt);
-
-		  colPlan->outStride[0]  = fftPlan->outStride[1];
-		  colPlan->outStride.push_back(fftPlan->outStride[0]);
-		  colPlan->oDist         = fftPlan->oDist;
-
-		  colPlan->precision     = fftPlan->precision;
-		  colPlan->forwardScale  = fftPlan->forwardScale;
-		  colPlan->backwardScale = fftPlan->backwardScale;
-		  colPlan->tmpBufSize    = fftPlan->tmpBufSize;
-		  colPlan->bLdsComplex   = fftPlan->bLdsComplex;
-		  colPlan->uLdsFraction  = fftPlan->uLdsFraction;
-		  colPlan->ldsPadding    = fftPlan->ldsPadding;
-		  colPlan->gen		 = fftPlan->gen;
-		  colPlan->envelope	 = fftPlan->envelope;
-
-		  colPlan->batchSize = fftPlan->batchSize;
-		  colPlan->inStride[0]  = rowPlan->outStride[1];
-		  colPlan->inStride.push_back(rowPlan->outStride[0]);
-		  colPlan->iDist         = rowPlan->oDist;
-
-		  //this 2d is decomposed from 3d
-		  if (fftPlan->length.size()>2)
-		  {
-		    colPlan->length.push_back(fftPlan->length[2]);
-		    colPlan->outStride.push_back(fftPlan->outStride[2]);
-		    colPlan->inStride.push_back(rowPlan->outStride[2]);
-		  }
-
-		  hcfftBakePlan(fftPlan->planY);
-
-		}
-		else if(fftPlan->opLayout == HCFFT_REAL)
-		{
-		  length0 = fftPlan->length[0];
-		  length1 = fftPlan->length[1];
-
-		  size_t Nt = (1 + length0/2);
-		  if (fftPlan->tmpBufSize==0)
-		  {
-		    fftPlan->tmpBufSize = Nt * length1 * fftPlan->batchSize * fftPlan->ElementSize();
-		    if(fftPlan->length.size() > 2) fftPlan->tmpBufSize *= fftPlan->length[2];
-		  }
-
-		  // create col plan
-		  // complex to complex
-
-		  hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
-                  FFTPlan* colPlan	= NULL;
-		  lockRAII* colLock	= NULL;
-		  fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
-
-		  colPlan->length.push_back(Nt);
-		  colPlan->inStride[0]  = fftPlan->inStride[1];
-		  colPlan->inStride.push_back(fftPlan->inStride[0]);
-		  colPlan->iDist         = fftPlan->iDist;
-
-		  //this 2d is decomposed from 3d
-		  if (fftPlan->length.size()>2)
-		  {
-		    colPlan->location = HCFFT_INPLACE;
-		    colPlan->length.push_back(fftPlan->length[2]);
-		    colPlan->inStride.push_back(fftPlan->inStride[2]);
-		    colPlan->outStride[0]  = colPlan->inStride[0];
-		    colPlan->outStride.push_back(colPlan->inStride[1]);
-		    colPlan->outStride.push_back(colPlan->inStride[2]);
-		    colPlan->oDist         = fftPlan->iDist;
-		  }
-		  else
-		  {
-		    colPlan->location = HCFFT_OUTOFPLACE;
-		    colPlan->outStride[0]  = Nt;
-		    colPlan->outStride.push_back(1);
-		    colPlan->oDist         = Nt*length1;
-		  }
-
-		  colPlan->precision     = fftPlan->precision;
-		  colPlan->forwardScale  = 1.0f;
-		  colPlan->backwardScale = 1.0f;
-		  colPlan->tmpBufSize    = fftPlan->tmpBufSize;
-		  colPlan->bLdsComplex   = fftPlan->bLdsComplex;
-		  colPlan->uLdsFraction  = fftPlan->uLdsFraction;
-		  colPlan->ldsPadding    = fftPlan->ldsPadding;
-		  colPlan->gen		 = fftPlan->gen;
-		  colPlan->envelope	 = fftPlan->envelope;
-		  colPlan->batchSize = fftPlan->batchSize;
-
-		  if ((fftPlan->tmpBufSizeC2R==0) && (length1 > Large1DThreshold) && (fftPlan->length.size()<=2))
-		  {
-		    fftPlan->tmpBufSizeC2R = Nt * length1 * fftPlan->batchSize * fftPlan->ElementSize();
-		    if(fftPlan->length.size() > 2) fftPlan->tmpBufSizeC2R *= fftPlan->length[2];
-		  }
-
-		  hcfftBakePlan(fftPlan->planY);
-
-		  // create row plan
-		  // hermitian to real
-		  hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
-
-		  FFTPlan* rowPlan	= NULL;
-		  lockRAII* rowLock	= NULL;
-		  fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
-
-                  rowPlan->opLayout  = fftPlan->opLayout;
-		  rowPlan->ipLayout   = HCFFT_COMPLEX;
-		  rowPlan->location     = HCFFT_OUTOFPLACE;
-		  rowPlan->length.push_back(length1);
-
-		  rowPlan->inStride[0]   = 1;
-		  rowPlan->inStride.push_back(Nt);
-		  rowPlan->iDist         = colPlan->oDist;
-
-		  rowPlan->precision     = fftPlan->precision;
-		  rowPlan->forwardScale  = fftPlan->forwardScale;
-		  rowPlan->backwardScale = fftPlan->backwardScale;
-		  rowPlan->tmpBufSize    = fftPlan->tmpBufSize;
-		  rowPlan->bLdsComplex   = fftPlan->bLdsComplex;
-		  rowPlan->uLdsFraction  = fftPlan->uLdsFraction;
-		  rowPlan->ldsPadding    = fftPlan->ldsPadding;
-		  rowPlan->gen		 = fftPlan->gen;
-		  rowPlan->envelope	= fftPlan->envelope;
-                  rowPlan->batchSize    = fftPlan->batchSize;
-                  rowPlan->outStride[0]  = fftPlan->outStride[0];
-		  rowPlan->outStride.push_back(fftPlan->outStride[1]);
-		  rowPlan->oDist         = fftPlan->oDist;
-
-		  //this 2d is decomposed from 3d
-		  if (fftPlan->length.size()>2)
-		  {
-		    rowPlan->length.push_back(fftPlan->length[2]);
-		    rowPlan->inStride.push_back(Nt*length1);
-		    rowPlan->outStride.push_back(fftPlan->outStride[2]);
-		  }
-	          hcfftBakePlan(fftPlan->planX);
-		}
-
-		fftPlan->baked = true;
-		return	HCFFT_SUCCESS;
-	     }
 	     case HCFFT_3D:
 	     {
 	       if(fftPlan->ipLayout == HCFFT_REAL)
