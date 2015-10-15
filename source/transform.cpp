@@ -61,17 +61,11 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
         if(!compilerPath)
           std::cout<<"No Compiler Path Variable found. Please export MCWCPPAMPROOT "<<std::endl;
 
-        char *CLPath = (char*)calloc(100, 1);
-        CLPath = getenv ("AMDAPPSDKROOT");
-        if(!CLPath)
-          std::cout<<"No OpenCL path Variable found. Please export AMDAPPSDKROOT "<<std::endl;
-
         string fftLibPath = pwd + "/../../Build/linux/";
 
         std::string Path(compilerPath);
-        std::string OpenCLPath(CLPath);
 
-        std::string execCmd = Path + "/build/compiler/bin/clang++ `" + Path + "/build/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` -I/opt/AMDAPP/include  ../kernel0.cpp -o " + kernellib ;
+        std::string execCmd = Path + "/build/compiler/bin/clang++ `" + Path + "/build/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` ../kernel0.cpp -o " + kernellib ;
 
         system(execCmd.c_str());
 
