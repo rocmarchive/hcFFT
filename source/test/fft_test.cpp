@@ -131,11 +131,14 @@ int main(int argc,char* argv[])
 #endif
 
   for(int  i =0;i<realsize;i++)
-  if(abs(inpAr1[i] - input[i]) > 1.0 )
+  if(round(inpAr1[i]) != input[i])
   { 
     cout<<" Mismatch at  "<<i<<" input "<<input[i]<<" amp "<<inpAr1[i]<<endl;
+    cout<<" TEST FAILED "<<std::endl;
     exit(0);
   }
+  cout<<" TEST PASSED "<<std::endl;
+
   status = plan1.hcfftDestroyPlan(&planhandle);
 
  }
