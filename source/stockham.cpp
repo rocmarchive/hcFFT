@@ -1026,7 +1026,9 @@ namespace StockhamGenerator
 									passStr += SztToStr(r*algLS); passStr += ") * b";
 								}
 
-								passStr += " );\n\t\t";
+								passStr += ",";
+								passStr += TwTableLargeName();
+								passStr += ");\n\t\t";
 							}
 
 							passStr += rType; passStr += " TR, TI;\n\t\t";
@@ -1813,6 +1815,15 @@ namespace StockhamGenerator
 				passStr += ",1> &";
 				passStr += TwTableName();
 			}
+
+			if(fft_3StepTwiddle)
+			{
+				passStr += ", const array_view<const ";
+				passStr += RegBaseType<PR>(2);
+				passStr += ",1> &";
+				passStr += TwTableLargeName();
+			}
+
                         passStr += ", Concurrency::tiled_index<";
                         passStr += SztToStr(lWorkSize);
                         passStr += ", 1> tidx) restrict(amp)\n{\n";
@@ -3020,7 +3031,7 @@ namespace StockhamGenerator
 				// twiddle factors for 1d-large 3-step algorithm
 				if(params.fft_3StepTwiddle)
 				{
-				  twLarge.GenerateTwiddleTable<PR>(str);
+				  twLarge.TwiddleLargeAV<PR>(str);
 				}
 
                                 str += "\tConcurrency::extent<2> grdExt( ";
@@ -3315,12 +3326,22 @@ namespace StockhamGenerator
 						str += ",";
 						str += TwTableName();
 					}
+					if(params.fft_3StepTwiddle)
+					{
+						str += ",";
+						str += TwTableLargeName();
+					}
 					str += ",tidx);\n";
 				}
 				else
 				{
 					for(typename std::vector<Pass<PR> >::const_iterator p = passes.begin(); p != passes.end(); p++)
 					{
+						bool tw3Step = false;
+
+						if(p == passes.begin() && params.fft_twiddleFront ) { tw3Step = params.fft_3StepTwiddle; }
+						if((p+1) == passes.end())	{ if(!params.fft_twiddleFront) tw3Step = params.fft_3StepTwiddle; }
+
 						std::string exTab = "";
 						if(blockCompute || realSpecial) exTab = "\t";
 
@@ -3370,6 +3391,11 @@ namespace StockhamGenerator
 								str += ",";
 								str += TwTableName();
 							}
+							if(tw3Step)
+							{
+								str += ",";
+								str += TwTableLargeName();
+							}
 							str += ",tidx);\n";
 							if(!halfLds) { str += exTab; str += "\t tidx.barrier.wait_with_tile_static_memory_fence();\n"; }
 						}
@@ -3387,6 +3413,11 @@ namespace StockhamGenerator
                                                         str += ",";
                                                         str += TwTableName();
 							}
+							if(tw3Step)
+							{
+								str += ",";
+								str += TwTableLargeName();
+							}
                                                         str += ",tidx);\n";
 						}
 						else // intermediate pass
@@ -3401,6 +3432,11 @@ namespace StockhamGenerator
 							{
 								str += ",";
 								str += TwTableName();
+							}
+							if(tw3Step)
+							{
+								str += ",";
+								str += TwTableLargeName();
 							}
 							str += ",tidx);\n";
 							if(!halfLds) { str += exTab; str += "\t tidx.barrier.wait_with_tile_static_memory_fence();\n"; }
