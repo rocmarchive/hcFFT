@@ -2721,6 +2721,13 @@ namespace StockhamGenerator
 				}
 			}
 
+			TwiddleTableLarge twLarge(large1D);
+			// twiddle factors for 1d-large 3-step algorithm
+			if(params.fft_3StepTwiddle)
+			{
+			  twLarge.GenerateTwiddleTable<PR>(str);
+			}
+
 			// Generate passes
 			for(size_t d=0; d<2; d++)
 			{
@@ -3013,7 +3020,6 @@ namespace StockhamGenerator
 				// twiddle factors for 1d-large 3-step algorithm
 				if(params.fft_3StepTwiddle)
 				{
-				  TwiddleTableLarge twLarge(large1D);
 				  twLarge.GenerateTwiddleTable<PR>(str);
 				}
 
