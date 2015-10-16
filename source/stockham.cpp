@@ -2220,7 +2220,7 @@ namespace StockhamGenerator
                                         else { SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr); }
 					passStr += "\n\t}\n";
 					passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
-					passStr += "\n\tif(rw > 0)\n\t{";
+					passStr += "\n\tif(rw)\n\t{";
 					if(gOut) { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, nextPass->GetNumB1(), 0, passStr); }
                                         else { nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr); }
 					passStr += "\n\t}\n";
