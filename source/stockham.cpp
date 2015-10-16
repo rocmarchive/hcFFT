@@ -405,6 +405,72 @@ namespace StockhamGenerator
 		}
 
 		template <Precision PR>
+		void TwiddleLargeAV(std::string &twStr)
+		{
+			std::stringstream ss;
+
+			const double TWO_PI = -6.283185307179586476925286766559;
+
+			// Generate the table
+			size_t nt = 0;
+			double phi = TWO_PI / double (N);
+			for (size_t iY = 0; iY < Y; ++iY)
+			{
+				size_t i = size_t(1) << (iY * ARBITRARY::TWIDDLE_DEE);
+				for (size_t iX = 0; iX < X; ++iX)
+				{
+					size_t j = i * iX;
+
+					double c = cos(phi * (double)j);
+					double s = sin(phi * (double)j);
+
+					//if (fabs(c) < 1.0E-12)	c = 0.0;
+					//if (fabs(s) < 1.0E-12)	s = 0.0;
+
+					wc[nt]   = c;
+					ws[nt++] = s;
+				}
+			}
+
+			std::string sfx = FloatSuffix<PR>();
+
+			// Stringize the table
+			nt = 0;
+
+			ss << "\n\t";
+			ss << RegBaseType<PR>(2);
+			ss << " twiddlel ";
+			ss << "[" << Y * X << "] = {\n";
+			for (size_t iY = 0; iY < Y; ++iY)
+			{
+				for (size_t iX = 0; iX < X; ++iX)
+				{
+					char cv[64], sv[64];
+					sprintf(cv, "%036.34lf", wc[nt]);
+					sprintf(sv, "%036.34lf", ws[nt++]);
+					ss << RegBaseType<PR>(2); ss << "(";
+					ss << cv; ss << sfx; ss << ", ";
+					ss << sv; ss << sfx; ss << ")";
+					ss << ", ";
+				}
+			}
+			ss << "};\n\n";
+
+                        // Construct array view from twiddlel array
+                        ss << "const array_view<";
+                        ss << RegBaseType<PR>(2);
+                        ss << ",1> &";
+                        ss << TwTableLargeName();
+                        ss << " = array_view<";
+                        ss << RegBaseType<PR>(2);
+                        ss << ",1>(";
+                        ss << SztToStr(Y * X);
+                        ss << ", twiddlel);";
+
+			twStr += ss.str();
+		}
+
+		template <Precision PR>
 		void GenerateTwiddleTable(std::string &twStr)
 		{
 			if(!Lfirst)
