@@ -131,9 +131,9 @@ int main(int argc,char* argv[])
 #endif
 
   for(int  i =0;i<realsize;i++)
-  if(round(inpAr1[i]) != input[i])
+  if((round(inpAr1[i]) != input[i]) && isnan(inpAr1[i]))
   { 
-    cout<<" Mismatch at  "<<i<<" input "<<input[i]<<" amp "<<inpAr1[i]<<endl;
+    cout<<" Mismatch at  "<<i<<" input "<<input[i]<<" amp "<<round(inpAr1[i])<<endl;
     cout<<" TEST FAILED "<<std::endl;
     exit(0);
   }
