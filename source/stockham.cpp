@@ -2458,13 +2458,23 @@ namespace StockhamGenerator
 			if(params.fft_outputLayout == HCFFT_REAL) c2r = true;
 			r2c2r = (r2c || c2r);
 
-                        rcFull = false;
+			if(r2c)
+			{
+				rcFull = ((params.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED) ||
+					 (params.fft_outputLayout == HCFFT_COMPLEX_PLANAR) ) ? true : false;
+			}
+			if(c2r)
+			{
+				rcFull = ((params.fft_inputLayout  == HCFFT_COMPLEX_INTERLEAVED) ||
+					 (params.fft_inputLayout  == HCFFT_COMPLEX_PLANAR) ) ? true : false;
+			}
+	                rcFull = false;
 
 			rcSimple = params.fft_RCsimple;
 
 			// Set half lds only for power-of-2 problem sizes & interleaved data
 			halfLds = ( (params.fft_inputLayout == HCFFT_COMPLEX_INTERLEAVED) &&
-						(params.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED) ) ? true : false;
+						(params.fft_outputLayout == HCFFT_COMPLEX_PLANAR) ) ? true : false;
 			halfLds = halfLds ? ((length & (length-1)) ? false : true) : false;
 			//halfLds = false;
 
@@ -2649,8 +2659,10 @@ namespace StockhamGenerator
 
 			bool inInterleaved;  // Input is interleaved format
 			bool outInterleaved; // Output is interleaved format
-			inInterleaved  = (params.fft_inputLayout == HCFFT_COMPLEX_INTERLEAVED)  ? true : false;
-			outInterleaved = (params.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED) ? true : false;
+			inInterleaved  = ((params.fft_inputLayout == HCFFT_COMPLEX_INTERLEAVED) ||
+					  (params.fft_inputLayout == HCFFT_HERMITIAN_INTERLEAVED) ) ? true : false;
+			outInterleaved = ((params.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED) ||
+					  (params.fft_outputLayout == HCFFT_HERMITIAN_INTERLEAVED) ) ? true : false;
 
 			// use interleaved LDS when halfLds constraint absent
 			bool ldsInterleaved = inInterleaved || outInterleaved;
