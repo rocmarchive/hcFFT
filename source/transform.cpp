@@ -4617,42 +4617,51 @@ hcfftStatus FFTPlan::hcfftSetLayout(  hcfftPlanHandle plHandle,  hcfftIpLayout i
   //	We currently only support a subset of formats
   switch( iLayout )
   {
-    case HCFFT_COMPLEX_INTERLEAVED:
-    {
-      if( oLayout == HCFFT_COMPLEX_INTERLEAVED)
-	return HCFFT_ERROR;
-    }
-    break;
-    case HCFFT_REAL:
-    {
-      if(oLayout == HCFFT_REAL)
-	return HCFFT_ERROR;
-    }
-    break;
-    default:
-      return HCFFT_ERROR;
-      break;
+		case HCFFT_COMPLEX_INTERLEAVED:
+			{
+				if( (oLayout == HCFFT_HERMITIAN_INTERLEAVED) || (oLayout == HCFFT_HERMITIAN_PLANAR) || (oLayout == HCFFT_REAL))
+					return HCFFT_ERROR;
+			}
+			break;
+		case HCFFT_COMPLEX_PLANAR:
+			{
+				if( (oLayout == HCFFT_HERMITIAN_INTERLEAVED) || (oLayout == HCFFT_HERMITIAN_PLANAR) || (oLayout == HCFFT_REAL))
+					return HCFFT_ERROR;
+			}
+			break;
+		case HCFFT_HERMITIAN_INTERLEAVED:
+			{
+				if(oLayout != HCFFT_REAL) return HCFFT_ERROR;
+			}
+			break;
+		case HCFFT_HERMITIAN_PLANAR:
+			{
+				if(oLayout != HCFFT_REAL) return HCFFT_ERROR;
+			}
+			break;
+		case HCFFT_REAL:
+			{
+				if((oLayout == HCFFT_REAL) || (oLayout == HCFFT_COMPLEX_INTERLEAVED) || (oLayout == HCFFT_COMPLEX_PLANAR))
+					return HCFFT_ERROR;
+			}
+			break;
+		default:
+			return HCFFT_ERROR;
+			break;
   }
 
   //	We currently only support a subset of formats
   switch( oLayout )
   {
-    case HCFFT_COMPLEX_INTERLEAVED:
-    {
-      if(iLayout == HCFFT_COMPLEX_INTERLEAVED)
-        return HCFFT_ERROR;
-    }
-    break;
-
-    case HCFFT_REAL:
-    {
-      if(iLayout == HCFFT_REAL)
-        return HCFFT_ERROR;
-    }
-    break;
-    default:
-      return HCFFT_ERROR;
-      break;
+		case HCFFT_COMPLEX_PLANAR:
+		case HCFFT_COMPLEX_INTERLEAVED:
+		case HCFFT_HERMITIAN_INTERLEAVED:
+		case HCFFT_HERMITIAN_PLANAR:
+		case HCFFT_REAL:
+			break;
+		default:
+			return HCFFT_ERROR;
+			break;
   }
 
   //	If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
