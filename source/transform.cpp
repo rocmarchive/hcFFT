@@ -72,22 +72,26 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
 	// For real transforms we comppile either forward or backward kernel
 	bool r2c_transform = (fftParams.fft_inputLayout == HCFFT_REAL);
 	bool c2r_transform = (fftParams.fft_outputLayout == HCFFT_REAL);
-	bool real_transform = (gen == Copy) ? true : (r2c_transform || c2r_transform);
-	bool h2c = (gen == Copy) && ((fftParams.fft_inputLayout == HCFFT_COMPLEX_INTERLEAVED) || (fftParams.fft_inputLayout == HCFFT_COMPLEX_INTERLEAVED));
-	bool c2h = (gen == Copy) && ((fftParams.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED) || (fftParams.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED));
+	bool real_transform = (r2c_transform || c2r_transform);
+	bool h2c = ((fftParams.fft_inputLayout == HCFFT_HERMITIAN_PLANAR) || (fftParams.fft_inputLayout == HCFFT_HERMITIAN_INTERLEAVED));
+	bool c2h = ((fftParams.fft_outputLayout == HCFFT_HERMITIAN_PLANAR) || (fftParams.fft_outputLayout == HCFFT_HERMITIAN_INTERLEAVED));
+
+        bool buildFwdKernel = (gen == Stockham) ? ((!real_transform) || r2c_transform) : (r2c_transform || c2h) || (!(h2c || c2h));
+        bool buildBwdKernel = (gen == Stockham) ? ((!real_transform) || c2r_transform) : (c2r_transform || h2c) || (!(h2c || c2h));
 
 	// get a kernel object handle for a kernel with the given name
-	if( (!real_transform) || r2c_transform || c2h )
+	if(buildFwdKernel)
 	{
 		std::string entryPoint;
 		fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, HCFFT_FORWARD, entryPoint);
 	}
 
-	if( (!real_transform) || c2r_transform || h2c )
+	if(buildBwdKernel)
 	{
 		std::string entryPoint;
 		fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, HCFFT_BACKWARD, entryPoint);
 	}
+
         return HCFFT_SUCCESS;
 }
 
