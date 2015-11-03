@@ -4736,6 +4736,8 @@ hcfftStatus FFTPlan::GetMax1DLength (size_t *longest ) const
 	{
 	case Stockham:
           return GetMax1DLengthPvt<Stockham>(longest);
+	case Copy:
+          return GetMax1DLengthPvt<Copy>(longest);
 	default:
           return HCFFT_ERROR;
 	}
@@ -4747,6 +4749,8 @@ hcfftStatus  FFTPlan::GetKernelGenKey (FFTKernelGenKeyParams & params) const
 	{
 	case Stockham:
           return GetKernelGenKeyPvt<Stockham>(params);
+	case Copy:
+          return GetKernelGenKeyPvt<Copy>(params);
 	default:
 	  return HCFFT_ERROR;
 	}
@@ -4758,6 +4762,8 @@ hcfftStatus  FFTPlan::GetWorkSizes (std::vector<size_t> & globalws, std::vector<
 	{
 	case Stockham:
 	  return GetWorkSizesPvt<Stockham>(globalws, localws);
+	case Copy:
+	  return GetWorkSizesPvt<Copy>(globalws, localws);
 	default:
 	  return HCFFT_ERROR;
 	}
@@ -4769,6 +4775,8 @@ hcfftStatus  FFTPlan::GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & 
 	{
 	case Stockham:
           return GenerateKernelPvt<Stockham>(plHandle, fftRepo);
+	case Copy:
+          return GenerateKernelPvt<Copy>(plHandle, fftRepo);
 	default:
           return HCFFT_ERROR;
 	}
@@ -4803,6 +4811,7 @@ hcfftStatus FFTPlan::hcfftDestroyPlan( hcfftPlanHandle* plHandle )
    if( fftPlan->planRCcopy )
     hcfftDestroyPlan( &fftPlan->planRCcopy );
 
+  fftPlan->ReleaseBuffers();
   fftRepo.deletePlan( plHandle );
 
   return HCFFT_SUCCESS;
@@ -4820,97 +4829,7 @@ hcfftStatus FFTPlan::AllocateWriteBuffers ()
 	float ConstantBufferParams[HCFFT_CB_SIZE];
 	memset (& ConstantBufferParams, 0, sizeof (ConstantBufferParams));
 
-	float nY = 1;
-	float nZ = 0;
-	float nW = 0;
-	float n5 = 0;
-
-	switch( length.size() )
-	{
-	case 1:
-		nY = (float)batchSize;
-		break;
-
-	case 2:
-		nY = (float)length[1];
-		nZ = (float)batchSize;
-		break;
-
-	case 3:
-		nY = (float)length[1];
-		nZ = (float)length[2];
-		nW = (float)batchSize;
-		break;
-
-	case 4:
-		nY = (float)length[1];
-		nZ = (float)length[2];
-		nW = (float)length[3];
-		n5 = (float)batchSize;
-		break;
-	}
-	ConstantBufferParams[HCFFT_CB_NY ] = nY;
-	ConstantBufferParams[HCFFT_CB_NZ ] = nZ;
-	ConstantBufferParams[HCFFT_CB_NW ] = nW;
-	ConstantBufferParams[HCFFT_CB_N5 ] = n5;
-
-	assert (/*fftPlan->*/inStride.size() == /*fftPlan->*/outStride.size());
-
-	switch (/*fftPlan->*/inStride.size()) {
-	case 1:
-		ConstantBufferParams[HCFFT_CB_ISX] = (float)inStride[0];
-		ConstantBufferParams[HCFFT_CB_ISY] = (float)iDist;
-		break;
-
-	case 2:
-		ConstantBufferParams[HCFFT_CB_ISX] = (float)inStride[0];
-		ConstantBufferParams[HCFFT_CB_ISY] = (float)inStride[1];
-		ConstantBufferParams[HCFFT_CB_ISZ] = (float)iDist;
-		break;
-
-	case 3:
-		ConstantBufferParams[HCFFT_CB_ISX] = (float)inStride[0];
-		ConstantBufferParams[HCFFT_CB_ISY] = (float)inStride[1];
-		ConstantBufferParams[HCFFT_CB_ISZ] = (float)inStride[2];
-		ConstantBufferParams[HCFFT_CB_ISW] = (float)iDist;
-		break;
-
-	case 4:
-		ConstantBufferParams[HCFFT_CB_ISX] = (float)inStride[0];
-		ConstantBufferParams[HCFFT_CB_ISY] = (float)inStride[1];
-		ConstantBufferParams[HCFFT_CB_ISZ] = (float)inStride[2];
-		ConstantBufferParams[HCFFT_CB_ISW] = (float)inStride[3];
-		ConstantBufferParams[HCFFT_CB_IS5] = (float)iDist;
-		break;
-	}
-
-	switch (/*fftPlan->*/outStride.size()) {
-	case 1:
-		ConstantBufferParams[HCFFT_CB_OSX] = (float)outStride[0];
-		ConstantBufferParams[HCFFT_CB_OSY] = (float)oDist;
-		break;
-
-	case 2:
-		ConstantBufferParams[HCFFT_CB_OSX] = (float)outStride[0];
-		ConstantBufferParams[HCFFT_CB_OSY] = (float)outStride[1];
-		ConstantBufferParams[HCFFT_CB_OSZ] = (float)oDist;
-		break;
-
-	case 3:
-		ConstantBufferParams[HCFFT_CB_OSX] = (float)outStride[0];
-		ConstantBufferParams[HCFFT_CB_OSY] = (float)outStride[1];
-		ConstantBufferParams[HCFFT_CB_OSZ] = (float)outStride[2];
-		ConstantBufferParams[HCFFT_CB_OSW] = (float)oDist;
-		break;
-
-	case 4:
-		ConstantBufferParams[HCFFT_CB_OSX] = (float)outStride[0];
-		ConstantBufferParams[HCFFT_CB_OSY] = (float)outStride[1];
-		ConstantBufferParams[HCFFT_CB_OSZ] = (float)outStride[2];
-		ConstantBufferParams[HCFFT_CB_OSW] = (float)outStride[3];
-		ConstantBufferParams[HCFFT_CB_OS5] = (float)oDist;
-		break;
-	}
+	ConstantBufferParams[1] = std::max<uint> (1, uint(batchSize));
 
         Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(HCFFT_CB_SIZE), ConstantBufferParams);
         const_buffer = new Concurrency::array_view<float>(arr);
@@ -4934,6 +4853,11 @@ hcfftStatus FFTPlan::ReleaseBuffers ()
 	if( NULL != intBufferRC )
 	{
                 delete intBufferRC;
+	}
+
+	if( NULL != intBufferC2R )
+	{
+                delete intBufferC2R;
 	}
 
 	return result;
