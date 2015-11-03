@@ -36,6 +36,7 @@ enum BlockComputeType
 {
 	BCT_C2R,	// Column to row
 	BCT_R2C,	// Row to column
+        BCT_C2C         // Column to Column
 };
 
 static inline bool IsPo2 (size_t u) {
@@ -131,7 +132,7 @@ namespace ARBITRARY {
 			//  The latter uses half as much LDS space, so twice as many wavefronts can be run
 			//  in parallel.
 
-		TWIDDLE_DEE = 4,
+		TWIDDLE_DEE = 8,
 			//  4 bits per row of matrix.
         };
 };
