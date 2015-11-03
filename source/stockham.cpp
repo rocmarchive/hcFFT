@@ -3724,10 +3724,20 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS, 
     }
     count *= this->batchSize;
 
-
     FFTKernelGenKeyParams fftParams;
     //    Translate the user plan into the structure that we use to map plans to clPrograms
     this->GetKernelGenKeyPvt<Stockham>( fftParams );
+
+    if(fftParams.blockCompute)
+    {
+	count = DivRoundingUp<unsigned long long> (count, fftParams.blockLDS);
+	count = count * fftParams.blockSIMD;
+
+	globalWS.push_back( static_cast< size_t >( count ) );
+	localWS.push_back( fftParams.blockSIMD );
+
+	return    HCFFT_SUCCESS;
+    }
 
     count = DivRoundingUp<unsigned long long> (count, fftParams.fft_R);      // count of WorkItems
     count = DivRoundingUp<unsigned long long> (count, fftParams.fft_SIMD);   // count of WorkGroups
