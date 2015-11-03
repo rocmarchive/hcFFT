@@ -3555,7 +3555,7 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & param
     //
     const FFTEnvelope * pEnvelope = NULL;
     const_cast<FFTPlan*>(this)->GetEnvelope (& pEnvelope);
-    //BUG_CHECK (NULL != pEnvelope);
+    BUG_CHECK (NULL != pEnvelope);
 
     ::memset( &params, 0, sizeof( params ) );
     params.fft_precision    = this->precision;
@@ -3565,7 +3565,7 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & param
 
     ARG_CHECK (this->inStride.size() == this->outStride.size())
 
-	bool real_transform = ((this->ipLayout == HCFFT_REAL) || (this->opLayout == HCFFT_REAL));
+    bool real_transform = ((this->ipLayout == HCFFT_REAL) || (this->opLayout == HCFFT_REAL));
 
     if ( (HCFFT_INPLACE == this->location) && (!real_transform) ) {
         //    If this is an in-place transform the
@@ -3581,131 +3581,75 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & param
         params.fft_outputLayout = this->opLayout;
     }
 
-    switch (this->inStride.size()) {
-        //    1-D array is a 2-D data structure.
-        //    1-D unit is a special case of 1-D array.
-    case 1:
-        ARG_CHECK(this->length   .size() > 0);
-        ARG_CHECK(this->outStride.size() > 0);
-        params.fft_DataDim      = 2;
-        params.fft_N[0]         = this->length[0];
-        params.fft_inStride[0]  = this->inStride[0];
-        params.fft_inStride[1]  = this->iDist;
-        params.fft_outStride[0] = this->outStride[0];
-        params.fft_outStride[1] = this->oDist;
-        break;
+    params.fft_DataDim = this->length.size() + 1;
+    int i = 0;
+    for(i = 0; i < (params.fft_DataDim - 1); i++)
+    {
+        params.fft_N[i]         = this->length[i];
+        params.fft_inStride[i]  = this->inStride[i];
+        params.fft_outStride[i] = this->outStride[i];
 
-        //    2-D array is a 3-D data structure
-        //    2-D unit is a speical case of 2-D array.
-    case 2:
-        ARG_CHECK(this->length   .size() > 1);
-        ARG_CHECK(this->outStride.size() > 1);
-        params.fft_DataDim      = 3;
-        params.fft_N[0]         = this->length[0];
-        params.fft_N[1]         = this->length[1];
-        params.fft_inStride[0]  = this->inStride[0];
-        params.fft_inStride[1]  = this->inStride[1];
-        params.fft_inStride[2]  = this->iDist;
-        params.fft_outStride[0] = this->outStride[0];
-        params.fft_outStride[1] = this->outStride[1];
-        params.fft_outStride[2] = this->oDist;
-        break;
+    }
+    params.fft_inStride[i]  = this->iDist;
+    params.fft_outStride[i] = this->oDist;
 
-        //    3-D array is a 4-D data structure
-        //    3-D unit is a special case of 3-D array.
-    case 3:
-        ARG_CHECK(this->length   .size() > 2);
-        ARG_CHECK(this->outStride.size() > 2);
-        params.fft_DataDim      = 4;
-        params.fft_N[0]         = this->length[0];
-        params.fft_N[1]         = this->length[1];
-        params.fft_N[2]         = this->length[2];
-        params.fft_inStride[0]  = this->inStride[0];
-        params.fft_inStride[1]  = this->inStride[1];
-        params.fft_inStride[2]  = this->inStride[2];
-        params.fft_inStride[3]  = this->iDist;
-        params.fft_outStride[0] = this->outStride[0];
-        params.fft_outStride[1] = this->outStride[1];
-        params.fft_outStride[2] = this->outStride[2];
-        params.fft_outStride[3] = this->oDist;
-        break;
+    params.fft_RCsimple = this->RCsimple;
+    params.fft_realSpecial = this->realSpecial;
+    params.fft_realSpecial_Nr = this->realSpecial_Nr;
 
-        //    5-D data structure
-        //    This can occur when a large dimension is split into two for
-        //    the "3-step" algorithm.
-        //
-    case 4:
-        ARG_CHECK(this->length   .size() > 3);
-        ARG_CHECK(this->outStride.size() > 3);
-        params.fft_DataDim      = 5;
-        params.fft_N[0]         = this->length[0];
-        params.fft_N[1]         = this->length[1];
-        params.fft_N[2]         = this->length[2];
-        params.fft_N[3]         = this->length[3];
-        params.fft_inStride[0]  = this->inStride[0];
-        params.fft_inStride[1]  = this->inStride[1];
-        params.fft_inStride[2]  = this->inStride[2];
-        params.fft_inStride[3]  = this->inStride[3];
-        params.fft_inStride[4]  = this->iDist;
-        params.fft_outStride[0] = this->outStride[0];
-        params.fft_outStride[1] = this->outStride[1];
-        params.fft_outStride[2] = this->outStride[2];
-        params.fft_outStride[3] = this->outStride[3];
-        params.fft_outStride[4] = this->oDist;
-        break;
-    default:
-        ARG_CHECK (false);
+    params.blockCompute = this->blockCompute;
+    params.blockComputeType = this->blockComputeType;
+
+    params.fft_twiddleFront = this->twiddleFront;
+
+    size_t wgs, nt;
+
+    size_t t_wgs, t_nt;
+    Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
+    switch(pr)
+    {
+	case P_SINGLE:
+	{
+		KernelCoreSpecs<P_SINGLE> kcs;
+		kcs.GetWGSAndNT(params.fft_N[0], t_wgs, t_nt);
+		if(params.blockCompute)
+		{
+			params.blockSIMD = Kernel<P_SINGLE>::BlockSizes::BlockWorkGroupSize(params.fft_N[0]);
+			params.blockLDS  = Kernel<P_SINGLE>::BlockSizes::BlockLdsSize(params.fft_N[0]);
+		}
+	} break;
+	case P_DOUBLE:
+	{
+		KernelCoreSpecs<P_DOUBLE> kcs;
+		kcs.GetWGSAndNT(params.fft_N[0], t_wgs, t_nt);
+		if(params.blockCompute)
+		{
+			params.blockSIMD = Kernel<P_DOUBLE>::BlockSizes::BlockWorkGroupSize(params.fft_N[0]);
+			params.blockLDS  = Kernel<P_DOUBLE>::BlockSizes::BlockLdsSize(params.fft_N[0]);
+		}
+	} break;
     }
 
-    //    TODO:  we could simplify the address calculations in the kernel
-    //    when the input data is contiguous.
-    //    For example, a 3-D data structure with
-    //        lengths: [*, 64, *]
-    //        strides: [*, 1024, 65536]
-    //    could be reduced to a 2-D data structure.
+    if((t_wgs != 0) && (t_nt != 0) && (this->envelope.limit_WorkGroupSize >= 256))
+    {
+	wgs = t_wgs;
+	nt = t_nt;
+    }
+    else
+	DetermineSizes(this->envelope.limit_WorkGroupSize, params.fft_N[0], wgs, nt);
 
-    params.fft_LdsComplex = this->bLdsComplex;
+    assert((nt * params.fft_N[0]) >= wgs);
+    assert((nt * params.fft_N[0])%wgs == 0);
 
-	params.fft_RCsimple = this->RCsimple;
-	size_t wgs, nt;
-	size_t t_wgs, t_nt;
-	Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
-	switch(pr)
-	{
-	case P_SINGLE:
-		{
-			KernelCoreSpecs<P_SINGLE> kcs;
-			kcs.GetWGSAndNT(params.fft_N[0], t_wgs, t_nt);
-		} break;
-	case P_DOUBLE:
-		{
-			KernelCoreSpecs<P_DOUBLE> kcs;
-			kcs.GetWGSAndNT(params.fft_N[0], t_wgs, t_nt);
-		} break;
-	}
-
-	if((t_wgs != 0) && (t_nt != 0) && (this->envelope.limit_WorkGroupSize >= 256))
-	{
-		wgs = t_wgs;
-		nt = t_nt;
-	}
-	else
-		DetermineSizes(this->envelope.limit_WorkGroupSize, params.fft_N[0], wgs, nt);
-
-	assert((nt * params.fft_N[0]) >= wgs);
-	assert((nt * params.fft_N[0])%wgs == 0);
-
-	params.fft_R = (nt * params.fft_N[0])/wgs;
-	params.fft_SIMD = wgs;
-
-    params.fft_MaxRadix     = params.fft_R;
-    params.fft_UseFMA       = true;
+    params.fft_R = (nt * params.fft_N[0])/wgs;
+    params.fft_SIMD = wgs;
 
     if (this->large1D != 0) {
         ARG_CHECK (params.fft_N[0] != 0)
         ARG_CHECK ((this->large1D % params.fft_N[0]) == 0)
         params.fft_3StepTwiddle = true;
-        params.fft_N[1] = this->large1D / params.fft_N[0];
+		if(!(this->realSpecial))
+			ARG_CHECK ( this->large1D  == (params.fft_N[1] * params.fft_N[0]) );
     }
 
     params.fft_fwdScale  = this->forwardScale;
