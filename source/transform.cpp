@@ -180,6 +180,14 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan (hcfftPlanHandle* plHandle,hcfftDim 
 
   fftPlan->SetEnvelope();
 
+  //	Need to devise a way to generate better names
+  std::stringstream	tstream;
+  tstream << _T( "plan_" ) << *plHandle;
+
+  lockRAII* planLock	= NULL;
+  fftRepo.getPlan( *plHandle, fftPlan, planLock );
+  planLock->setName( tstream.str( ) );
+
   switch( dimension )
   {
     case HCFFT_1D:
@@ -221,6 +229,10 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan (hcfftPlanHandle* plHandle,hcfftDim 
     }
     break;
   }
+
+  fftPlan->plHandle = *plHandle;
+  fftPlan->userPlan = true;
+
   return HCFFT_SUCCESS;
 }
 
