@@ -736,58 +736,84 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
         /* constant buffer */
 	unsigned int uarg = 0;
-	vectArr.insert(std::make_pair(uarg++,fftPlan->const_buffer));
+        if (!fftPlan->transflag && !(fftPlan->gen == Copy))
+	{
+		vectArr.insert(std::make_pair(uarg++,fftPlan->const_buffer));
+	}
 
 	//	Decode the relevant properties from the plan paramter to figure out how many input/output buffers we have
 	switch( fftPlan->ipLayout )
 	{
+	case HCFFT_COMPLEX_INTERLEAVED:
+	{
+		switch( fftPlan->opLayout )
+		{
 		case HCFFT_COMPLEX_INTERLEAVED:
 		{
-			switch( fftPlan->opLayout )
+			if( fftPlan->location == HCFFT_INPLACE )
 			{
-                                case HCFFT_COMPLEX_INTERLEAVED:
-				case HCFFT_REAL:
-				{
-					if( fftPlan->location == HCFFT_INPLACE )
-					{
-						vectArr.insert(std::make_pair(uarg++, clInputBuffers));
-					}
-					else
-					{
-						vectArr.insert(std::make_pair(uarg++, clInputBuffers));
-						vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
-					}
-					break;
-				}
-				default:
-				{
-					//	Don't recognize output layout
-					return HCFFT_ERROR;
-				}
+				vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
 			}
-
+			else
+			{
+				vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+				vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+			}
+		break;
+		}
+		case HCFFT_COMPLEX_PLANAR:
+		{
+			if( fftPlan->location == HCFFT_INPLACE )
+			{
+				//	Invalid to be an inplace transform, and go from 1 to 2 buffers
+				return HCFFT_ERROR;
+			}
+			else
+			{
+				vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+				vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+				vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+			}
+			break;
+		}
+		case HCFFT_HERMITIAN_INTERLEAVED:
+		{
+			if( fftPlan->location == HCFFT_INPLACE )
+			{
+				return HCFFT_ERROR;
+			}
+			else
+			{
+				vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+				vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+			}
+			break;
+		}
+		case HCFFT_HERMITIAN_PLANAR:
+		{
+			if( fftPlan->location == HCFFT_INPLACE )
+			{
+				return HCFFT_ERROR;
+			}
+			else
+			{
+				vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+				vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+				vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+			}
 			break;
 		}
 		case HCFFT_REAL:
 		{
-			switch( fftPlan->opLayout )
+			if( fftPlan->location == HCFFT_INPLACE )
 			{
-                                case HCFFT_REAL:
-				case HCFFT_COMPLEX_INTERLEAVED:
-				{
-					if( fftPlan->location == HCFFT_INPLACE )
-					{
-						vectArr.insert(std::make_pair(uarg++,clInputBuffers));
-					}
-					else
-					{
-						vectArr.insert(std::make_pair(uarg++, clInputBuffers));
-						vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
-					}
-					break;
-				}
+				vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
 			}
-
+			else
+			{
+				vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+				vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+			}
 			break;
 		}
 		default:
@@ -795,6 +821,318 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 			//	Don't recognize output layout
 			return HCFFT_ERROR;
 		}
+	}
+	break;
+    }
+	case HCFFT_COMPLEX_PLANAR:
+    	{
+        	switch( fftPlan->opLayout )
+        	{
+        	case HCFFT_COMPLEX_INTERLEAVED:
+        	{
+            		if( fftPlan->location == HCFFT_INPLACE )
+            		{
+                		return HCFFT_ERROR;
+            		}
+            		else
+            		{
+                		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+                		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
+                		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+            		}
+			break;
+		}
+		case HCFFT_COMPLEX_PLANAR:
+		{
+			if( fftPlan->location == HCFFT_INPLACE )
+			{
+				vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+				vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
+}
+else
+{
+vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
+vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+}
+break;
+}
+case HCFFT_HERMITIAN_INTERLEAVED:
+{
+if( fftPlan->location == HCFFT_INPLACE )
+{
+return HCFFT_ERROR;
+}
+else
+{
+vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
+vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+}
+break;
+}
+case HCFFT_HERMITIAN_PLANAR:
+{
+if( fftPlan->location == HCFFT_INPLACE )
+{
+return HCFFT_ERROR;
+}
+else
+{
+vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
+vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+}
+break;
+}
+case HCFFT_REAL:
+{
+if(fftPlan->location == HCFFT_INPLACE )
+{
+return HCFFT_ERROR;
+}
+else
+{
+vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
+vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+}
+
+break;
+}
+default:
+{
+//	Don't recognize output layout
+return HCFFT_ERROR;
+}
+}
+break;
+}
+case HCFFT_HERMITIAN_INTERLEAVED:
+{
+        	switch( fftPlan->opLayout )
+        	{
+        	case HCFFT_COMPLEX_INTERLEAVED:
+        	{
+            		if( fftPlan->location == HCFFT_INPLACE )
+            		{
+                		return HCFFT_ERROR;
+            		}
+            		else
+            		{
+                		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+                		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+            		}
+
+            		break;
+        	}
+        	case HCFFT_COMPLEX_PLANAR:
+        	{
+            		if( fftPlan->location == HCFFT_INPLACE )
+            		{
+                		return HCFFT_ERROR;
+            		}
+            		else
+            		{
+                		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+                		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+            		}
+
+            	break;
+        	}
+        	case HCFFT_HERMITIAN_INTERLEAVED:
+        	{
+            		return HCFFT_ERROR;
+        	}
+        	case HCFFT_HERMITIAN_PLANAR:
+        	{
+            		return HCFFT_ERROR;
+        	}
+        	case HCFFT_REAL:
+        	{
+            		if( fftPlan->location == HCFFT_INPLACE )
+            		{
+                		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+            		}
+            		else
+            		{
+                		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+                		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+            		}
+
+            		break;
+        	}
+        	default:
+        	{
+            		//	Don't recognize output layout
+            		return HCFFT_ERROR;
+        	}
+        }
+
+        break;
+    }
+    case HCFFT_HERMITIAN_PLANAR:
+    {
+        	switch( fftPlan->opLayout )
+        	{
+        		case HCFFT_COMPLEX_INTERLEAVED:
+        		{
+            			if( fftPlan->location == HCFFT_INPLACE )
+            			{
+                			return HCFFT_ERROR;
+            			}
+            			else
+            			{
+		               		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+	                		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
+	                		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+            			}
+
+            			break;
+        		}
+        		case HCFFT_COMPLEX_PLANAR:
+        		{
+            			if( fftPlan->location == HCFFT_INPLACE )
+            			{
+                			return HCFFT_ERROR;
+            			}
+            			else
+            			{
+		               		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+	                		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
+	                		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+		               		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+            			}
+
+            			break;
+       			}
+        		case HCFFT_HERMITIAN_INTERLEAVED:
+        		{
+            			return HCFFT_ERROR;
+        		}
+        		case HCFFT_HERMITIAN_PLANAR:
+        		{
+            			return HCFFT_ERROR;
+        		}
+        		case HCFFT_REAL:
+        		{
+            			if( fftPlan->location == HCFFT_INPLACE )
+            			{
+                			return HCFFT_ERROR;
+            			}
+            			else
+            			{
+		               		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+	                		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
+		               		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+            			}
+
+            			break;
+        		}
+        		default:
+        		{
+            			//	Don't recognize output layout
+            			return HCFFT_ERROR;
+        		}
+        	}
+
+       		break;
+    	}
+    	case HCFFT_REAL:
+    	{
+        	switch( fftPlan->opLayout )
+        	{
+       	 		case HCFFT_COMPLEX_INTERLEAVED:
+        		{
+            			if( fftPlan->location == HCFFT_INPLACE )
+            			{
+		               		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+            			}
+           			else
+            			{
+					std::cout << " real comp outofplace "<<std::endl;
+		               		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+		               		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+            			}
+
+            			break;
+        		}
+        		case HCFFT_COMPLEX_PLANAR:
+        		{
+            			if( fftPlan->location == HCFFT_INPLACE )
+            			{
+                			return HCFFT_ERROR;
+            			}
+            			else
+            			{
+		               		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+		               		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+		               		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+            			}
+
+            			break;
+        		}
+        		case HCFFT_HERMITIAN_INTERLEAVED:
+        		{
+            			if( fftPlan->location == HCFFT_INPLACE )
+            			{
+		               		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+            			}
+            			else
+            			{
+		               		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+		               		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+            			}
+
+            			break;
+        		}
+        		case HCFFT_HERMITIAN_PLANAR:
+        		{
+            			if( fftPlan->location == HCFFT_INPLACE )
+            			{
+                			return HCFFT_ERROR;
+            			}
+            			else
+            			{
+		               		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+		               		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+		               		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+            			}
+
+            			break;
+        		}
+        		default:
+        		{
+				if(fftPlan->transflag)
+				{
+					if( fftPlan->location == HCFFT_INPLACE )
+					{
+						return HCFFT_ERROR;
+					}
+					else
+					{
+			               		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+			               		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+					}
+				}
+				else
+				{
+					//	Don't recognize output layout
+					return HCFFT_ERROR;
+				}
+        		}
+        	}
+
+        	break;
+    	}
+	default:
+	{
+		//	Don't recognize output layout
+		return HCFFT_ERROR;
+	}
 	}
 
         vector< size_t > gWorkSize;
@@ -826,34 +1164,60 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           return HCFFT_ERROR;
         }
 
-        if(dir == HCFFT_FORWARD)
-        {
-        std::string funcName = "fft_fwd";
-        funcName +=  std::to_string(plHandle);
-        FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
-        if (!FFTcall)
-          std::cout<<"Loading fft_fwd fails "<<std::endl;
-        err=dlerror();
-        if (err)
-        {
-          std::cout<<"failed to locate fft_fwd(): "<< err;
-          exit(1);
-        }
-        }
-        else if(dir == HCFFT_BACKWARD)
-        {
-        std::string funcName = "fft_back";
-        funcName +=  std::to_string(plHandle);
-        FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
-        if (!FFTcall)
-          std::cout<<"Loading fft_back fails "<<std::endl;
-        err=dlerror();
-        if (err)
-        {
-          std::cout<<"failed to locate fft_back(): "<< err;
-          exit(1);
-        }
-        }
+        if(fftPlan->gen == Copy)
+	{
+		bool h2c = ((fftPlan->ipLayout == HCFFT_HERMITIAN_PLANAR) ||
+			(fftPlan->ipLayout == HCFFT_HERMITIAN_INTERLEAVED) ) ? true : false;
+		bool c2h = ((fftPlan->opLayout == HCFFT_HERMITIAN_PLANAR) ||
+			(fftPlan->opLayout == HCFFT_HERMITIAN_INTERLEAVED) ) ? true : false;
+
+		std::string funcName = "copy_";
+
+		if(h2c)	funcName += "h2c";
+		else	funcName += "c2h";
+	        funcName +=  std::to_string(plHandle);
+
+	        FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
+	        if (!FFTcall)
+	          std::cout<<"Loading copy() fails "<<std::endl;
+	        err=dlerror();
+	        if (err)
+	        {
+	          std::cout<<"failed to locate copy(): "<< err;
+	          exit(1);
+	        }
+	}
+	else if(fftPlan->gen == Stockham)
+	{
+		if(dir == HCFFT_FORWARD)
+		{
+			std::string funcName = "fft_fwd";
+		        funcName +=  std::to_string(plHandle);
+		        FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
+		        if (!FFTcall)
+		          std::cout<<"Loading fft_fwd fails "<<std::endl;
+		        err=dlerror();
+		        if (err)
+		        {
+		          std::cout<<"failed to locate fft_fwd(): "<< err;
+		          exit(1);
+		        }
+        	}
+	        else if(dir == HCFFT_BACKWARD)
+        	{
+        		std::string funcName = "fft_back";
+	        	funcName +=  std::to_string(plHandle);
+        		FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
+        		if (!FFTcall)
+        		  std::cout<<"Loading fft_back fails "<<std::endl;
+        		err=dlerror();
+        		if (err)
+        		{
+        		  std::cout<<"failed to locate fft_back(): "<< err;
+        		  exit(1);
+        		}
+        	}
+	}
 
         FFTcall(&vectArr);
 
