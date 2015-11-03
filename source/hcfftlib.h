@@ -39,6 +39,58 @@ enum BlockComputeType
         BCT_C2C         // Column to Column
 };
 
+
+typedef size_t hcfftPlanHandle;
+
+typedef enum hcfftPrecision_
+{
+	HCFFT_SINGLE	= 1,
+	HCFFT_DOUBLE,
+}hcfftPrecision;
+
+typedef enum hcfftDim_
+{
+  HCFFT_1D = 1,
+  HCFFT_2D,
+  HCFFT_3D
+}hcfftDim;
+
+typedef enum hcfftLayout_
+{
+  HCFFT_COMPLEX = 1,
+  HCFFT_REAL,
+}hcfftIpLayout,hcfftOpLayout;
+
+typedef enum hcfftDirection_
+{
+  HCFFT_FORWARD = -1,
+  HCFFT_BACKWARD = 1,
+} hcfftDirection;
+
+typedef enum hcfftResLocation_
+{
+  HCFFT_INPLACE = 1,
+  HCFFT_OUTOFPLACE,
+} hcfftResLocation;
+
+typedef enum hcfftResTransposed_ {
+  HCFFT_NOTRANSPOSE = 1,
+  HCFFT_TRANSPOSED,
+} hcfftResTransposed;
+
+typedef enum hcfftStatus_ {
+  HCFFT_SUCCESS = 0,
+  HCFFT_INVALID = -1,
+  HCFFT_ERROR = -2
+} hcfftStatus;
+
+typedef enum hcfftGenerators_
+{
+	Stockham,
+	Transpose,
+	Copy,
+}hcfftGenerators;
+
 static inline bool IsPo2 (size_t u) {
 	return (u != 0) &&  (0 == (u & (u-1)));
 }
@@ -84,6 +136,14 @@ inline size_t FloorPo2 (size_t n)
     return n;
 }
 
+static size_t width(hcfftPrecision precision) {
+       switch(precision)
+       {
+               case HCFFT_SINGLE:      return 1;
+               case HCFFT_DOUBLE:      return 2;
+               default:                assert(false); return 1;
+       }
+}
 
 namespace ARBITRARY {
 	// TODO:  These arbitrary parameters should be tuned for the type of GPU
@@ -167,57 +227,6 @@ class tofstreamRAII
 			return outFile;
 		}
 };
-
-typedef size_t hcfftPlanHandle;
-
-typedef enum hcfftPrecision_
-{
-	HCFFT_SINGLE	= 1,
-	HCFFT_DOUBLE,
-}hcfftPrecision;
-
-typedef enum hcfftDim_
-{
-  HCFFT_1D = 1,
-  HCFFT_2D,
-  HCFFT_3D
-}hcfftDim;
-
-typedef enum hcfftLayout_
-{
-  HCFFT_COMPLEX = 1,
-  HCFFT_REAL,
-}hcfftIpLayout,hcfftOpLayout;
-
-typedef enum hcfftDirection_
-{
-  HCFFT_FORWARD = -1,
-  HCFFT_BACKWARD = 1,
-} hcfftDirection;
-
-typedef enum hcfftResLocation_
-{
-  HCFFT_INPLACE = 1,
-  HCFFT_OUTOFPLACE,
-} hcfftResLocation;
-
-typedef enum hcfftResTransposed_ {
-  HCFFT_NOTRANSPOSE = 1,
-  HCFFT_TRANSPOSED,
-} hcfftResTransposed;
-
-typedef enum hcfftStatus_ {
-  HCFFT_SUCCESS = 0,
-  HCFFT_INVALID = -1,
-  HCFFT_ERROR = -2
-} hcfftStatus;
-
-typedef enum hcfftGenerators_
-{
-	Stockham = 1,
-	Transpose,
-	Copy,
-}hcfftGenerators;
 
 //	The "envelope" is a set of limits imposed by the hardware
 //	This will depend on the GPU(s) in the OpenCL context.
