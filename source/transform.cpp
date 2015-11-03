@@ -73,8 +73,8 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
 	bool r2c_transform = (fftParams.fft_inputLayout == HCFFT_REAL);
 	bool c2r_transform = (fftParams.fft_outputLayout == HCFFT_REAL);
 	bool real_transform = (gen == Copy) ? true : (r2c_transform || c2r_transform);
-	bool h2c = (gen == Copy) && ((fftParams.fft_inputLayout == HCFFT_COMPLEX) || (fftParams.fft_inputLayout == HCFFT_COMPLEX));
-	bool c2h = (gen == Copy) && ((fftParams.fft_outputLayout == HCFFT_COMPLEX) || (fftParams.fft_outputLayout == HCFFT_COMPLEX));
+	bool h2c = (gen == Copy) && ((fftParams.fft_inputLayout == HCFFT_COMPLEX_INTERLEAVED) || (fftParams.fft_inputLayout == HCFFT_COMPLEX_INTERLEAVED));
+	bool c2h = (gen == Copy) && ((fftParams.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED) || (fftParams.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED));
 
 	// get a kernel object handle for a kernel with the given name
 	if( (!real_transform) || r2c_transform || c2h )
@@ -165,8 +165,8 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan (hcfftPlanHandle* plHandle,hcfftDim 
   fftPlan->baked = false;
   fftPlan->dimension = dimension;
   fftPlan->location = HCFFT_INPLACE;
-  fftPlan->ipLayout = HCFFT_COMPLEX;
-  fftPlan->opLayout = HCFFT_COMPLEX;
+  fftPlan->ipLayout = HCFFT_COMPLEX_INTERLEAVED;
+  fftPlan->opLayout = HCFFT_COMPLEX_INTERLEAVED;
   fftPlan->precision = HCFFT_SINGLE;
   fftPlan->forwardScale	= 1.0;
   fftPlan->backwardScale = 1.0 / static_cast< double >( lenX * lenY * lenZ );
@@ -575,11 +575,11 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 	//	Decode the relevant properties from the plan paramter to figure out how many input/output buffers we have
 	switch( fftPlan->ipLayout )
 	{
-		case HCFFT_COMPLEX:
+		case HCFFT_COMPLEX_INTERLEAVED:
 		{
 			switch( fftPlan->opLayout )
 			{
-                                case HCFFT_COMPLEX:
+                                case HCFFT_COMPLEX_INTERLEAVED:
 				case HCFFT_REAL:
 				{
 					if( fftPlan->location == HCFFT_INPLACE )
@@ -607,7 +607,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 			switch( fftPlan->opLayout )
 			{
                                 case HCFFT_REAL:
-				case HCFFT_COMPLEX:
+				case HCFFT_COMPLEX_INTERLEAVED:
 				{
 					if( fftPlan->location == HCFFT_INPLACE )
 					{
@@ -724,7 +724,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
   {
     if(fftPlan->location == HCFFT_INPLACE)
     {
-      if((fftPlan->ipLayout == HCFFT_COMPLEX) || (fftPlan->opLayout == HCFFT_COMPLEX))
+      if((fftPlan->ipLayout == HCFFT_COMPLEX_INTERLEAVED) || (fftPlan->opLayout == HCFFT_COMPLEX_INTERLEAVED))
         return HCFFT_ERROR;
     }
 
@@ -951,7 +951,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		trans1Plan->batchSize = fftPlan->batchSize;
 		trans1Plan->envelope = fftPlan->envelope;
 		trans1Plan->ipLayout = fftPlan->ipLayout;
-		trans1Plan->opLayout = HCFFT_COMPLEX;
+		trans1Plan->opLayout = HCFFT_COMPLEX_INTERLEAVED;
 		trans1Plan->inStride[0]   = fftPlan->inStride[0];
                 trans1Plan->inStride[1]   = clLengths[0];
 		trans1Plan->outStride[0]  = 1;
@@ -988,7 +988,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		row1Plan->large1D       = fftPlan->length[0];
 
 		row1Plan->length.push_back(clLengths[0]);
-		row1Plan->ipLayout   = HCFFT_COMPLEX;
+		row1Plan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
 		row1Plan->opLayout  = fftPlan->opLayout;
 		row1Plan->inStride[0]   = 1;
 		row1Plan->outStride[0]  = fftPlan->outStride[0];
@@ -1013,7 +1013,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		trans2Plan->batchSize     = fftPlan->batchSize;
 		trans2Plan->envelope	  = fftPlan->envelope;
 		trans2Plan->opLayout   = fftPlan->opLayout;
-		trans2Plan->opLayout  = HCFFT_COMPLEX;
+		trans2Plan->opLayout  = HCFFT_COMPLEX_INTERLEAVED;
 		trans2Plan->inStride[0]   = fftPlan->outStride[0];
 		trans2Plan->inStride[1]   = clLengths[1];
 		trans2Plan->outStride[0]  = 1;
@@ -1050,8 +1050,8 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		row2Plan->large1D       = 0;
 
 		row2Plan->length.push_back(clLengths[1]);
-		row2Plan->ipLayout   = HCFFT_COMPLEX;
-		row2Plan->opLayout  = HCFFT_COMPLEX;
+		row2Plan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
+		row2Plan->opLayout  = HCFFT_COMPLEX_INTERLEAVED;
 		row2Plan->inStride[0]   = 1;
 		row2Plan->outStride[0]  = 1;
 		row2Plan->iDist         = fftPlan->length[0];
@@ -1074,7 +1074,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		trans3Plan->tmpBufSize    = 0;
 		trans3Plan->batchSize     = fftPlan->batchSize;
 		trans3Plan->envelope	  = fftPlan->envelope;
-		trans3Plan->ipLayout   = HCFFT_COMPLEX;
+		trans3Plan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
 		trans3Plan->opLayout  = fftPlan->opLayout;
 		trans3Plan->inStride[0]   = 1;
 		trans3Plan->inStride[1]   = clLengths[0];
@@ -1138,7 +1138,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 		// first Pass
 		colTPlan->ipLayout   = fftPlan->ipLayout;
-		colTPlan->opLayout  = HCFFT_COMPLEX;
+		colTPlan->opLayout  = HCFFT_COMPLEX_INTERLEAVED;
 		colTPlan->inStride[0]   = fftPlan->inStride[0] * clLengths[0];
 		colTPlan->outStride[0]  = 1;
 		colTPlan->iDist         = fftPlan->iDist;
@@ -1168,8 +1168,8 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		// we need to pass clLengths[1] and instride size to kernel, so kernel can tell the difference
 		// common part for both passes
 		col2Plan->location     = HCFFT_INPLACE;
-		col2Plan->ipLayout   = HCFFT_COMPLEX;
-		col2Plan->opLayout  = HCFFT_COMPLEX;
+		col2Plan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
+		col2Plan->opLayout  = HCFFT_COMPLEX_INTERLEAVED;
 
 		col2Plan->precision     = fftPlan->precision;
 		col2Plan->forwardScale  = fftPlan->forwardScale;
@@ -1214,7 +1214,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		// we need to pass clLengths[1] and instride size to kernel, so kernel can tell the difference
 		// common part for both passes
 		copyPlan->location     = HCFFT_OUTOFPLACE;
-		copyPlan->ipLayout   = HCFFT_COMPLEX;
+		copyPlan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
 		copyPlan->opLayout  = fftPlan->opLayout;
 		copyPlan->precision     = fftPlan->precision;
 		copyPlan->forwardScale  = 1.0f;
@@ -1263,7 +1263,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		// common part for both passes
 		copyPlan->location     = HCFFT_OUTOFPLACE;
 		copyPlan->ipLayout   = fftPlan->ipLayout;
-		copyPlan->opLayout  = HCFFT_COMPLEX;
+		copyPlan->opLayout  = HCFFT_COMPLEX_INTERLEAVED;
 		copyPlan->precision     = fftPlan->precision;
 		copyPlan->forwardScale  = 1.0f;
 		copyPlan->backwardScale = 1.0f;
@@ -1317,8 +1317,8 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		colTPlan->large1D       = fftPlan->length[0];
 		colTPlan->length.push_back(clLengths[0]);
 		// first Pass
-		colTPlan->ipLayout   = HCFFT_COMPLEX;
-		colTPlan->opLayout  = HCFFT_COMPLEX;
+		colTPlan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
+		colTPlan->opLayout  = HCFFT_COMPLEX_INTERLEAVED;
 		colTPlan->inStride[0]  = length0;
 		colTPlan->inStride.push_back(1);
 		colTPlan->iDist        = length0 * length1;
@@ -1347,7 +1347,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		// we need to pass clLengths[1] and instride size to kernel, so kernel can tell the difference
 		// common part for both passes
 		col2Plan->location     = HCFFT_OUTOFPLACE;
-		col2Plan->ipLayout   = HCFFT_COMPLEX;
+		col2Plan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
 		col2Plan->opLayout  = fftPlan->opLayout;
 		col2Plan->precision     = fftPlan->precision;
 		col2Plan->forwardScale  = fftPlan->forwardScale;
@@ -1452,7 +1452,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		  {
 		    // first Pass
 		    colTPlan->ipLayout   = fftPlan->ipLayout;
-		    colTPlan->opLayout  = HCFFT_COMPLEX;
+		    colTPlan->opLayout  = HCFFT_COMPLEX_INTERLEAVED;
 		    colTPlan->inStride[0]   = fftPlan->inStride[0] * clLengths[0];
 		    colTPlan->outStride[0]  = 1;
 		    colTPlan->iDist         = fftPlan->iDist;
@@ -1472,7 +1472,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 	           else
 		   {
 		     // second pass for huge 1D
-		     colTPlan->ipLayout   = HCFFT_COMPLEX;
+		     colTPlan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
 		     colTPlan->opLayout  = fftPlan->opLayout;
 		     colTPlan->inStride[0]   = fftPlan->length[1]*clLengths[0];
 		     colTPlan->outStride[0]  = fftPlan->outStride[0];
@@ -1527,7 +1527,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		   {
 		     //first layer, large 1D from tmp buffer to output buffer
 		     col2Plan->location    = HCFFT_OUTOFPLACE;
-		     col2Plan->ipLayout  = HCFFT_COMPLEX;
+		     col2Plan->ipLayout  = HCFFT_COMPLEX_INTERLEAVED;
 		     col2Plan->inStride[0]  = length1;
 		     col2Plan->outStride[0] = fftPlan->outStride[0] * clLengths[1];
 		     col2Plan->iDist        = length0 * length1;
@@ -1620,11 +1620,11 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				if (fftPlan->length[0] < 512 && fftPlan->transposeType == HCFFT_NOTRANSPOSE) break;
 				if (fftPlan->length[0] < 32) break;
 				//x!=y case, we need tmp buffer, currently temp buffer only support interleaved format
-				//if (fftPlan->length[0] != fftPlan->length[1] && fftPlan->outputLayout == HCFFT_COMPLEX_PLANAR) break;
+				//if (fftPlan->length[0] != fftPlan->length[1] && fftPlan->outputLayout == HCFFT_COMPLEX_INTERLEAVED_PLANAR) break;
 				if (fftPlan->inStride[0] != 1 || fftPlan->outStride[0] != 1 ||
 					fftPlan->inStride[1] != fftPlan->length[0] || fftPlan->outStride[1] != fftPlan->length[0])
 					break;
-				//if (fftPlan->placeness != HCFFT_INPLACE || fftPlan->inputLayout != HCFFT_COMPLEX_PLANAR)
+				//if (fftPlan->placeness != HCFFT_INPLACE || fftPlan->inputLayout != HCFFT_COMPLEX_INTERLEAVED_PLANAR)
 				//	break;
 				//if (fftPlan->batchsize != 1) break;
 				//if (fftPlan->precision != HCFFT_SINGLE) break;
@@ -1693,7 +1693,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 				if (xyflag)
 				{
-					transPlanX->opLayout    = HCFFT_COMPLEX;
+					transPlanX->opLayout    = HCFFT_COMPLEX_INTERLEAVED;
 					transPlanX->location       = HCFFT_OUTOFPLACE;
 					transPlanX->outStride[0]    = 1;
 					transPlanX->outStride[1]    = clLengths[0];
@@ -1721,14 +1721,14 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 				if (xyflag)
 				{
-					colPlan->ipLayout     = HCFFT_COMPLEX;
+					colPlan->ipLayout     = HCFFT_COMPLEX_INTERLEAVED;
 					colPlan->inStride[0]     = 1;
 					colPlan->inStride.push_back(clLengths[1]);
 					colPlan->iDist           = clLengths[0] * clLengths[1];
 
 					if (fftPlan->transposeType == HCFFT_NOTRANSPOSE)
 					{
-						colPlan->opLayout    = HCFFT_COMPLEX;
+						colPlan->opLayout    = HCFFT_COMPLEX_INTERLEAVED;
 						colPlan->outStride[0]    = 1;
 						colPlan->outStride.push_back(clLengths[1]);
 						colPlan->oDist           = clLengths[0] * clLengths[1];
@@ -1786,7 +1786,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 				if (xyflag)
 				{
-					transPlanY->ipLayout     = HCFFT_COMPLEX;
+					transPlanY->ipLayout     = HCFFT_COMPLEX_INTERLEAVED;
 					transPlanY->location       = HCFFT_OUTOFPLACE;
 					transPlanY->inStride[0]     = 1;
 					transPlanY->inStride[1]     = clLengths[0];
@@ -1908,10 +1908,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					switch(fftPlan->opLayout)
 					{
-						case HCFFT_COMPLEX:
+						case HCFFT_COMPLEX_INTERLEAVED:
 						{
-							trans1Plan->opLayout = HCFFT_COMPLEX;
-							trans1Plan->ipLayout  = HCFFT_COMPLEX;
+							trans1Plan->opLayout = HCFFT_COMPLEX_INTERLEAVED;
+							trans1Plan->ipLayout  = HCFFT_COMPLEX_INTERLEAVED;
 						}
 						default: 
 							assert(false);
@@ -2009,10 +2009,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					switch(fftPlan->opLayout)
 					{
-					case HCFFT_COMPLEX:
+					case HCFFT_COMPLEX_INTERLEAVED:
 						{
-							trans2Plan->opLayout = HCFFT_COMPLEX;
-							trans2Plan->ipLayout  = HCFFT_COMPLEX;
+							trans2Plan->opLayout = HCFFT_COMPLEX_INTERLEAVED;
+							trans2Plan->ipLayout  = HCFFT_COMPLEX_INTERLEAVED;
 						}
 						break;
 					default: assert(false);
@@ -2060,10 +2060,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					switch(fftPlan->opLayout)
 					{
-					case HCFFT_COMPLEX:
+					case HCFFT_COMPLEX_INTERLEAVED:
 						{
-							colPlan->opLayout = HCFFT_COMPLEX;
-							colPlan->ipLayout  = HCFFT_COMPLEX;
+							colPlan->opLayout = HCFFT_COMPLEX_INTERLEAVED;
+							colPlan->ipLayout  = HCFFT_COMPLEX_INTERLEAVED;
 						}
 						break;
 					default: assert(false);
@@ -2144,10 +2144,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					switch(fftPlan->ipLayout)
 					{
-					case HCFFT_COMPLEX:
+					case HCFFT_COMPLEX_INTERLEAVED:
 						{
-							trans1Plan->opLayout = HCFFT_COMPLEX;
-							trans1Plan->ipLayout  = HCFFT_COMPLEX;
+							trans1Plan->opLayout = HCFFT_COMPLEX_INTERLEAVED;
+							trans1Plan->ipLayout  = HCFFT_COMPLEX_INTERLEAVED;
 						}
 						break;
 					default: assert(false);
@@ -2194,8 +2194,8 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					colPlan->iDist         = trans1Plan->oDist;
 
 					colPlan->location = HCFFT_INPLACE;
-					colPlan->ipLayout = HCFFT_COMPLEX;
-					colPlan->opLayout = HCFFT_COMPLEX;
+					colPlan->ipLayout = HCFFT_COMPLEX_INTERLEAVED;
+					colPlan->opLayout = HCFFT_COMPLEX_INTERLEAVED;
 
 					colPlan->outStride[0]  = colPlan->inStride[0];
 					colPlan->outStride.push_back(colPlan->inStride[1]);
@@ -2238,8 +2238,8 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					hcfftSetPlanLength( fftPlan->planTX, HCFFT_2D, trans2Lengths );
 
 
-					trans2Plan->opLayout = HCFFT_COMPLEX;
-					trans2Plan->ipLayout  = HCFFT_COMPLEX;
+					trans2Plan->opLayout = HCFFT_COMPLEX_INTERLEAVED;
+					trans2Plan->ipLayout  = HCFFT_COMPLEX_INTERLEAVED;
 
 
 					trans2Plan->location     = HCFFT_OUTOFPLACE;
@@ -2281,7 +2281,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
 
 					rowPlan->opLayout  = fftPlan->opLayout;
-					rowPlan->ipLayout   = HCFFT_COMPLEX;
+					rowPlan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
 
 					rowPlan->length.push_back(length1);
 
@@ -2337,10 +2337,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					switch(fftPlan->ipLayout)
 					{
-					case HCFFT_COMPLEX:
+					case HCFFT_COMPLEX_INTERLEAVED:
 					{
-						colPlan->opLayout = HCFFT_COMPLEX;
-						colPlan->ipLayout  = HCFFT_COMPLEX;
+						colPlan->opLayout = HCFFT_COMPLEX_INTERLEAVED;
+						colPlan->ipLayout  = HCFFT_COMPLEX_INTERLEAVED;
 					}
 					break;
 					default: assert(false);
@@ -2416,7 +2416,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
 
 					rowPlan->opLayout  = fftPlan->opLayout;
-					rowPlan->ipLayout   = HCFFT_COMPLEX;
+					rowPlan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
 
 					rowPlan->length.push_back(length1);
 
@@ -2497,7 +2497,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				}
 				else
 				{
-					rowPlan->opLayout  = HCFFT_COMPLEX;
+					rowPlan->opLayout  = HCFFT_COMPLEX_INTERLEAVED;
 					rowPlan->location     = HCFFT_OUTOFPLACE;
 					rowPlan->outStride[0]  = length1;//1;
 					rowPlan->outStride.push_back(1);//length0);
@@ -2549,7 +2549,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				}
 				else
 				{
-					colPlan->ipLayout   = HCFFT_COMPLEX;
+					colPlan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
 					colPlan->location     = HCFFT_OUTOFPLACE;
 					colPlan->inStride[0]   = 1;//length0;
 					colPlan->inStride.push_back(length1);//1);
@@ -2734,7 +2734,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		   lockRAII* rowLock	= NULL;
 		   fftRepo.getPlan( fftPlan->planX, xyPlan, rowLock );
 
-		   xyPlan->ipLayout   = HCFFT_COMPLEX;
+		   xyPlan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
 		   xyPlan->opLayout  = fftPlan->opLayout;
 		   xyPlan->location     = HCFFT_OUTOFPLACE;
 		   xyPlan->precision     = fftPlan->precision;
@@ -3402,9 +3402,9 @@ hcfftStatus FFTPlan::hcfftSetLayout(  hcfftPlanHandle plHandle,  hcfftIpLayout i
   //	We currently only support a subset of formats
   switch( iLayout )
   {
-    case HCFFT_COMPLEX:
+    case HCFFT_COMPLEX_INTERLEAVED:
     {
-      if( oLayout == HCFFT_COMPLEX)
+      if( oLayout == HCFFT_COMPLEX_INTERLEAVED)
 	return HCFFT_ERROR;
     }
     break;
@@ -3422,9 +3422,9 @@ hcfftStatus FFTPlan::hcfftSetLayout(  hcfftPlanHandle plHandle,  hcfftIpLayout i
   //	We currently only support a subset of formats
   switch( oLayout )
   {
-    case HCFFT_COMPLEX:
+    case HCFFT_COMPLEX_INTERLEAVED:
     {
-      if(iLayout == HCFFT_COMPLEX)
+      if(iLayout == HCFFT_COMPLEX_INTERLEAVED)
         return HCFFT_ERROR;
     }
     break;

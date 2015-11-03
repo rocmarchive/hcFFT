@@ -2463,8 +2463,8 @@ namespace StockhamGenerator
 			rcSimple = params.fft_RCsimple;
 
 			// Set half lds only for power-of-2 problem sizes & interleaved data
-			halfLds = ( (params.fft_inputLayout == HCFFT_COMPLEX) &&
-						(params.fft_outputLayout == HCFFT_COMPLEX) ) ? true : false;
+			halfLds = ( (params.fft_inputLayout == HCFFT_COMPLEX_INTERLEAVED) &&
+						(params.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED) ) ? true : false;
 			halfLds = halfLds ? ((length & (length-1)) ? false : true) : false;
 			//halfLds = false;
 
@@ -2649,8 +2649,8 @@ namespace StockhamGenerator
 
 			bool inInterleaved;  // Input is interleaved format
 			bool outInterleaved; // Output is interleaved format
-			inInterleaved  = (params.fft_inputLayout == HCFFT_COMPLEX)  ? true : false;
-			outInterleaved = (params.fft_outputLayout == HCFFT_COMPLEX) ? true : false;
+			inInterleaved  = (params.fft_inputLayout == HCFFT_COMPLEX_INTERLEAVED)  ? true : false;
+			outInterleaved = (params.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED) ? true : false;
 
 			// use interleaved LDS when halfLds constraint absent
 			bool ldsInterleaved = inInterleaved || outInterleaved;

@@ -57,8 +57,11 @@ typedef enum hcfftDim_
 
 typedef enum hcfftLayout_
 {
-  HCFFT_COMPLEX = 1,
-  HCFFT_REAL,
+  HCFFT_COMPLEX_INTERLEAVED	= 1,	/*!< An array of complex numbers, with real and imaginary components together (default). */
+  HCFFT_COMPLEX_PLANAR,			/*!< Arrays of real componets and arrays of imaginary components that have been seperated out. */
+  HCFFT_HERMITIAN_INTERLEAVED,		/*!< Compressed form of complex numbers; complex-conjugates not stored, real and imaginary components in same array. */
+  HCFFT_HERMITIAN_PLANAR,		/*!< Compressed form of complex numbers; complex-conjugates not stored, real and imaginary components in separate arrays. */
+  HCFFT_REAL,				/*!< An array of real numbers, with no corresponding imaginary components. */
 }hcfftIpLayout,hcfftOpLayout;
 
 typedef enum hcfftDirection_
@@ -317,8 +320,8 @@ struct FFTKernelGenKeyParams {
 		}
 
 		fft_placeness = HCFFT_OUTOFPLACE;
-		fft_inputLayout = HCFFT_REAL;
-		fft_outputLayout = HCFFT_COMPLEX;
+		fft_inputLayout = HCFFT_COMPLEX_INTERLEAVED;
+		fft_outputLayout = HCFFT_COMPLEX_INTERLEAVED;
 		fft_precision = HCFFT_SINGLE;
 		fft_fwdScale = fft_backScale = 0.0;
 		fft_SIMD = 0;
@@ -430,8 +433,8 @@ public:
   bool blockCompute;
   BlockComputeType blockComputeType;
 
-  FFTPlan() : dimension (HCFFT_1D), ipLayout (HCFFT_COMPLEX),
-              opLayout (HCFFT_COMPLEX), direction(HCFFT_FORWARD), location (HCFFT_INPLACE),
+  FFTPlan() : dimension (HCFFT_1D), ipLayout (HCFFT_COMPLEX_INTERLEAVED),
+              opLayout (HCFFT_COMPLEX_INTERLEAVED), direction(HCFFT_FORWARD), location (HCFFT_INPLACE),
               transposeType (HCFFT_NOTRANSPOSE), precision (HCFFT_SINGLE),
               batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0),
               baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
