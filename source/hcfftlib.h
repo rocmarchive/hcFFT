@@ -363,6 +363,7 @@ public:
   size_t oDist;
   double forwardScale;
   double backwardScale;
+  bool	twiddleFront;
 
   bool baked;
   hcfftGenerators gen;
@@ -379,6 +380,10 @@ public:
   hcfftPlanHandle planTZ;
 
   hcfftPlanHandle planRCcopy;
+  hcfftPlanHandle planCopy;
+
+  hcfftPlanHandle plHandle;
+
   //	Performance Tuning parameters
   bool bLdsComplex;
   unsigned uLdsFraction;
@@ -396,6 +401,7 @@ public:
   Concurrency::array_view<float ,1> *intBufferC2R;
 
   bool transflag;
+  bool transOutHorizontal;
 
   size_t  large1D;
   bool  large2D;
@@ -407,6 +413,22 @@ public:
   // if this is set we do real to-and-from full complex using simple algorithm
   // where imaginary of input is set to zero in forward and imaginary not written in backward
   bool RCsimple;
+
+  // Real FFT special flag
+  // if this is set it means we are doing the 4th step in the 5-step real FFT breakdown algorithm
+  bool realSpecial;
+
+  size_t realSpecial_Nr; // this value stores the logical column height (N0) of matrix in the 4th step
+                         // length[1] should be 1 + N0/2
+
+  // User created plan
+  bool userPlan;
+
+  // A flag to say that blocked FFTs are going to be performed
+  // It can only be one of these: column to row, row to column or column to column
+  // row to row is just the normal case where blocking is not needed
+  bool blockCompute;
+  BlockComputeType blockComputeType;
 
   FFTPlan() : dimension (HCFFT_1D), ipLayout (HCFFT_COMPLEX),
               opLayout (HCFFT_COMPLEX), direction(HCFFT_FORWARD), location (HCFFT_INPLACE),
