@@ -66,7 +66,7 @@ int main(int argc,char* argv[])
   Concurrency::array_view<float, 1> inpAr1(realsize, inputz );
   Concurrency::array_view<float, 1> opAr(cmplexsize, output );
   /*---------------------R2C--------------------------------------*/
-  status = plan.hcfftSetLayout(planhandle, HCFFT_REAL, HCFFT_COMPLEX);
+  status = plan.hcfftSetLayout(planhandle, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
   if(status != HCFFT_SUCCESS)
   {
     cout<<" set layout error "<<endl;
@@ -109,7 +109,7 @@ int main(int argc,char* argv[])
   }
 
   dir = HCFFT_BACKWARD;
-  status = plan1.hcfftSetLayout(planhandle, HCFFT_COMPLEX, HCFFT_REAL);
+  status = plan1.hcfftSetLayout(planhandle, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
   if(status != HCFFT_SUCCESS)
   {
     cout<<" set layout error "<<endl;
