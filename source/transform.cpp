@@ -275,6 +275,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
                 float *init = (float*)calloc(fftPlan->tmpBufSize, sizeof(float));
                 Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSize), init);
 		fftPlan->intBuffer = new Concurrency::array_view<float>(arr);
+		free(init);
 	}
 
 	if( localIntBuffer == NULL && fftPlan->intBuffer != NULL )
@@ -285,6 +286,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
                 float *init = (float*)calloc(fftPlan->tmpBufSizeRC, sizeof(float));
                 Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSizeRC), init);
 		fftPlan->intBufferRC = new Concurrency::array_view<float>(arr);
+		free(init);
 	}
 
 	if( fftPlan->intBufferC2R == NULL && fftPlan->tmpBufSizeC2R > 0 )
@@ -292,6 +294,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
                 float *init = (float*)calloc(fftPlan->tmpBufSizeC2R, sizeof(float));
                 Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSizeC2R), init);
 		fftPlan->intBufferC2R = new Concurrency::array_view<float>(arr);
+		free(init);
 	}
 
 	//	The largest vector we can transform in a single pass
