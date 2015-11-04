@@ -14,6 +14,7 @@ SET (SRCS
     stockham.h
     stockham.cpp 
     transform.cpp
+    copy.cpp
     )
 
 IF(WIN32)
