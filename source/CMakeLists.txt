@@ -31,7 +31,7 @@ IF(WIN32)
 ELSE(WIN32)
 
   # MCW CLAMP Specific. Version >= 0.3 is Must
-  SET (CLANG_PATH "/opt/kalmar/bin/")
+  SET (CLANG_PATH "/opt/hcc/bin/")
   IF(EXISTS "${CLANG_PATH}/clang++")
    ADD_DEFINITIONS(-DDEBIAN)
    SET (PREIX "${CLANG_PATH}")

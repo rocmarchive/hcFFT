@@ -58,7 +58,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
         string fftLibPath = pwd + "/../../../../Build/linux/";
 
 #ifdef DEBIAN
-        string Path= "/opt/kalmar/bin/";
+        string Path= "/opt/hcc/bin/";
         std::string execCmd = Path + "/clang++ `" + Path + "/clamp-config --build --cxxflags --ldflags --shared` ../../../kernel0.cpp -o " + kernellib ; 
 #else
         char *compilerPath = (char*)calloc(100, 1);
