@@ -1053,7 +1053,6 @@ case HCFFT_HERMITIAN_INTERLEAVED:
             			}
            			else
             			{
-					std::cout << " real comp outofplace "<<std::endl;
 		               		vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
 		               		vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
             			}
@@ -2586,7 +2585,6 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		{
 			if (fftPlan->transflag) //Transpose for 2D
 			{
-				std::cout << " Transpose flag is on ..Thats causing the difference "<<std::endl;
 				fftPlan->baked		= true;
 				return	HCFFT_SUCCESS;
 			}
