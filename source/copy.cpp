@@ -503,7 +503,7 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFT
   this->GetKernelGenKeyPvt<Copy> (params);
   vector< size_t > gWorkSize;
   vector< size_t > lWorkSize;
-  this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);
+  this->GetWorkSizesPvt<Copy> (gWorkSize, lWorkSize);
 
   bool h2c, c2h;
   h2c = ( (params.fft_inputLayout == HCFFT_HERMITIAN_PLANAR) || (params.fft_inputLayout == HCFFT_HERMITIAN_INTERLEAVED) );
