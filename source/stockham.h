@@ -48,9 +48,12 @@ namespace StockhamGenerator
 	inline stringpair ComplexMul(const char *type, const char * a, const char * b, bool forward = true)
 	{
 		stringpair result;
-		result.first = "(";
+		if((strcmp(type,"float_2")) != 0)
+			result.first = "(";
 		result.first += type;
-		result.first += ") ((";
+		if((strcmp(type,"float_2")) != 0)
+			result.first += ")";
+		result.first += " ((";
 		result.first += a;
 		result.first += ".x * ";
 		result.first += b;
