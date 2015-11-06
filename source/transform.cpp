@@ -273,8 +273,8 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 		// The intermediate buffer is always interleave and packed
 		// For outofplace operation, we have the choice not to create intermediate buffer
 		// input ->(col+Transpose) output ->(col) output
-                float *init = (float*)calloc(fftPlan->tmpBufSize, sizeof(float));
-                Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSize), init);
+                float *init = (float*)calloc(fftPlan->tmpBufSize/sizeof(float), sizeof(float));
+                Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSize/sizeof(float)), init);
 		fftPlan->intBuffer = new Concurrency::array_view<float>(arr);
 		free(init);
 	}
@@ -284,16 +284,16 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
 	if( fftPlan->intBufferRC == NULL && fftPlan->tmpBufSizeRC > 0 )
 	{
-                float *init = (float*)calloc(fftPlan->tmpBufSizeRC, sizeof(float));
-                Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSizeRC), init);
+                float *init = (float*)calloc(fftPlan->tmpBufSizeRC/sizeof(float), sizeof(float));
+                Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSizeRC/sizeof(float)), init);
 		fftPlan->intBufferRC = new Concurrency::array_view<float>(arr);
 		free(init);
 	}
 
 	if( fftPlan->intBufferC2R == NULL && fftPlan->tmpBufSizeC2R > 0 )
 	{
-                float *init = (float*)calloc(fftPlan->tmpBufSizeC2R, sizeof(float));
-                Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSizeC2R), init);
+                float *init = (float*)calloc(fftPlan->tmpBufSizeC2R/sizeof(float), sizeof(float));
+                Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSizeC2R/sizeof(float)), init);
 		fftPlan->intBufferC2R = new Concurrency::array_view<float>(arr);
 		free(init);
 	}
