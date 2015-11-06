@@ -437,7 +437,7 @@ public:
               opLayout (HCFFT_COMPLEX_INTERLEAVED), direction(HCFFT_FORWARD), location (HCFFT_INPLACE),
               transposeType (HCFFT_NOTRANSPOSE), precision (HCFFT_SINGLE),
               batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0),
-              baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
+              twiddleFront(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
               planTX(0), planTY(0), planTZ(0), planRCcopy(0), planCopy(0), plHandle(0), bLdsComplex(false),
               uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
 	      intBuffer( NULL ), tmpBufSizeRC(0), intBufferRC(NULL), tmpBufSizeC2R(0),
