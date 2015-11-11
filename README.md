@@ -73,43 +73,54 @@ With this the C++ AMP Compiler installation is complete.
 
        * cd ~/hcfft/Build/linux
        
-       * export MCWCPPAMPROOT=<path_to>/mcw_cppamp35/ (Here path_to points to parent folder of mcw_cppamp. ~/ in our case)
+       * export MCWCPPAMPBUILD=<path_to>/mcw_cppamp35/build/ (Here path_to points to parent folder of mcw_cppamp. ~/ in our case)
 
        * sh build.sh
 
-       * make
+       * sudo make install
 
 (b)  For Windows: (Prerequisite: Visual Studio 12 version )
 
 1. For 32 Bit:
 
-     * cd Build/vc11-x86
+     * cd ~/hcfft/Build/vc11-x86
 
      * make-solutions.bat (This creates a Visual studio solution for hcfft Library) 
 
  2. For 64-bit:
 
-     * cd Build/vc11-x86_64
+     * cd ~/hcfft/Build/vc11-x86_64
 
      * make-solutions.bat (This creates a Visual Studio solution for hcfft Library)
 
 
 ### C. Unit testing
 
+(a) For Linux:
+
 1. FFT R2C and C2R Testing: 
 
-     * export HCFFT_LIBRARY_PATH = ~/hcfft/Build/linux
+     * export MCWCPPAMPBUILD=~/mcw_cppamp35/build/
      
-     * export MCWCPPAMPROOT=~/mcw_cppamp35/
-     
-     * export LD_LIBRARY_PATH=$HCFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
-     
-     * cd ~/hcfft/source/test/
+     * cd ~/hcfft/source/test/build/linux/
 
-     * export CLAMP_NOTILECHECK=ON
+     * sh build.sh
      
      * make
      
-     * chmod +x run.sh
+     * ./runme_ffttest.sh N1 N2
+      where N1 and N2 are sizes.
 
-     * ./run.sh N1 N2
+(b)  For Windows: (Prerequisite: Visual Studio 12 version )
+
+1. For 32 Bit:
+
+     * cd ~/hcfft/source/test/build/vc11-x86
+
+     * make-solutions.bat (This creates a Visual studio solution for hcffttest Library) 
+
+ 2. For 64-bit:
+
+     * cd ~/hcfft/source/test/build/vc11-x86_64
+
+     * make-solutions.bat (This creates a Visual Studio solution for hcffttest Library)
