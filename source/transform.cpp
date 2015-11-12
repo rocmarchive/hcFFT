@@ -5186,6 +5186,8 @@ hcfftStatus  FFTPlan::GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & 
           return GenerateKernelPvt<Stockham>(plHandle, fftRepo);
 	case Copy:
           return GenerateKernelPvt<Copy>(plHandle, fftRepo);
+	case Transpose:
+          return GenerateKernelPvt<Transpose>(plHandle, fftRepo);
 	default:
           return HCFFT_ERROR;
 	}
