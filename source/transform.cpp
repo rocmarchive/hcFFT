@@ -2343,6 +2343,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 						col2Plan->length.push_back(clLengths[0]);
 
 						col2Plan->blockCompute = true;
+						col2Plan->blockComputeType = BCT_C2C;
 
 						col2Plan->inStride[0]  = length0+padding;
 						col2Plan->outStride[0] = length0+padding;
