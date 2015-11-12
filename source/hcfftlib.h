@@ -443,7 +443,7 @@ public:
 	      intBuffer( NULL ), tmpBufSizeRC(0), intBufferRC(NULL), tmpBufSizeC2R(0),
 	      intBufferC2R(NULL), transflag(false), transOutHorizontal(false), large1D(0), large2D(false),
               const_buffer(NULL), RCsimple(false), realSpecial(false), realSpecial_Nr(0), userPlan(false),
-              blockCompute(false), blockComputeType(BCT_R2C)
+              blockCompute(false), blockComputeType(BCT_C2C)
   {};
 
   hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle,hcfftDim dimension, const size_t *length);
