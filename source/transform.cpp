@@ -124,7 +124,7 @@ hcfftStatus FFTPlan::GetEnvelope (const FFTEnvelope ** ppEnvelope) const
 	return HCFFT_SUCCESS;
 }
 
-hcfftStatus FFTPlan::hcfftCreateDefaultPlan (hcfftPlanHandle* plHandle,hcfftDim dimension, const size_t *length)
+hcfftStatus hcfftCreateDefaultPlanInternal (hcfftPlanHandle* plHandle,hcfftDim dimension, const size_t *length)
 {
   if( length == NULL )
     return HCFFT_ERROR;
@@ -232,9 +232,28 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan (hcfftPlanHandle* plHandle,hcfftDim 
   }
 
   fftPlan->plHandle = *plHandle;
-  fftPlan->userPlan = true;
 
   return HCFFT_SUCCESS;
+}
+
+// This external entry-point should not be called from within the library. Use clfftCreateDefaultPlanInternal instead.
+hcfftStatus	FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hcfftDim dim,
+						const size_t* clLengths )
+{
+	hcfftStatus ret = hcfftCreateDefaultPlanInternal(plHandle, dim, clLengths);
+
+	if(ret == HCFFT_SUCCESS)
+	{
+		FFTRepo& fftRepo	= FFTRepo::getInstance( );
+		FFTPlan *fftPlan = NULL;
+		lockRAII* planLock	= NULL;
+		fftRepo.getPlan( *plHandle, fftPlan, planLock );
+
+		fftPlan->userPlan = true;
+	}
+
+	return ret;
+
 }
 
 hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, Concurrency::array_view<float, 1> *clInputBuffers,
