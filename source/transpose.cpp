@@ -20,6 +20,87 @@ struct tile
     };
 };
 
+inline std::stringstream& hcKernWrite( std::stringstream& rhs, const size_t tabIndex )
+{
+    rhs << std::setw( tabIndex ) << "";
+    return rhs;
+}
+
+static void OffsetCalc(std::stringstream& transKernel, const FFTKernelGenKeyParams& params, bool input )
+{
+	const size_t *stride = input ? params.fft_inStride : params.fft_outStride;
+	std::string offset = input ? "iOffset" : "oOffset";
+
+
+	hcKernWrite( transKernel, 3 ) << "size_t " << offset << " = 0;" << std::endl;
+	hcKernWrite( transKernel, 3 ) << "currDimIndex = groupIndex.y;" << std::endl;
+
+
+	for(size_t i = params.fft_DataDim - 2; i > 0 ; i--)
+	{
+		hcKernWrite( transKernel, 3 ) << offset << " += (currDimIndex/numGroupsY_" << i << ")*" << stride[i+1] << ";" << std::endl;
+		hcKernWrite( transKernel, 3 ) << "currDimIndex = currDimIndex % numGroupsY_" << i << ";" << std::endl;
+	}
+
+	hcKernWrite( transKernel, 3 ) << "rowSizeinUnits = " << stride[1] << ";" << std::endl;
+
+	if(params.transOutHorizontal)
+	{
+		if(input)
+		{
+			hcKernWrite( transKernel, 3 ) << offset << " += rowSizeinUnits * wgTileExtent.y * wgUnroll * groupIndex.x;" << std::endl;
+			hcKernWrite( transKernel, 3 ) << offset << " += currDimIndex * wgTileExtent.x;" << std::endl;  
+		}
+		else
+		{
+			hcKernWrite( transKernel, 3 ) << offset << " += rowSizeinUnits * wgTileExtent.x * currDimIndex;" << std::endl;
+			hcKernWrite( transKernel, 3 ) << offset << " += groupIndex.x * wgTileExtent.y * wgUnroll;" << std::endl;
+		}
+	}
+	else
+	{
+		if(input)
+		{
+			hcKernWrite( transKernel, 3 ) << offset << " += rowSizeinUnits * wgTileExtent.y * wgUnroll * currDimIndex;" << std::endl;
+			hcKernWrite( transKernel, 3 ) << offset << " += groupIndex.x * wgTileExtent.x;" << std::endl;
+		}
+		else
+		{
+			hcKernWrite( transKernel, 3 ) << offset << " += rowSizeinUnits * wgTileExtent.x * groupIndex.x;" << std::endl;
+			hcKernWrite( transKernel, 3 ) << offset << " += currDimIndex * wgTileExtent.y * wgUnroll;" << std::endl;  
+		}
+	}
+
+	hcKernWrite( transKernel, 3 ) << std::endl;
+}
+
+
+
+
+// Small snippet of code that multiplies the twiddle factors into the butterfiles.  It is only emitted if the plan tells
+// the generator that it wants the twiddle factors generated inside of the transpose
+static hcfftStatus genTwiddleMath( const FFTKernelGenKeyParams& params, std::stringstream& transKernel, const std::string& dtComplex, bool fwd )
+{
+    hcKernWrite( transKernel, 9 ) << dtComplex << " W = TW3step( (groupIndex.x * wgTileExtent.x + xInd) * (currDimIndex * wgTileExtent.y * wgUnroll + yInd) );" << std::endl;
+    hcKernWrite( transKernel, 9 ) << dtComplex << " T;" << std::endl;
+
+	if(fwd)
+	{
+		hcKernWrite( transKernel, 9 ) << "T.x = ( W.x * tmp.x ) - ( W.y * tmp.y );" << std::endl;
+		hcKernWrite( transKernel, 9 ) << "T.y = ( W.y * tmp.x ) + ( W.x * tmp.y );" << std::endl;
+	}
+	else
+	{
+		hcKernWrite( transKernel, 9 ) << "T.x =  ( W.x * tmp.x ) + ( W.y * tmp.y );" << std::endl;
+		hcKernWrite( transKernel, 9 ) << "T.y = -( W.y * tmp.x ) + ( W.x * tmp.y );" << std::endl;
+	}
+
+    hcKernWrite( transKernel, 9 ) << "tmp.x = T.x;" << std::endl;
+    hcKernWrite( transKernel, 9 ) << "tmp.y = T.y;" << std::endl;
+
+    return HCFFT_SUCCESS;
+}
+
 template<>
 hcfftStatus FFTPlan::GetKernelGenKeyPvt<Transpose> (FFTKernelGenKeyParams & params) const
 {
