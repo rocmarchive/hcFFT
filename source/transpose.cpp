@@ -263,7 +263,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 	{
 		std::string str;
 		StockhamGenerator::TwiddleTableLarge twLarge(params.fft_N[0] * params.fft_N[1]);
-		if( (params.fft_precision == HCFFT_SINGLE) )
+		if(params.fft_precision == HCFFT_SINGLE)
 			twLarge.GenerateTwiddleTable<StockhamGenerator::P_SINGLE>(str);
 		else
 			twLarge.GenerateTwiddleTable<StockhamGenerator::P_DOUBLE>(str);
@@ -337,7 +337,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 
 		// Generate the amount of local data share we need
 		// Assumption: Even for planar data, we will still store values in LDS as interleaved
-		tile ldsSize = { blockSize.x, blockSize.y };
+		tile ldsSize = { {blockSize.x}, {blockSize.y} };
 		switch( params.fft_outputLayout )
 		{
 		case HCFFT_COMPLEX_INTERLEAVED:
@@ -443,7 +443,8 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 					hcKernWrite( transKernel, 3 ) << "else" << std::endl;
 					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
 				}
-			else if(branchingInAny)
+				else if(branchingInAny)
+				{
 				if(i == 0)
 				{
 					if(branchingInGroupX)
@@ -464,8 +465,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 					hcKernWrite( transKernel, 3 ) << "else" << std::endl;
 					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
 				}
-
-
+				}
 
 			hcKernWrite( transKernel, 6 ) << "for( uint t=0; t < wgUnroll; t++ )" << std::endl;
 			hcKernWrite( transKernel, 6 ) << "{" << std::endl;
@@ -616,7 +616,8 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 					hcKernWrite( transKernel, 3 ) << "else" << std::endl;
 					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
 				}
-			else if(branchingInAny)
+				else if(branchingInAny)
+				{
 				if(i == 0)
 				{
 					if(branchingInGroupX)
@@ -637,7 +638,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 					hcKernWrite( transKernel, 3 ) << "else" << std::endl;
 					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
 				}
-
+				}
 
 			hcKernWrite( transKernel, 6 ) << "for( uint t=0; t < wgUnroll; t++ )" << std::endl;
 			hcKernWrite( transKernel, 6 ) << "{" << std::endl;
