@@ -859,3 +859,50 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Transpose> (std::vector<size_t> & globalWS,
 
     return HCFFT_SUCCESS;
 }
+
+//	OpenCL does not take unicode strings as input, so this routine returns only ASCII strings
+//	Feed this generator the FFTPlan, and it returns the generated program as a string
+template<>
+hcfftStatus FFTPlan::GenerateKernelPvt<Transpose>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo) const
+{
+    FFTKernelGenKeyParams fftParams;
+    this->GetKernelGenKeyPvt<Transpose>( fftParams );
+
+    switch( fftParams.fft_precision )
+    {
+    case HCFFT_SINGLE:
+        loopCount = 16;
+        break;
+    case HCFFT_DOUBLE:
+        // Double precisions need about half the amount of LDS space as singles do
+        loopCount = 8;
+        break;
+    default:
+        return HCFFT_INVALID;
+        break;
+    }
+
+    blockSize.x = lwSize.x * reShapeFactor;
+    blockSize.y = lwSize.y / reShapeFactor * loopCount;
+
+    vector< size_t > gWorkSize;
+    vector< size_t > lWorkSize;
+    this->GetWorkSizesPvt<Transpose> (gWorkSize, lWorkSize);
+
+    std::string programCode;
+    genTransposeKernel( plHandle, fftParams, programCode, lwSize, reShapeFactor, loopCount, blockSize, outRowPadding, gWorkSize, lWorkSize);
+
+    fftRepo.setProgramCode(Transpose, plHandle, fftParams, programCode);
+
+    // Note:  See genFunctionPrototype( )
+    if( fftParams.fft_3StepTwiddle )
+    {
+        fftRepo.setProgramEntryPoints( Transpose, plHandle, fftParams, "transpose_tw_fwd", "transpose_tw_back");
+    }
+    else
+    {
+        fftRepo.setProgramEntryPoints( Transpose, plHandle, fftParams, "transpose", "transpose");
+    }
+
+    return HCFFT_SUCCESS;
+}
