@@ -1237,6 +1237,20 @@ case HCFFT_HERMITIAN_INTERLEAVED:
         		}
         	}
 	}
+        else if(fftPlan->gen == Transpose)
+	{
+		std::string funcName = "transpose";
+		funcName +=  std::to_string(plHandle);
+		FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
+		if (!FFTcall)
+		  std::cout<<"Loading transpose fails "<<std::endl;
+		err=dlerror();
+		if (err)
+		{
+		  std::cout<<"failed to locate transpose(): "<< err;
+		  exit(1);
+		}
+	}
 
         FFTcall(&vectArr);
 
