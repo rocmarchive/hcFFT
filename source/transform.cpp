@@ -2620,6 +2620,8 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		{
 			if (fftPlan->transflag) //Transpose for 2D
 			{
+			        fftPlan->GenerateKernel(plHandle, fftRepo);
+			        CompileKernels(plHandle, fftPlan->gen, fftPlan);
 				fftPlan->baked		= true;
 				return	HCFFT_SUCCESS;
 			}
