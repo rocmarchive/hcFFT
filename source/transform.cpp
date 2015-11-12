@@ -5171,6 +5171,8 @@ hcfftStatus  FFTPlan::GetWorkSizes (std::vector<size_t> & globalws, std::vector<
 	  return GetWorkSizesPvt<Stockham>(globalws, localws);
 	case Copy:
 	  return GetWorkSizesPvt<Copy>(globalws, localws);
+	case Transpose:
+	  return GetWorkSizesPvt<Transpose>(globalws, localws);
 	default:
 	  return HCFFT_ERROR;
 	}
