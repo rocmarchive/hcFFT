@@ -12,6 +12,7 @@ SET (SRCS
     stockham.cpp 
     transform.cpp
     copy.cpp
+    transpose.cpp
     )
 
 IF(WIN32)
