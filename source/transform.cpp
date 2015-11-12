@@ -5136,7 +5136,13 @@ hcfftStatus FFTPlan::GetMax1DLength (size_t *longest ) const
 	case Stockham:
           return GetMax1DLengthPvt<Stockham>(longest);
 	case Copy:
-          return GetMax1DLengthPvt<Copy>(longest);
+	{
+	  *longest = 4096; return HCFFT_SUCCESS;
+	}
+	case Transpose:
+	{
+	  *longest = 4096; return HCFFT_SUCCESS;
+	}
 	default:
           return HCFFT_ERROR;
 	}
