@@ -5156,6 +5156,8 @@ hcfftStatus  FFTPlan::GetKernelGenKey (FFTKernelGenKeyParams & params) const
           return GetKernelGenKeyPvt<Stockham>(params);
 	case Copy:
           return GetKernelGenKeyPvt<Copy>(params);
+	case Transpose:
+          return GetKernelGenKeyPvt<Transpose>(params);
 	default:
 	  return HCFFT_ERROR;
 	}
