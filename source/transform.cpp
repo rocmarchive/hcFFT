@@ -1542,7 +1542,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					//Transpose
 					//Input --> tmp buffer
-					hcfftCreateDefaultPlan( &fftPlan->planTX, HCFFT_2D, clLengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTX, HCFFT_2D, clLengths );
 
 					FFTPlan* trans1Plan	= NULL;
 					lockRAII* trans1Lock	= NULL;
@@ -1569,7 +1569,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Row transform
 					//tmp->output
 					//size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
-					hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &clLengths[1] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_1D, &clLengths[1] );
 
 					FFTPlan* row1Plan	= NULL;
 					lockRAII* row1Lock	= NULL;
@@ -1604,7 +1604,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Transpose 2
 					//Output --> tmp buffer
 					clLengths[2] = clLengths[0];
-					hcfftCreateDefaultPlan( &fftPlan->planTY, HCFFT_2D, &clLengths[1] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTY, HCFFT_2D, &clLengths[1] );
 
 					FFTPlan* trans2Plan	= NULL;
 					lockRAII* trans2Lock	= NULL;
@@ -1632,7 +1632,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Row transform 2
 					//tmp->tmp
 					//size clLengths[0], batch clLengths[1]
-					hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &clLengths[0] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D, &clLengths[0] );
 
 					FFTPlan* row2Plan	= NULL;
 					lockRAII* row2Lock	= NULL;
@@ -1664,7 +1664,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					//Transpose 3
 					//tmp --> output
-					hcfftCreateDefaultPlan( &fftPlan->planTZ, HCFFT_2D, clLengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTZ, HCFFT_2D, clLengths );
 
 					FFTPlan* trans3Plan	= NULL;
 					lockRAII* trans3Lock	= NULL;
@@ -1745,7 +1745,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					//Transpose
 					//Input --> tmp buffer
-					hcfftCreateDefaultPlan( &fftPlan->planTX, HCFFT_2D, clLengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTX, HCFFT_2D, clLengths );
 					FFTPlan* trans1Plan	= NULL;
 					lockRAII* trans1Lock	= NULL;
 					fftRepo.getPlan( fftPlan->planTX, trans1Plan, trans1Lock );
@@ -1771,7 +1771,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Row transform
 					//tmp->output
 					//size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
-					hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &clLengths[1] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_1D, &clLengths[1] );
 
 					FFTPlan* row1Plan	= NULL;
 					lockRAII* row1Lock	= NULL;
@@ -1806,7 +1806,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Transpose 2
 					//Output --> tmp buffer
 					clLengths[2] = clLengths[0];
-					hcfftCreateDefaultPlan( &fftPlan->planTY, HCFFT_2D, &clLengths[1] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTY, HCFFT_2D, &clLengths[1] );
 
 					FFTPlan* trans2Plan	= NULL;
 					lockRAII* trans2Lock	= NULL;
@@ -1841,7 +1841,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Row transform 2
 					//tmp->tmp
 					//size clLengths[0], batch clLengths[1]
-					hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &clLengths[0] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D, &clLengths[0] );
 
 					FFTPlan* row2Plan	= NULL;
 					lockRAII* row2Lock	= NULL;
@@ -1877,7 +1877,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					//Transpose 3
 					//tmp --> output
-					hcfftCreateDefaultPlan( &fftPlan->planTZ, HCFFT_2D, clLengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTZ, HCFFT_2D, clLengths );
 
 					FFTPlan* trans3Plan	= NULL;
 					lockRAII* trans3Lock	= NULL;
@@ -1930,7 +1930,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					// column FFT, size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
 					// transposed output
-					hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &clLengths[1] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_1D, &clLengths[1] );
 
 					FFTPlan* colTPlan	= NULL;
 					lockRAII* colLock	= NULL;
@@ -1980,7 +1980,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					hcfftBakePlan(fftPlan->planX);
 
 					//another column FFT, size clLengths[0], batch clLengths[1], output without transpose
-					hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D,  &clLengths[0] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D,  &clLengths[0] );
 
 					FFTPlan* col2Plan	= NULL;
 					lockRAII* rowLock	= NULL;
@@ -2026,7 +2026,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 
 					// copy plan to get back to hermitian
-					hcfftCreateDefaultPlan( &fftPlan->planRCcopy, HCFFT_1D,  &fftPlan->length[0]);
+					hcfftCreateDefaultPlanInternal( &fftPlan->planRCcopy, HCFFT_1D,  &fftPlan->length[0]);
 
 					FFTPlan* copyPlan	= NULL;
 					lockRAII* copyLock	= NULL;
@@ -2080,7 +2080,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					}
 
 					// copy plan to from hermitian to full complex
-					hcfftCreateDefaultPlan( &fftPlan->planRCcopy, HCFFT_1D,  &fftPlan->length[0] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planRCcopy, HCFFT_1D,  &fftPlan->length[0] );
 
 					FFTPlan* copyPlan	= NULL;
 					lockRAII* copyLock	= NULL;
@@ -2121,7 +2121,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					// column FFT, size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
 					// transposed output
-					hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &clLengths[1] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_1D, &clLengths[1] );
 
 					FFTPlan* colTPlan	= NULL;
 					lockRAII* colLock	= NULL;
@@ -2174,7 +2174,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					hcfftBakePlan(fftPlan->planX);
 
 					//another column FFT, size clLengths[0], batch clLengths[1], output without transpose
-					hcfftCreateDefaultPlan( &fftPlan->planY,HCFFT_1D,  &clLengths[0] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planY,HCFFT_1D,  &clLengths[0] );
 
 					FFTPlan* col2Plan	= NULL;
 					lockRAII* rowLock	= NULL;
@@ -2242,7 +2242,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 						size_t len[3] = { clLengths[1], clLengths[0], 1 };
 
-						hcfftCreateDefaultPlan( &fftPlan->planTX, HCFFT_2D, len );
+						hcfftCreateDefaultPlanInternal( &fftPlan->planTX, HCFFT_2D, len );
 
 						FFTPlan* trans1Plan	= NULL;
 						lockRAII* trans1Lock	= NULL;
@@ -2276,7 +2276,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 
 						// row FFT
-						hcfftCreateDefaultPlan( &fftPlan->planX,HCFFT_1D, &clLengths[0] );
+						hcfftCreateDefaultPlanInternal( &fftPlan->planX,HCFFT_1D, &clLengths[0] );
 
 						FFTPlan* rowPlan	= NULL;
 						lockRAII* rowLock	= NULL;
@@ -2319,7 +2319,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 						hcfftBakePlan(fftPlan->planX);
 
 						//column FFT
-						hcfftCreateDefaultPlan( &fftPlan->planY,HCFFT_1D,  &clLengths[1] );
+						hcfftCreateDefaultPlanInternal( &fftPlan->planY,HCFFT_1D,  &clLengths[1] );
 
 						FFTPlan* col2Plan	= NULL;
 						lockRAII* colLock	= NULL;
@@ -2366,7 +2366,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 
 						// copy plan to get results back to packed output
-						hcfftCreateDefaultPlan( &fftPlan->planCopy,HCFFT_1D,  &clLengths[0] );
+						hcfftCreateDefaultPlanInternal( &fftPlan->planCopy,HCFFT_1D,  &clLengths[0] );
 
 						FFTPlan* copyPlan	= NULL;
 						lockRAII* copyLock	= NULL;
@@ -2421,7 +2421,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 						// column FFT, size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
 						// transposed output
-						hcfftCreateDefaultPlan( &fftPlan->planX,HCFFT_1D, &clLengths[1] );
+						hcfftCreateDefaultPlanInternal( &fftPlan->planX,HCFFT_1D, &clLengths[1] );
 
 						FFTPlan* colTPlan	= NULL;
 						lockRAII* colLock	= NULL;
@@ -2480,7 +2480,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 						hcfftBakePlan(fftPlan->planX);
 
 						//another column FFT, size clLengths[0], batch clLengths[1], output without transpose
-						hcfftCreateDefaultPlan( &fftPlan->planY,HCFFT_1D,  &clLengths[0] );
+						hcfftCreateDefaultPlanInternal( &fftPlan->planY,HCFFT_1D,  &clLengths[0] );
 
 						FFTPlan* col2Plan	= NULL;
 						lockRAII* rowLock	= NULL;
@@ -2575,7 +2575,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 						{
 							//Transpose
 							//tmp --> output
-							hcfftCreateDefaultPlan( &fftPlan->planTZ, HCFFT_2D, clLengths );
+							hcfftCreateDefaultPlanInternal( &fftPlan->planTZ, HCFFT_2D, clLengths );
 
 							FFTPlan* trans3Plan	= NULL;
 							lockRAII* trans3Lock	= NULL;
@@ -2681,7 +2681,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 				//create row plan,
 				// x=y & x!=y, In->In for inplace, In->out for outofplace
-				hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
+				hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
 
 				FFTPlan* rowPlan	= NULL;
 				lockRAII* rowLock	= NULL;
@@ -2723,7 +2723,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 						fftPlan->batchSize * fftPlan->ElementSize();
 				}
 
-				hcfftCreateDefaultPlan(&fftPlan->planTX, HCFFT_2D, clLengths);
+				hcfftCreateDefaultPlanInternal( &fftPlan->planTX, HCFFT_2D, clLengths);
 
 				FFTPlan* transPlanX	= NULL;
 				lockRAII* transLockX	= NULL;
@@ -2762,7 +2762,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				//create second row plan
 				//x!=y: tmp->tmp, x=y case: In->In or Out->Out
 				//if Transposed result is a choice x!=y: tmp->In or out
-				hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ]);
+				hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ]);
 
 				FFTPlan* colPlan	= NULL;
 				lockRAII* colLock	= NULL;
@@ -2827,7 +2827,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				//x!=y case tmp->In or Out, x=y case In->In or Out->out
 				clLengths[0] = fftPlan->length[1];
 				clLengths[1] = fftPlan->length[0];
-				hcfftCreateDefaultPlan( &fftPlan->planTY, HCFFT_2D, clLengths );
+				hcfftCreateDefaultPlanInternal( &fftPlan->planTY, HCFFT_2D, clLengths );
 
 				FFTPlan* transPlanY	= NULL;
 				lockRAII* transLockY	= NULL;
@@ -2883,7 +2883,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				// real to hermitian
 
 				//create row plan
-				hcfftCreateDefaultPlan(&fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
+				hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
 
 				FFTPlan* rowPlan	= NULL;
 				lockRAII* rowLock	= NULL;
@@ -2945,7 +2945,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Transpose
 					// output --> tmp
 					size_t transLengths[2] = { length0, length1 };
-					hcfftCreateDefaultPlan( &fftPlan->planTX, HCFFT_2D, transLengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTX, HCFFT_2D, transLengths );
 
 					FFTPlan* trans1Plan	= NULL;
 					lockRAII* trans1Lock	= NULL;
@@ -3003,7 +3003,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 
 					// Create column plan as a row plan
-					hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ]);
+					hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ]);
 
 					FFTPlan* colPlan	= NULL;
 					lockRAII* colLock	= NULL;
@@ -3055,7 +3055,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Transpose
 					//output --> tmp
 					size_t trans2Lengths[2] = { length1, length0 };
-					hcfftCreateDefaultPlan(&fftPlan->planTY, HCFFT_2D, trans2Lengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTY, HCFFT_2D, trans2Lengths );
 
 					FFTPlan* trans2Plan	= NULL;
 					lockRAII* trans2Lock	= NULL;
@@ -3118,7 +3118,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					// create col plan
 					// complex to complex
 
-					hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
 
 					FFTPlan* colPlan	= NULL;
 					lockRAII* colLock	= NULL;
@@ -3203,7 +3203,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Transpose
 					// input --> tmp
 					size_t transLengths[2] = { length0, length1 };
-					hcfftCreateDefaultPlan( &fftPlan->planTY, HCFFT_2D, transLengths);
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTY, HCFFT_2D, transLengths);
 
 					FFTPlan* trans1Plan	= NULL;
 					lockRAII* trans1Lock	= NULL;
@@ -3261,7 +3261,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					// create col plan
 					// complex to complex
 
-					hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
 
 					FFTPlan* colPlan	= NULL;
 					lockRAII* colLock	= NULL;
@@ -3306,7 +3306,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Transpose
 					//tmp --> output
 					size_t trans2Lengths[2] = { length1, length0 };
-					hcfftCreateDefaultPlan( &fftPlan->planTX, HCFFT_2D, trans2Lengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTX, HCFFT_2D, trans2Lengths );
 
 					FFTPlan* trans2Plan	= NULL;
 					lockRAII* trans2Lock	= NULL;
@@ -3355,7 +3355,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					// hermitian to real
 
 					//create row plan
-					hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
+					hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
 
 					FFTPlan* rowPlan	= NULL;
 					lockRAII* rowLock	= NULL;
@@ -3408,7 +3408,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					// create col plan
 					// complex to complex
 
-					hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ]);
+					hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ]);
 
 					FFTPlan* colPlan	= NULL;
 					lockRAII* colLock	= NULL;
@@ -3495,7 +3495,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					// hermitian to real
 
 					//create row plan
-					hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
+					hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
 
 					FFTPlan* rowPlan	= NULL;
 					lockRAII* rowLock	= NULL;
@@ -3566,7 +3566,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				}
 
 				//create row plan
-				hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
+				hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_1D, &fftPlan->length[ 0 ]);
 
 				FFTPlan* rowPlan	= NULL;
 				lockRAII* rowLock	= NULL;
@@ -3619,7 +3619,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				hcfftBakePlan(fftPlan->planX);
 
 				//create col plan
-				hcfftCreateDefaultPlan( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
+				hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
 
 				FFTPlan* colPlan	= NULL;
 				lockRAII* colLock	= NULL;
@@ -3690,7 +3690,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 				//create 2D xy plan
 				size_t clLengths[] = { length0, length1, 0 };
-				hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_2D, clLengths );
+				hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_2D, clLengths );
 
 				FFTPlan* xyPlan	= NULL;
 				lockRAII* rowLock	= NULL;
@@ -3753,7 +3753,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Transpose
 					// output --> tmp
 					size_t transLengths[2] = { length0*length1, length2 };
-					hcfftCreateDefaultPlan( &fftPlan->planTX, HCFFT_2D, transLengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTX, HCFFT_2D, transLengths );
 
 					FFTPlan* trans1Plan	= NULL;
 					lockRAII* trans1Lock	= NULL;
@@ -3811,7 +3811,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					hcfftBakePlan(fftPlan->planTX);
 
 					// Create column plan as a row plan
-					hcfftCreateDefaultPlan( &fftPlan->planZ, HCFFT_1D, &fftPlan->length[2] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planZ, HCFFT_1D, &fftPlan->length[2] );
 
 					FFTPlan* colPlan	= NULL;
 					lockRAII* colLock	= NULL;
@@ -3863,7 +3863,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Transpose
 					//output --> tmp
 					size_t trans2Lengths[2] = { length2, length0*length1 };
-					hcfftCreateDefaultPlan( &fftPlan->planTY, HCFFT_2D, trans2Lengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTY, HCFFT_2D, trans2Lengths );
 
 					FFTPlan* trans2Plan	= NULL;
 					lockRAII* trans2Lock	= NULL;
@@ -3927,7 +3927,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					clLengths[0] = fftPlan->length[ 2 ];
 					clLengths[1] = clLengths[2] = 0;
 					//create 1D col plan
-					hcfftCreateDefaultPlan( &fftPlan->planZ, HCFFT_1D, clLengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planZ, HCFFT_1D, clLengths );
 
 					FFTPlan* colPlan	= NULL;
 					lockRAII* colLock	= NULL;
@@ -4016,7 +4016,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Transpose
 					// input --> tmp
 					size_t transLengths[2] = { length0*length1, length2 };
-					hcfftCreateDefaultPlan( &fftPlan->planTZ, HCFFT_2D, transLengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTZ, HCFFT_2D, transLengths );
 
 					FFTPlan* trans1Plan	= NULL;
 					lockRAII* trans1Lock	= NULL;
@@ -4076,7 +4076,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					// create col plan
 					// complex to complex
 
-					hcfftCreateDefaultPlan( &fftPlan->planZ, HCFFT_1D, &fftPlan->length[ 2 ] );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planZ, HCFFT_1D, &fftPlan->length[ 2 ] );
 
 					FFTPlan* colPlan	= NULL;
 					lockRAII* colLock	= NULL;
@@ -4121,7 +4121,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					//Transpose
 					//tmp --> output
 					size_t trans2Lengths[2] = { length2, length0*length1 };
-					hcfftCreateDefaultPlan( &fftPlan->planTX, HCFFT_2D, trans2Lengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planTX, HCFFT_2D, trans2Lengths );
 
 					FFTPlan* trans2Plan	= NULL;
 					lockRAII* trans2Lock	= NULL;
@@ -4169,7 +4169,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					//create 2D xy plan
 					size_t clLengths[] = { length0, length1, 0 };
-					hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_2D, clLengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_2D, clLengths );
 
 					FFTPlan* rowPlan	= NULL;
 					lockRAII* rowLock	= NULL;
@@ -4226,7 +4226,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					clLengths[0] = fftPlan->length[ 2 ];
 
 					//create 1D col plan
-					hcfftCreateDefaultPlan( &fftPlan->planZ, HCFFT_1D, clLengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planZ, HCFFT_1D, clLengths );
 
 					FFTPlan* colPlan	= NULL;
 					lockRAII* colLock	= NULL;
@@ -4308,7 +4308,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					clLengths[1] = fftPlan->length[ 1 ];
 
 					//create 2D xy plan
-					hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_2D, clLengths );
+					hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_2D, clLengths );
 
 					FFTPlan* xyPlan	= NULL;
 					lockRAII* rowLock	= NULL;
@@ -4390,7 +4390,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				clLengths[1] = fftPlan->length[ 1 ];
 
 				//create 2D xy plan
-				hcfftCreateDefaultPlan( &fftPlan->planX, HCFFT_2D, clLengths );
+				hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_2D, clLengths );
 
 				FFTPlan* xyPlan	= NULL;
 				lockRAII* rowLock	= NULL;
@@ -4427,7 +4427,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				clLengths[0] = fftPlan->length[ 2 ];
 				clLengths[1] = clLengths[2] = 0;
 				//create 1D col plan
-				hcfftCreateDefaultPlan( &fftPlan->planZ, HCFFT_1D, clLengths );
+				hcfftCreateDefaultPlanInternal( &fftPlan->planZ, HCFFT_1D, clLengths );
 
 				FFTPlan* colPlan	= NULL;
 				lockRAII* colLock	= NULL;
