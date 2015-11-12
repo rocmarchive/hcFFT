@@ -77,8 +77,8 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
 	bool h2c = ((fftParams.fft_inputLayout == HCFFT_HERMITIAN_PLANAR) || (fftParams.fft_inputLayout == HCFFT_HERMITIAN_INTERLEAVED));
 	bool c2h = ((fftParams.fft_outputLayout == HCFFT_HERMITIAN_PLANAR) || (fftParams.fft_outputLayout == HCFFT_HERMITIAN_INTERLEAVED));
 
-        bool buildFwdKernel = (gen == Stockham) ? ((!real_transform) || r2c_transform) : (r2c_transform || c2h) || (!(h2c || c2h));
-        bool buildBwdKernel = (gen == Stockham) ? ((!real_transform) || c2r_transform) : (c2r_transform || h2c) || (!(h2c || c2h));
+        bool buildFwdKernel = (gen == Stockham || gen == Transpose) ? ((!real_transform) || r2c_transform) : (r2c_transform || c2h) || (!(h2c || c2h));
+        bool buildBwdKernel = (gen == Stockham || gen == Transpose) ? ((!real_transform) || c2r_transform) : (c2r_transform || h2c) || (!(h2c || c2h));
 
 	// get a kernel object handle for a kernel with the given name
 	if(buildFwdKernel)
