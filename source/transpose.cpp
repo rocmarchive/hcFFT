@@ -74,9 +74,6 @@ static void OffsetCalc(std::stringstream& transKernel, const FFTKernelGenKeyPara
 	hcKernWrite( transKernel, 3 ) << std::endl;
 }
 
-
-
-
 // Small snippet of code that multiplies the twiddle factors into the butterfiles.  It is only emitted if the plan tells
 // the generator that it wants the twiddle factors generated inside of the transpose
 static hcfftStatus genTwiddleMath( const FFTKernelGenKeyParams& params, std::stringstream& transKernel, const std::string& dtComplex, bool fwd )
@@ -97,6 +94,140 @@ static hcfftStatus genTwiddleMath( const FFTKernelGenKeyParams& params, std::str
 
     hcKernWrite( transKernel, 9 ) << "tmp.x = T.x;" << std::endl;
     hcKernWrite( transKernel, 9 ) << "tmp.y = T.y;" << std::endl;
+
+    return HCFFT_SUCCESS;
+}
+
+// These strings represent the names that are used as strKernel parameters
+const std::string pmRealIn( "pmRealIn" );
+const std::string pmImagIn( "pmImagIn" );
+const std::string pmRealOut( "pmRealOut" );
+const std::string pmImagOut( "pmImagOut" );
+const std::string pmComplexIn( "pmComplexIn" );
+const std::string pmComplexOut( "pmComplexOut" );
+
+static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const tile& lwSize, const std::string& dtPlanar, const std::string& dtComplex,
+                                         const std::string &funcName, std::stringstream& transKernel, std::string& dtInput, std::string& dtOutput )
+{
+
+    uint arg = 0;
+    // Declare and define the function
+    hcKernWrite( transKernel, 0 ) << "extern \"C\"\n { void" << std::endl;
+    hcKernWrite( transKernel, 0 ) << funcName << "(  std::map<int, void*> vectArr ) \n {";
+
+    switch( params.fft_inputLayout )
+    {
+    case HCFFT_COMPLEX_INTERLEAVED:
+        dtInput = dtComplex;
+        hcKernWrite( transKernel, 0 ) << "const array_view<" << dtInput << ",1> *pmComplexInP = (const array_view< " << dtInput<<",1> *)vectArr[" << arg++ << "];";
+        hcKernWrite( transKernel, 0 ) << " const array_view<" << dtInput<<" ,1> &" << pmComplexIn << " = *pmComplexInP;";
+
+        switch( params.fft_placeness )
+        {
+        case HCFFT_INPLACE:
+            dtOutput = dtComplex;
+            break;
+        case HCFFT_OUTOFPLACE:
+            switch( params.fft_outputLayout )
+            {
+            case HCFFT_COMPLEX_INTERLEAVED:
+                dtOutput = dtComplex;
+	        hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << ",1> *pmComplexOutP = (const array_view< "<<dtOutput<<",1> *)vectArr[" << arg++ << "];";
+	        hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput<<" ,1> &" << pmComplexOut << " = *pmComplexOutP;";
+                break;
+            case HCFFT_COMPLEX_PLANAR:
+                dtOutput = dtPlanar;
+	        hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << ",1> *pmRealOutP = (const array_view< "<<dtOutput<<",1> *)vectArr[" << arg++ << "];";
+	        hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput<<" ,1> &" << pmRealOut << " = *pmRealOutP;";
+	        hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << ",1> *pmImagOutP = (const array_view< "<<dtOutput<<",1> *)vectArr[" << arg++ << "];";
+	        hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput<<" ,1> &" << pmImagOut << " = *pmImagOutP;";
+                break;
+            case HCFFT_HERMITIAN_INTERLEAVED:
+            case HCFFT_HERMITIAN_PLANAR:
+            case HCFFT_REAL:
+            default:
+                return HCFFT_INVALID;
+            }
+            break;
+        default:
+            return HCFFT_INVALID;
+        }
+        break;
+    case HCFFT_COMPLEX_PLANAR:
+        dtInput = dtPlanar;
+	hcKernWrite( transKernel, 0 ) << "const array_view<" << dtInput << ",1> *pmRealInP = (const array_view< "<<dtInput<<",1> *)vectArr[" << arg++ << "];";
+        hcKernWrite( transKernel, 0 ) << " const array_view<" << dtInput<<" ,1> &" << pmRealIn << " = *pmRealInP;";
+	hcKernWrite( transKernel, 0 ) << "const array_view<" << dtInput << ",1> *pmImagInP = (const array_view< "<<dtInput<<",1> *)vectArr[" << arg++ << "];";
+        hcKernWrite( transKernel, 0 ) << " const array_view<" << dtInput<<" ,1> &" << pmImagIn << " = *pmImagInP;";
+
+        switch( params.fft_placeness )
+        {
+        case HCFFT_INPLACE:
+            dtOutput = dtPlanar;
+            break;
+        case HCFFT_OUTOFPLACE:
+            switch( params.fft_outputLayout )
+            {
+            case HCFFT_COMPLEX_INTERLEAVED:
+                dtOutput = dtComplex;
+		hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << ",1> *pmComplexOutP = (const array_view< "<<dtOutput<<",1> *)vectArr[" << arg++ << "];";
+		hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput<<" ,1> &" << pmComplexOut << " = *pmComplexOutP;";
+                break;
+            case HCFFT_COMPLEX_PLANAR:
+                dtOutput = dtPlanar;
+		hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << ",1> *pmRealOutP = (const array_view< "<<dtOutput<<",1> *)vectArr[" << arg++ << "];";
+		hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput<<" ,1> &" << pmRealOut << " = *pmRealOutP;";
+		hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << ",1> *pmImagOutP = (const array_view< "<<dtOutput<<",1> *)vectArr[" << arg++ << "];";
+		hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput<<" ,1> &" << pmImagOut << " = *pmImagOutP;";
+                break;
+            case HCFFT_HERMITIAN_INTERLEAVED:
+            case HCFFT_HERMITIAN_PLANAR:
+            case HCFFT_REAL:
+            default:
+                return HCFFT_INVALID;
+            }
+            break;
+        default:
+            return HCFFT_INVALID;
+        }
+        break;
+    case HCFFT_HERMITIAN_INTERLEAVED:
+    case HCFFT_HERMITIAN_PLANAR:
+		return HCFFT_INVALID;
+    case HCFFT_REAL:
+		dtInput = dtPlanar;
+		hcKernWrite( transKernel, 0 ) << "const array_view<" << dtInput << ",1> *pmRealInP = (const array_view< "<<dtInput<<",1> *)vectArr[" << arg++ << "];";
+		hcKernWrite( transKernel, 0 ) << " const array_view<" << dtInput<<" ,1> &" << pmRealIn << " = *pmRealInP;";
+
+		switch( params.fft_placeness )
+        {
+        case HCFFT_INPLACE:
+            dtOutput = dtPlanar;
+            break;
+        case HCFFT_OUTOFPLACE:
+            switch( params.fft_outputLayout )
+            {
+            case HCFFT_COMPLEX_INTERLEAVED:
+            case HCFFT_COMPLEX_PLANAR:
+            case HCFFT_HERMITIAN_INTERLEAVED:
+            case HCFFT_HERMITIAN_PLANAR:
+		return HCFFT_INVALID;
+            case HCFFT_REAL:
+                dtOutput = dtPlanar;
+		hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << ",1> *pmRealOutP = (const array_view< "<<dtOutput<<",1> *)vectArr[" << arg++ << "];";
+		hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput<<" ,1> &" << pmRealOut << " = *pmRealOutP;";
+		break;
+            default:
+                return HCFFT_INVALID;
+            }
+            break;
+        default:
+            return HCFFT_INVALID;
+        }
+		break;
+    default:
+        return HCFFT_INVALID;
+    }
 
     return HCFFT_SUCCESS;
 }
