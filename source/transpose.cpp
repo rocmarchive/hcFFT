@@ -232,6 +232,522 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
     return HCFFT_SUCCESS;
 }
 
+static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernelGenKeyParams & params, std::string& strKernel, const tile& lwSize, const size_t reShapeFactor,
+                                            const size_t loopCount, const tile& blockSize, const size_t outRowPadding, vector< size_t > gWorkSize, vector< size_t > lWorkSize)
+{
+    strKernel.reserve( 4096 );
+    std::stringstream transKernel( std::stringstream::out );
+
+    // These strings represent the various data types we read or write in the kernel, depending on how the plan
+    // is configured
+    std::string dtInput;        // The type read as input into kernel
+    std::string dtOutput;       // The type written as output from kernel
+    std::string dtPlanar;       // Fundamental type for planar arrays
+    std::string dtComplex;      // Fundamental type for complex arrays
+
+    switch( params.fft_precision )
+    {
+    case HCFFT_SINGLE:
+        dtPlanar = "float";
+        dtComplex = "float_2";
+        break;
+    case HCFFT_DOUBLE:
+        dtPlanar = "double";
+        dtComplex = "double_2";
+    default:
+        return HCFFT_INVALID;
+        break;
+    }
+	//	If twiddle computation has been requested, generate the lookup function
+	if(params.fft_3StepTwiddle)
+	{
+		std::string str;
+		StockhamGenerator::TwiddleTableLarge twLarge(params.fft_N[0] * params.fft_N[1]);
+		if( (params.fft_precision == HCFFT_SINGLE) )
+			twLarge.GenerateTwiddleTable<StockhamGenerator::P_SINGLE>(str);
+		else
+			twLarge.GenerateTwiddleTable<StockhamGenerator::P_DOUBLE>(str);
+		hcKernWrite( transKernel, 0 ) << str << std::endl;
+		hcKernWrite( transKernel, 0 ) << std::endl;
+	}
+
+    // This detects whether the input matrix is square
+    bool notSquare = ( params.fft_N[ 0 ] == params.fft_N[ 1 ] ) ? false : true;
+
+    if( notSquare && (params.fft_placeness == HCFFT_INPLACE) )
+        return HCFFT_INVALID;
+
+	for(size_t bothDir=0; bothDir<2; bothDir++)
+	{
+		//	Generate the kernel entry point and parameter list
+		//
+		bool fwd = bothDir ? false : true;
+
+		std::string funcName;
+		if(params.fft_3StepTwiddle)
+			funcName = fwd ? "transpose_tw_fwd" : "transpose_tw_back";
+		else
+			funcName = "transpose";
+		funcName += StockhamGenerator::SztToStr(plHandle);
+
+		genTransposePrototype( params, lwSize, dtPlanar, dtComplex, funcName, transKernel, dtInput, dtOutput );
+
+		hcKernWrite( transKernel, 3 ) << "\tConcurrency::extent<2> grdExt( ";
+		hcKernWrite( transKernel, 3 ) <<  StockhamGenerator::SztToStr(gWorkSize[0]) << ", "<< StockhamGenerator::SztToStr(gWorkSize[1]) << "); \n" << "\tConcurrency::tiled_extent< ";
+		hcKernWrite( transKernel, 3 ) <<  StockhamGenerator::SztToStr(lwSize.x) << ", "<< StockhamGenerator::SztToStr(lwSize.y) << "> t_ext(grdExt);\n";
+
+		hcKernWrite( transKernel, 3 ) << "\tConcurrency::parallel_for_each(t_ext, [=] (Concurrency::tiled_index<";
+                hcKernWrite( transKernel, 3 ) <<  StockhamGenerator::SztToStr(lwSize.x);
+                hcKernWrite( transKernel, 3 ) <<  ", " << StockhamGenerator::SztToStr(lwSize.y) << " > tidx) restrict(amp)\n\t { ";
+
+		hcKernWrite( transKernel, 3 ) << "const uint_2 localIndex( tidx.local[0] , tidx.local[1]); " << std::endl;
+		hcKernWrite( transKernel, 3 ) << "const uint_2 localExtent( t_ext.tile_dim0, t_ext.tile_dim1); " << std::endl;
+		hcKernWrite( transKernel, 3 ) << "const uint_2 groupIndex(tidx.tile[0] , tidx.tile[1]);" << std::endl;
+		hcKernWrite( transKernel, 3 ) << std::endl;
+
+
+
+		hcKernWrite( transKernel, 3 ) << "// Calculate the unit address (in terms of datatype) of the beginning of the Tile for the WG block" << std::endl;
+		hcKernWrite( transKernel, 3 ) << "// Transpose of input & output blocks happens with the Offset calculation" << std::endl;
+		hcKernWrite( transKernel, 3 ) << "const size_t reShapeFactor = " << reShapeFactor << ";" << std::endl;
+		hcKernWrite( transKernel, 3 ) << "const size_t wgUnroll = " << loopCount << ";" << std::endl;
+		hcKernWrite( transKernel, 3 ) << "const uint_2 wgTileExtent (localExtent.x * reShapeFactor, localExtent.y / reShapeFactor );" << std::endl;
+		hcKernWrite( transKernel, 3 ) << "const size_t tileSizeinUnits = wgTileExtent.x * wgTileExtent.y * wgUnroll;" << std::endl << std::endl;
+
+
+		// This is the size of a matrix in the y dimension in units of group size; used to calculate stride[2] indexing
+		//size_t numGroupsY = DivRoundingUp( params.fft_N[ 1 ], lwSize.y / reShapeFactor * loopCount );
+
+		//numGroupY_1 is the number of cumulative work groups up to 1st dimension
+		//numGroupY_2 is the number of cumulative work groups up to 2nd dimension and so forth
+
+		size_t numGroupsTemp;
+		if(params.transOutHorizontal)
+			numGroupsTemp = DivRoundingUp( params.fft_N[0], blockSize.x );
+		else
+			numGroupsTemp = DivRoundingUp( params.fft_N[1], blockSize.y );
+
+		hcKernWrite( transKernel, 3 ) << "const size_t numGroupsY_1" << " = " << numGroupsTemp << ";" << std::endl;
+		for(int i = 2; i < params.fft_DataDim - 1; i++)
+		{
+			numGroupsTemp *= params.fft_N[i];
+			hcKernWrite( transKernel, 3 ) << "const size_t numGroupsY_" << i << " = " << numGroupsTemp << ";" << std::endl;
+		}
+
+
+		// Generate the amount of local data share we need
+		// Assumption: Even for planar data, we will still store values in LDS as interleaved
+		tile ldsSize = { blockSize.x, blockSize.y };
+		switch( params.fft_outputLayout )
+		{
+		case HCFFT_COMPLEX_INTERLEAVED:
+		case HCFFT_COMPLEX_PLANAR:
+			hcKernWrite( transKernel, 3 ) << "// LDS is always complex and allocated transposed: lds[ wgTileExtent.y * wgUnroll ][ wgTileExtent.x ];" << std::endl;
+			hcKernWrite( transKernel, 3 ) << "tile_static " << dtComplex << " lds[ " << ldsSize.x << " ][ " << ldsSize.y << " ];" << std::endl << std::endl;
+			break;
+		case HCFFT_HERMITIAN_INTERLEAVED:
+		case HCFFT_HERMITIAN_PLANAR:
+			return HCFFT_INVALID;
+		case HCFFT_REAL:
+			hcKernWrite( transKernel, 3 ) << "tile_static " << dtPlanar << " lds[ " << ldsSize.x << " ][ " << ldsSize.y << " ];" << std::endl << std::endl;
+			break;
+		}
+
+
+		hcKernWrite( transKernel, 3 ) << "size_t currDimIndex;" << std::endl ;
+		hcKernWrite( transKernel, 3 ) << "size_t rowSizeinUnits;" << std::endl << std::endl ;
+
+
+		OffsetCalc(transKernel, params, true);
+
+
+		switch( params.fft_inputLayout )
+		{
+		case HCFFT_COMPLEX_INTERLEAVED:
+			hcKernWrite( transKernel, 3 ) << "uint tileInOffset = iOffset;" << std::endl;
+			break;
+		case HCFFT_COMPLEX_PLANAR:
+			hcKernWrite( transKernel, 3 ) << "global realTileInOffset = iOffset;" << std::endl;
+			hcKernWrite( transKernel, 3 ) << "global imagTileInOffset = iOffset;" << std::endl;
+			break;
+		case HCFFT_HERMITIAN_INTERLEAVED:
+		case HCFFT_HERMITIAN_PLANAR:
+			return HCFFT_INVALID;
+		case HCFFT_REAL:
+			hcKernWrite( transKernel, 3 ) << "global tileInOffset = iOffset;" << std::endl;
+			break;
+		}
+
+		// This is the loop reading through the Tile
+		if( params.fft_inputLayout == HCFFT_REAL )
+		{
+			hcKernWrite( transKernel, 3 ) << dtPlanar << " tmp;" << std::endl;
+		}
+		else
+		{
+			hcKernWrite( transKernel, 3 ) << dtComplex << " tmp;" << std::endl;
+		}
+
+		hcKernWrite( transKernel, 3 ) << "rowSizeinUnits = " << params.fft_inStride[ 1 ] << ";" << std::endl;
+		hcKernWrite( transKernel, 3 ) << std::endl << std::endl;
+
+		//
+		// Group index traversal is logical where X direction is horizontal in input buffer and vertical in output buffer
+		// when transOutHorizontal is enabled X direction is vertical in input buffer and horizontal in output buffer
+		// Not to be confused within a tile, where X is horizontal in input and vertical in output always
+
+		bool branchingInGroupX = params.transOutHorizontal ? ((params.fft_N[1] % blockSize.y) != 0) : ((params.fft_N[0] % blockSize.x) != 0);
+		bool branchingInGroupY = params.transOutHorizontal ? ((params.fft_N[0] % blockSize.x) != 0) : ((params.fft_N[1] % blockSize.y) != 0);
+		bool branchingInBoth = branchingInGroupX && branchingInGroupY;
+		bool branchingInAny = branchingInGroupX || branchingInGroupY;
+
+		size_t branchBlocks = branchingInBoth ? 4 : ( branchingInAny ? 2 : 1 );
+
+		size_t cornerGroupX = params.transOutHorizontal ? (params.fft_N[1] / blockSize.y) : (params.fft_N[0] / blockSize.x);
+		size_t cornerGroupY = params.transOutHorizontal ? (params.fft_N[0] / blockSize.x) : (params.fft_N[1] / blockSize.y);
+
+		std::string gIndexX = "groupIndex.x"; //params.transOutHorizontal ? "currDimIndex" : "groupIndex.x";
+		std::string gIndexY = "currDimIndex"; //params.transOutHorizontal ? "groupIndex.x" : "currDimIndex";
+
+		std::string wIndexX = params.transOutHorizontal ? "yInd" : "xInd";
+		std::string wIndexY = params.transOutHorizontal ? "xInd" : "yInd";
+
+		size_t wIndexXEnd = params.transOutHorizontal ? params.fft_N[1] % blockSize.y : params.fft_N[0] % blockSize.x;
+		size_t wIndexYEnd = params.transOutHorizontal ? params.fft_N[0] % blockSize.x : params.fft_N[1] % blockSize.y;
+
+
+		for(size_t i = 0; i<branchBlocks; i++)
+		{
+			if(branchingInBoth)
+				if(i == 0)
+				{
+					hcKernWrite( transKernel, 3 ) << "if( (" << gIndexX << " == " <<
+						cornerGroupX << ") && (" << gIndexY << " == " <<
+						cornerGroupY << ") )" << std::endl;
+					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+				}
+				else if(i == 1)
+				{
+					hcKernWrite( transKernel, 3 ) << "else if( " << gIndexX << " == " <<
+						cornerGroupX << " )" << std::endl;
+					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+				}
+				else if(i == 2)
+				{
+					hcKernWrite( transKernel, 3 ) << "else if( " << gIndexY << " == " <<
+						cornerGroupY << " )" << std::endl;
+					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+				}
+				else
+				{
+					hcKernWrite( transKernel, 3 ) << "else" << std::endl;
+					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+				}
+			else if(branchingInAny)
+				if(i == 0)
+				{
+					if(branchingInGroupX)
+					{
+						hcKernWrite( transKernel, 3 ) << "if( " << gIndexX << " == " <<
+							cornerGroupX << " )" << std::endl;
+						hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+					}
+					else
+					{
+						hcKernWrite( transKernel, 3 ) << "if( " << gIndexY << " == " <<
+							cornerGroupY << " )" << std::endl;
+						hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+					}
+				}
+				else
+				{
+					hcKernWrite( transKernel, 3 ) << "else" << std::endl;
+					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+				}
+
+
+
+			hcKernWrite( transKernel, 6 ) << "for( uint t=0; t < wgUnroll; t++ )" << std::endl;
+			hcKernWrite( transKernel, 6 ) << "{" << std::endl;
+
+			hcKernWrite( transKernel, 9 ) << "size_t xInd = localIndex.x + localExtent.x * ( localIndex.y % wgTileExtent.y ); " << std::endl;
+			hcKernWrite( transKernel, 9 ) << "size_t yInd = localIndex.y/wgTileExtent.y + t * wgTileExtent.y; " << std::endl;
+
+			// Calculating the index seperately enables easier debugging through tools
+			hcKernWrite( transKernel, 9 ) << "size_t gInd = xInd + rowSizeinUnits * yInd;" << std::endl;
+
+
+			if(branchingInBoth)
+			{
+				if(i == 0)
+				{
+					hcKernWrite( transKernel, 9 ) << std::endl;
+					hcKernWrite( transKernel, 9 ) << "if( (" << wIndexX << "< " << wIndexXEnd << ") && (" << wIndexY << " < " << wIndexYEnd << ") )" << std::endl;
+					hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+				}
+				else if(i == 1)
+				{
+					hcKernWrite( transKernel, 9 ) << std::endl;
+					hcKernWrite( transKernel, 9 ) << "if( (" << wIndexX << " < " << wIndexXEnd << ") )" << std::endl;
+					hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+				}
+				else if(i == 2)
+				{
+					hcKernWrite( transKernel, 9 ) << std::endl;
+					hcKernWrite( transKernel, 9 ) << "if( (" << wIndexY << " < " << wIndexYEnd << ") )" << std::endl;
+					hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+				}
+				else
+					hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+			}
+			else if(branchingInAny)
+			{
+				if(i == 0)
+				{
+					if(branchingInGroupX)
+					{
+						hcKernWrite( transKernel, 9 ) << std::endl;
+						hcKernWrite( transKernel, 9 ) << "if( (" << wIndexX << " < " << wIndexXEnd << ") )" << std::endl;
+						hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+					}
+					else
+					{
+						hcKernWrite( transKernel, 9 ) << std::endl;
+						hcKernWrite( transKernel, 9 ) << "if( (" << wIndexY << " < " << wIndexYEnd << ") )" << std::endl;
+						hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+					}
+				}
+				else
+					hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+			}
+
+			switch( params.fft_inputLayout )
+			{
+			case HCFFT_COMPLEX_INTERLEAVED:
+				hcKernWrite( transKernel, 9 ) << "tmp = " << pmComplexIn << " [ gInd + tileInOffset ];" << std::endl;
+				break;
+			case HCFFT_COMPLEX_PLANAR:
+				hcKernWrite( transKernel, 9 ) << "tmp.s0 = " << pmRealIn << " [ gInd + realTileInOffset ];" << std::endl;
+				hcKernWrite( transKernel, 9 ) << "tmp.s1 = " << pmImagIn << " [ gInd + imagTileInOffset ];" << std::endl;
+				break;
+			case HCFFT_HERMITIAN_INTERLEAVED:
+			case HCFFT_HERMITIAN_PLANAR:
+				return HCFFT_INVALID;
+			case HCFFT_REAL:
+				hcKernWrite( transKernel, 9 ) << "tmp = " << pmRealIn << " [ gInd + tileInOffset ];" << std::endl;
+				break;
+
+			}
+
+			if(branchingInAny)
+			{
+				hcKernWrite( transKernel, 9 ) << "}" << std::endl;
+				hcKernWrite( transKernel, 9 ) << std::endl;
+			}
+
+			hcKernWrite( transKernel, 9 ) << "// Transpose of Tile data happens here" << std::endl;
+
+
+			// If requested, generate the Twiddle math to multiply constant values
+			if( params.fft_3StepTwiddle )
+				genTwiddleMath( params, transKernel, dtComplex, fwd );
+
+			hcKernWrite( transKernel, 9 ) << "lds[ xInd ][ yInd ] = tmp; " << std::endl;
+			hcKernWrite( transKernel, 6 ) << "}" << std::endl;
+
+			if(branchingInAny)
+				hcKernWrite( transKernel, 3 ) << "}" << std::endl;
+		}
+
+		hcKernWrite( transKernel, 3 ) << std::endl;
+		hcKernWrite( transKernel, 3 ) << "tidx.barrier.wait();" << std::endl;
+		hcKernWrite( transKernel, 3 ) << std::endl;
+
+		OffsetCalc(transKernel, params, false);
+
+
+		switch( params.fft_outputLayout )
+		{
+		case HCFFT_COMPLEX_INTERLEAVED:
+			hcKernWrite( transKernel, 3 ) << "uint tileOutOffset = oOffset;" << std::endl << std::endl;
+			break;
+		case HCFFT_COMPLEX_PLANAR:
+			hcKernWrite( transKernel, 3 ) << "uint realTileOutOffset = oOffset;" << std::endl;
+			hcKernWrite( transKernel, 3 ) << "uint imagTileOutOffset = oOffset;" << std::endl;
+			break;
+		case HCFFT_HERMITIAN_INTERLEAVED:
+		case HCFFT_HERMITIAN_PLANAR:
+			return HCFFT_INVALID;
+		case HCFFT_REAL:
+			hcKernWrite( transKernel, 3 ) << "uint tileOutOffset = oOffset;" << std::endl << std::endl;
+			break;
+		}
+
+		// Write the transposed values from LDS into global memory
+		hcKernWrite( transKernel, 3 ) << "rowSizeinUnits = " << params.fft_outStride[ 1 ] << ";" << std::endl;
+		hcKernWrite( transKernel, 3 ) << "const size_t transposeRatio = wgTileExtent.x / ( wgTileExtent.y * wgUnroll );" << std::endl;
+		hcKernWrite( transKernel, 3 ) << "const size_t groupingPerY = wgUnroll / wgTileExtent.y;" << std::endl;
+		hcKernWrite( transKernel, 3 ) << std::endl << std::endl;
+
+		for(size_t i = 0; i<branchBlocks; i++)
+		{
+			if(branchingInBoth)
+				if(i == 0)
+				{
+					hcKernWrite( transKernel, 3 ) << "if( (" << gIndexX << " == " <<
+						cornerGroupX << ") && (" << gIndexY << " == " <<
+						cornerGroupY << ") )" << std::endl;
+					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+				}
+				else if(i == 1)
+				{
+					hcKernWrite( transKernel, 3 ) << "else if( " << gIndexX << " == " <<
+						cornerGroupX << " )" << std::endl;
+					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+				}
+				else if(i == 2)
+				{
+					hcKernWrite( transKernel, 3 ) << "else if( " << gIndexY << " == " <<
+						cornerGroupY << " )" << std::endl;
+					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+				}
+				else
+				{
+					hcKernWrite( transKernel, 3 ) << "else" << std::endl;
+					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+				}
+			else if(branchingInAny)
+				if(i == 0)
+				{
+					if(branchingInGroupX)
+					{
+						hcKernWrite( transKernel, 3 ) << "if( " << gIndexX << " == " <<
+							cornerGroupX << " )" << std::endl;
+						hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+					}
+					else
+					{
+						hcKernWrite( transKernel, 3 ) << "if( " << gIndexY << " == " <<
+							cornerGroupY << " )" << std::endl;
+						hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+					}
+				}
+				else
+				{
+					hcKernWrite( transKernel, 3 ) << "else" << std::endl;
+					hcKernWrite( transKernel, 3 ) << "{" << std::endl;
+				}
+
+
+			hcKernWrite( transKernel, 6 ) << "for( uint t=0; t < wgUnroll; t++ )" << std::endl;
+			hcKernWrite( transKernel, 6 ) << "{" << std::endl;
+			hcKernWrite( transKernel, 9 ) << "size_t xInd = localIndex.x + localExtent.x * ( localIndex.y % groupingPerY ); " << std::endl;
+			hcKernWrite( transKernel, 9 ) << "size_t yInd = localIndex.y/groupingPerY + t * (wgTileExtent.y * transposeRatio); " << std::endl;
+			hcKernWrite( transKernel, 9 ) << "tmp = lds[ yInd ][ xInd ]; " << std::endl;
+			hcKernWrite( transKernel, 9 ) << "size_t gInd = xInd + rowSizeinUnits * yInd;" << std::endl;
+
+			if(branchingInBoth)
+			{
+				if(i == 0)
+				{
+					hcKernWrite( transKernel, 9 ) << std::endl;
+					hcKernWrite( transKernel, 9 ) << "if( (" << wIndexY << " < " << wIndexXEnd << ") && (" << wIndexX << " < " << wIndexYEnd << ") )" << std::endl;
+					hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+				}
+				else if(i == 1)
+				{
+					hcKernWrite( transKernel, 9 ) << std::endl;
+					hcKernWrite( transKernel, 9 ) << "if( (" << wIndexY << " < " << wIndexXEnd << ") )" << std::endl;
+					hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+
+				}
+				else if(i == 2)
+				{
+					hcKernWrite( transKernel, 9 ) << std::endl;
+					hcKernWrite( transKernel, 9 ) << "if( (" << wIndexX << " < " << wIndexYEnd << ") )" << std::endl;
+					hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+				}
+				else
+					hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+			}
+			else if(branchingInAny)
+			{
+				if(i == 0)
+				{
+					if(branchingInGroupX)
+					{
+						hcKernWrite( transKernel, 9 ) << std::endl;
+						if(params.fft_realSpecial)
+						{
+							hcKernWrite( transKernel, 9 ) << "if( (" << wIndexY << " < " << wIndexXEnd << ") && (" <<
+								wIndexX << " < 1) )" << std::endl;
+						}
+						else
+						{
+							hcKernWrite( transKernel, 9 ) << "if( (" << wIndexY << " < " << wIndexXEnd << ") )" << std::endl;
+						}
+						hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+					}
+					else
+					{
+						hcKernWrite( transKernel, 9 ) << std::endl;
+						if(params.fft_realSpecial)
+						{
+							hcKernWrite( transKernel, 9 ) << "if( (" << wIndexX << " < " << wIndexYEnd << ") && (" <<
+								wIndexY << " < 1) )" << std::endl;
+						}
+						else
+						{
+							hcKernWrite( transKernel, 9 ) << "if( (" << wIndexX << " < " << wIndexYEnd << ") )" << std::endl;
+						}
+						hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+					}
+				}
+				else
+					hcKernWrite( transKernel, 9 ) << "{" << std::endl;
+			}
+
+			switch( params.fft_outputLayout )
+			{
+			case HCFFT_COMPLEX_INTERLEAVED:
+				hcKernWrite( transKernel, 9 ) << "pmComplexOut[ gInd + tileOutOffset ] = tmp;" << std::endl;
+				break;
+			case HCFFT_COMPLEX_PLANAR:
+				hcKernWrite( transKernel, 9 ) << "pmRealOut[ gInd + realTileOutOffset ] = tmp.s0;" << std::endl;
+				hcKernWrite( transKernel, 9 ) << "pmImagOut[ gInd + imagTileOutOffset] = tmp.s1;" << std::endl;
+				break;
+			case HCFFT_HERMITIAN_INTERLEAVED:
+			case HCFFT_HERMITIAN_PLANAR:
+				return HCFFT_INVALID;
+			case HCFFT_REAL:
+				hcKernWrite( transKernel, 9 ) << "pmRealOut[ gInd + tileOutOffset] = tmp;" << std::endl;
+				break;
+			}
+
+			if(branchingInAny)
+			{
+				hcKernWrite( transKernel, 9 ) << "}" << std::endl;
+			}
+
+			hcKernWrite( transKernel, 6 ) << "}" << std::endl;
+
+			if(branchingInAny)
+				hcKernWrite( transKernel, 3 ) << "}" << std::endl;
+		}
+
+		hcKernWrite( transKernel, 0 ) << "});\n}}\n" << std::endl;
+
+		strKernel = transKernel.str( );
+		//std::cout << strKernel;
+
+		if(!params.fft_3StepTwiddle)
+			break;
+	}
+
+    return HCFFT_SUCCESS;
+}
+
+
 template<>
 hcfftStatus FFTPlan::GetKernelGenKeyPvt<Transpose> (FFTKernelGenKeyParams & params) const
 {
