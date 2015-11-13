@@ -18,7 +18,7 @@ hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators g
 	fftRepo.getProgramCode( gen, plHandle, fftParams, kernel);
 
         std::string filename;
-        filename = "../../../kernel0.cpp";
+        filename = "/tmp/kernel0.cpp";
         FILE *fp = fopen (filename.c_str(),"a+");
         if (!fp)
         {
@@ -54,19 +54,19 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
 	  std::cout<< "getcwd() error"<<std::endl;
 
         std::string pwd(cwd);
-        std::string kernellib = pwd + "/../../../libFFTKernel0.so";
+        std::string kernellib = "/tmp/libFFTKernel0.so";
         string fftLibPath = pwd + "/../../../../Build/linux/";
 
 #ifdef DEBIAN
         string Path= "/opt/hcc/bin/";
-        std::string execCmd = Path + "/clang++ `" + Path + "/clamp-config --build --cxxflags --ldflags --shared` ../../../kernel0.cpp -o " + kernellib ; 
+        std::string execCmd = Path + "/clang++ `" + Path + "/clamp-config --build --cxxflags --ldflags --shared` /tmp/kernel0.cpp -o " + kernellib ;
 #else
         char *compilerPath = (char*)calloc(100, 1);
         compilerPath = getenv ("MCWCPPAMPBUILD");
         if(!compilerPath)
           std::cout<<"No Compiler Path Variable found. Please export MCWCPPAMPBUILD "<<std::endl;
         std::string Path(compilerPath);
-        std::string execCmd = Path + "/compiler/bin/clang++ `" + Path + "/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` ../../../kernel0.cpp -o " + kernellib ;
+        std::string execCmd = Path + "/compiler/bin/clang++ `" + Path + "/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` /tmp/kernel0.cpp -o " + kernellib ;
 #endif
         system(execCmd.c_str());
 
@@ -1173,7 +1173,7 @@ case HCFFT_HERMITIAN_INTERLEAVED:
 	  std::cout<< "getcwd() error"<<std::endl;
 
         std::string pwd(cwd);
-        std::string kernellib = pwd + "/../../../libFFTKernel0.so";
+        std::string kernellib = "/tmp/libFFTKernel0.so";
 
         char *err = (char*) calloc(128,2);
         kernelHandle = dlopen(kernellib.c_str(),RTLD_NOW);
