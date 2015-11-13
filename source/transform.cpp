@@ -6,6 +6,7 @@ lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
 
 //	Static initialization of the plan count variable
 size_t FFTRepo::planCount	= 1;
+static bool fileOpen = false;
 
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
@@ -18,13 +19,27 @@ hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators g
 	fftRepo.getProgramCode( gen, plHandle, fftParams, kernel);
 
         std::string filename;
-        filename = "/tmp/kernel0.cpp";
-        FILE *fp = fopen (filename.c_str(),"a+");
-        if (!fp)
-        {
-          std::cout<<" File kernel.cpp open failed for writing "<<std::endl;
-          return HCFFT_ERROR;
-        }
+	filename = "/tmp/kernel0.cpp";
+	FILE *fp;
+	if(!fileOpen)
+	{
+	        fp = fopen (filename.c_str(),"w");
+	        if (!fp)
+	        {
+	          std::cout<<" File kernel.cpp open failed for writing "<<std::endl;
+	          return HCFFT_ERROR;
+	        }
+		fileOpen = true;
+	}
+	else
+	{
+	        fp = fopen (filename.c_str(),"a+");
+	        if (!fp)
+	        {
+	          std::cout<<" File kernel.cpp open failed for writing "<<std::endl;
+	          return HCFFT_ERROR;
+	        }
+	}
 
 	size_t written = fwrite(kernel.c_str(), kernel.size(), 1, fp);
         if(!written)
