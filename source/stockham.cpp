@@ -2338,8 +2338,9 @@ namespace StockhamGenerator
 			rcSimple = params.fft_RCsimple;
 
 			// Set half lds only for power-of-2 problem sizes & interleaved data
+
 			halfLds = ( (params.fft_inputLayout == HCFFT_COMPLEX_INTERLEAVED) &&
-						(params.fft_outputLayout == HCFFT_COMPLEX_PLANAR) ) ? true : false;
+						(params.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED) ) ? true : false;
 			halfLds = halfLds ? ((length & (length-1)) ? false : true) : false;
 			//halfLds = false;
 
@@ -2426,6 +2427,7 @@ namespace StockhamGenerator
 					L = LS * rad;
 					R /= rad;
 					radices.push_back(rad);
+
 					passes.push_back(Pass<PR>(pid, length, rad, cnPerWI, L, LS, R, linearRegs, halfLds, r2c, c2r, rcFull, rcSimple, realSpecial));
 
 					pid++;
@@ -2518,6 +2520,7 @@ namespace StockhamGenerator
 
         void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize)
 		{
+
 			std::string twType = RegBaseType<PR>(2);
 			std::string rType  = RegBaseType<PR>(1);
 			std::string r2Type  = RegBaseType<PR>(2);
@@ -3583,6 +3586,7 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
 {
     FFTKernelGenKeyParams params;
     this->GetKernelGenKeyPvt<Stockham> (params);
+
     vector< size_t > gWorkSize;
     vector< size_t > lWorkSize;
     this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);
