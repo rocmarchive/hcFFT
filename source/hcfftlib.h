@@ -1,3 +1,6 @@
+#ifndef _HC_FFT_H_
+#define _HC_FFT_H_
+
 #include <iostream>
 #include <stdio.h>
 #include <amp.h>
@@ -611,3 +614,4 @@ class FFTRepo
     releaseResources();
   }
 };
+#endif
