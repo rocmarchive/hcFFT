@@ -30,7 +30,7 @@ Make sure the parent directory chosen is say ~/ or any other folder of your choi
 
        * cd ~/mcw_cppamp35
 
-       * git clone https://bitbucket.org/multicoreware/cppamp-driver-ng-35.git src
+       * git clone https://bitbucket.org/multicoreware/hcc.git src
 
        * cd ~/mcw_cppamp35/src/
 
