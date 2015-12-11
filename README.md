@@ -2,7 +2,7 @@
 
 ##Introduction: ##
 
-This repository hosts the C++ AMP implementation of FFT routines. The following are the sub-routines that are implemented
+This repository hosts the HCC implementation of FFT routines. The following are the sub-routines that are implemented
 
 1. R2C : Transforms Real valued input in Time domain to Complex valued output in Frequency domain.
 2. C2R : Transforms Complex valued input in Frequency domain to Real valued output in Real domain.
@@ -20,42 +20,24 @@ This repository hosts the C++ AMP implementation of FFT routines. The following 
 
 ## Installation Steps:
 
-### A. C++ AMP Compiler Installation: 
+### A. HCC Compiler Installation: 
 
-Make sure the parent directory chosen is say ~/ or any other folder of your choice. Lets take ~/ as an example
+**Install HCC compiler debian package:**
 
-  (a) Prepare a directory for work space
-
-       * mkdir ~/mcw_cppamp35
-
-       * cd ~/mcw_cppamp35
-
-       * git clone https://bitbucket.org/multicoreware/hcc.git src
-
-       * cd ~/mcw_cppamp35/src/
-
-       * git checkout 4fb5922
-
-  (b) Create a build directory and configure using CMake.
-
-       * mkdir ~/mcw_cppamp35/build
-
-       * cd ~/mcw_cppamp35/build
-
-       * export CLAMP_NOTILECHECK=ON
-
-       * cmake ../src -DCMAKE_BUILD_TYPE=Release -DCXXAMP_ENABLE_BOLT=ON -DOPENCL_HEADER_DIR=<path to SDK's OpenCL headers> -DOPENCL_LIBRARY_DIR=<path to SDK's OpenCL library> 
+  Download the debian package from the link given below,
   
-       * For example, cmake ../src -DCMAKE_BUILD_TYPE=Release -DCXXAMP_ENABLE_BOLT=ON  -DOPENCL_HEADER_DIR=/opt/AMDAPPSDK-2.9.1/include/CL -DOPENCL_LIBRARY_DIR=/opt/AMDAPPSDK-2.9.1/lib/x86_64
-
-
-  (c) Build AMP
-
-       * cd ~/mcw_cppamp35/build
-
-       * make [-j #] world && make          (# is the number of parallel builds. Generally it is # of CPU cores)
-
-With this the C++ AMP Compiler installation is complete.
+  [Compiler-Debians](https://multicorewareinc.egnyte.com/dl/TD5IwsNEx3)
+  
+  Install the package hcc-0.8.1544-a9f4d2f-ddba18d-Linux.deb 
+  
+  using the command,
+  
+    sudo dpkg -i <package_name>
+      e.g. sudo dpkg -i  hcc-0.8.1544-a9f4d2f-ddba18d-Linux.deb 
+      
+  Note: 
+      Ignore clamp-bolt, Bolt is not required for hcFFT.
+    
 
 ### B. HCFFT Installation
 
@@ -73,8 +55,6 @@ With this the C++ AMP Compiler installation is complete.
 
        * cd ~/hcfft/Build/linux
        
-       * export MCWCPPAMPBUILD=<path_to>/mcw_cppamp35/build/ (Here path_to points to parent folder of mcw_cppamp. ~/ in our case)
-
        * sh build.sh
 
        * sudo make install
@@ -99,8 +79,6 @@ With this the C++ AMP Compiler installation is complete.
 (a) For Linux:
 
 1. FFT R2C and C2R Testing: 
-
-     * export MCWCPPAMPBUILD=~/mcw_cppamp35/build/
      
      * cd ~/hcfft/source/test/build/linux/
 
@@ -110,17 +88,3 @@ With this the C++ AMP Compiler installation is complete.
      
      * ./runme_ffttest.sh N1 N2
       where N1 and N2 are sizes.
-
-(b)  For Windows: (Prerequisite: Visual Studio 12 version )
-
-1. For 32 Bit:
-
-     * cd ~/hcfft/source/test/build/vc11-x86
-
-     * make-solutions.bat (This creates a Visual studio solution for hcffttest Library) 
-
- 2. For 64-bit:
-
-     * cd ~/hcfft/source/test/build/vc11-x86_64
-
-     * make-solutions.bat (This creates a Visual Studio solution for hcffttest Library)
