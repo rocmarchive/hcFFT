@@ -5,6 +5,7 @@
 lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
 
 //	Static initialization of the plan count variable
+size_t FFTPlan::count	= 0;
 size_t FFTRepo::planCount	= 1;
 static bool fileOpen = false;
 
@@ -2907,7 +2908,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				lockRAII* rowLock	= NULL;
 				fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
 
-
+				rowPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 				rowPlan->opLayout  = fftPlan->opLayout;
 				rowPlan->ipLayout  = fftPlan->ipLayout;
 				rowPlan->location     = fftPlan->location;
@@ -2991,6 +2992,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 						default: assert(false);
 					}
 
+					trans1Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					trans1Plan->location     = HCFFT_OUTOFPLACE;
 					trans1Plan->precision     = fftPlan->precision;
 					trans1Plan->tmpBufSize    = 0;
@@ -3027,6 +3029,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					lockRAII* colLock	= NULL;
 					fftRepo.getPlan( fftPlan->planY, colPlan, colLock );
 
+					colPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					colPlan->opLayout  = trans1Plan->opLayout;
 					colPlan->ipLayout   = trans1Plan->opLayout;
 					colPlan->location     = HCFFT_INPLACE;
@@ -3101,6 +3104,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 						default: assert(false);
 					}
 
+					trans2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					trans2Plan->location     = HCFFT_OUTOFPLACE;
 					trans2Plan->precision     = fftPlan->precision;
 					trans2Plan->tmpBufSize    = 0;
@@ -3166,7 +3170,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					colPlan->outStride.push_back(fftPlan->outStride[0]);
 					colPlan->oDist         = fftPlan->oDist;
 
-
+					colPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					colPlan->precision     = fftPlan->precision;
 					colPlan->forwardScale  = fftPlan->forwardScale;
 					colPlan->backwardScale = fftPlan->backwardScale;
@@ -3249,6 +3253,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 						default: assert(false);
 					}
 
+					trans1Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					trans1Plan->location     = HCFFT_OUTOFPLACE;
 					trans1Plan->precision     = fftPlan->precision;
 					trans1Plan->tmpBufSize    = 0;
@@ -3291,6 +3296,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					colPlan->inStride.push_back(length1);
 					colPlan->iDist         = trans1Plan->oDist;
 
+					colPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					colPlan->location = HCFFT_INPLACE;
 					colPlan->ipLayout = HCFFT_COMPLEX_INTERLEAVED;
 					colPlan->opLayout = HCFFT_COMPLEX_INTERLEAVED;
@@ -3338,7 +3344,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					trans2Plan->opLayout = HCFFT_COMPLEX_INTERLEAVED;
 					trans2Plan->ipLayout  = HCFFT_COMPLEX_INTERLEAVED;
-
+					trans2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
 					trans2Plan->location     = HCFFT_OUTOFPLACE;
 					trans2Plan->precision     = fftPlan->precision;
@@ -3379,6 +3385,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					lockRAII* rowLock	= NULL;
 					fftRepo.getPlan( fftPlan->planX, rowPlan, rowLock );
 
+					rowPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					rowPlan->opLayout  = fftPlan->opLayout;
 					rowPlan->ipLayout   = HCFFT_HERMITIAN_INTERLEAVED;
 
@@ -3497,6 +3504,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 						}
 					}
 
+					colPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					colPlan->precision     = fftPlan->precision;
 					colPlan->forwardScale  = 1.0f;
 					colPlan->backwardScale = 1.0f;
@@ -3560,7 +3568,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 						}
 					}
 
-
+					rowPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					rowPlan->precision     = fftPlan->precision;
 					rowPlan->forwardScale  = fftPlan->forwardScale;
 					rowPlan->backwardScale = fftPlan->backwardScale;
@@ -3612,6 +3620,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				rowPlan->backwardScale = 1.0f;
 				rowPlan->tmpBufSize    = fftPlan->tmpBufSize;
 
+				rowPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 				rowPlan->gen		= fftPlan->gen;
 				rowPlan->envelope	= fftPlan->envelope;
 
@@ -3660,6 +3669,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					colPlan->iDist         = length0 * length1;
 				}
 
+				colPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 				colPlan->opLayout  = fftPlan->opLayout;
 				colPlan->precision     = fftPlan->precision;
 				colPlan->forwardScale  = fftPlan->forwardScale;
@@ -3714,6 +3724,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				lockRAII* rowLock	= NULL;
 				fftRepo.getPlan( fftPlan->planX, xyPlan, rowLock );
 
+				xyPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 				xyPlan->ipLayout   = fftPlan->ipLayout;
 				xyPlan->opLayout  = fftPlan->opLayout;
 				xyPlan->location     = fftPlan->location;
@@ -3799,6 +3810,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					default: assert(false);
 					}
 
+					trans1Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					trans1Plan->location     = HCFFT_OUTOFPLACE;
 					trans1Plan->precision     = fftPlan->precision;
 					trans1Plan->tmpBufSize    = 0;
@@ -3835,6 +3847,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					lockRAII* colLock	= NULL;
 					fftRepo.getPlan( fftPlan->planZ, colPlan, colLock );
 
+					colPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					colPlan->opLayout  = trans1Plan->opLayout;
 					colPlan->ipLayout   = trans1Plan->opLayout;
 					colPlan->location     = HCFFT_INPLACE;
@@ -3909,6 +3922,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					default: assert(false);
 					}
 
+					trans2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					trans2Plan->location     = HCFFT_OUTOFPLACE;
 					trans2Plan->precision     = fftPlan->precision;
 					trans2Plan->tmpBufSize    = 0;
@@ -3968,6 +3982,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					default: assert(false);
 					}
 
+					colPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					colPlan->location     = HCFFT_INPLACE;
 					colPlan->precision     = fftPlan->precision;
 					colPlan->forwardScale  = fftPlan->forwardScale;
@@ -4062,6 +4077,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					default: assert(false);
 					}
 
+					trans1Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					trans1Plan->location     = HCFFT_OUTOFPLACE;
 					trans1Plan->precision     = fftPlan->precision;
 					trans1Plan->tmpBufSize    = 0;
@@ -4102,6 +4118,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					colPlan->length.push_back(Nt*length1);
 
+					colPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					colPlan->inStride[0]  = 1;
 					colPlan->inStride.push_back(length2);
 					colPlan->iDist        = trans1Plan->oDist;
@@ -4153,6 +4170,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					trans2Plan->opLayout = HCFFT_COMPLEX_INTERLEAVED;
 					trans2Plan->ipLayout  = HCFFT_COMPLEX_INTERLEAVED;
 
+					trans2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					trans2Plan->location     = HCFFT_OUTOFPLACE;
 					trans2Plan->precision     = fftPlan->precision;
 					trans2Plan->tmpBufSize    = 0;
@@ -4198,6 +4216,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					rowPlan->length.push_back(length2);
 
+					rowPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					rowPlan->outStride[0]  = fftPlan->outStride[0];
 					rowPlan->outStride[1]  = fftPlan->outStride[1];
 					rowPlan->outStride.push_back(fftPlan->outStride[2]);
@@ -4267,6 +4286,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 					default: assert(false);
 					}
 
+					colPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					colPlan->length.push_back(Nt);
 					colPlan->length.push_back(length1);
 
@@ -4337,6 +4357,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
 					xyPlan->length.push_back(length2);
 
+					xyPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 					xyPlan->outStride[0]  = fftPlan->outStride[0];
 					xyPlan->outStride[1]  = fftPlan->outStride[1];
 					xyPlan->outStride.push_back(fftPlan->outStride[2]);
@@ -4414,6 +4435,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				lockRAII* rowLock	= NULL;
 				fftRepo.getPlan( fftPlan->planX, xyPlan, rowLock );
 
+				xyPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 				xyPlan->ipLayout   = fftPlan->ipLayout;
 				xyPlan->opLayout  = fftPlan->opLayout;
 				xyPlan->location     = fftPlan->location;
@@ -4451,6 +4473,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 				lockRAII* colLock	= NULL;
 				fftRepo.getPlan( fftPlan->planZ, colPlan, colLock );
 
+				colPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 				colPlan->ipLayout   = fftPlan->opLayout;
 				colPlan->opLayout  = fftPlan->opLayout;
 				colPlan->location     = HCFFT_INPLACE;

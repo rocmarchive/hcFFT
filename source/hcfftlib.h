@@ -391,6 +391,7 @@ public:
   double forwardScale;
   double backwardScale;
   bool	twiddleFront;
+  static size_t count;
 
   bool baked;
   hcfftGenerators gen;
@@ -410,6 +411,7 @@ public:
   hcfftPlanHandle planCopy;
 
   hcfftPlanHandle plHandle;
+  hcfftPlanHandle plHandleOrigin;
 
   //	Performance Tuning parameters
   bool bLdsComplex;
@@ -462,8 +464,8 @@ public:
               transposeType (HCFFT_NOTRANSPOSE), precision (HCFFT_SINGLE),
               batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0),
               twiddleFront(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
-              planTX(0), planTY(0), planTZ(0), planRCcopy(0), planCopy(0), plHandle(0), bLdsComplex(false),
-              uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
+              planTX(0), planTY(0), planTZ(0), planRCcopy(0), planCopy(0), plHandle(0), plHandleOrigin(0),
+              bLdsComplex(false), uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
 	      intBuffer( NULL ), tmpBufSizeRC(0), intBufferRC(NULL), tmpBufSizeC2R(0),
 	      intBufferC2R(NULL), transflag(false), transOutHorizontal(false), large1D(0), large2D(false),
               const_buffer(NULL), RCsimple(false), realSpecial(false), realSpecial_Nr(0), userPlan(false),
