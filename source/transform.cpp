@@ -9,6 +9,7 @@ size_t FFTPlan::count	= 0;
 size_t FFTRepo::planCount	= 1;
 static bool exist = false;
 static bool fileOpen = false;
+static std::vector<size_t> originalLength;
 
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
@@ -259,6 +260,12 @@ hcfftStatus	FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
 {
 	hcfftStatus ret = hcfftCreateDefaultPlanInternal(plHandle, dim, clLengths);
 
+        originalLength.clear();
+        for(int i = 0 ; i < dim ; i++)
+        {
+           originalLength.push_back(clLengths[i]);
+        }
+
 	if(ret == HCFFT_SUCCESS)
 	{
 		FFTRepo& fftRepo	= FFTRepo::getInstance( );
@@ -266,6 +273,8 @@ hcfftStatus	FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
 		lockRAII* planLock	= NULL;
 		fftRepo.getPlan( *plHandle, fftPlan, planLock );
 
+                fftPlan->count = 0;
+                fftPlan->plHandleOrigin = *plHandle;
 		fftPlan->userPlan = true;
 	}
 
