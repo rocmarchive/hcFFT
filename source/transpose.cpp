@@ -739,7 +739,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 
 		hcKernWrite( transKernel, 0 ) << "});\n}}\n" << std::endl;
 
-		strKernel = transKernel.str( );
+		strKernel += transKernel.str( );
 		//std::cout << strKernel;
 
 		if(!params.fft_3StepTwiddle)
@@ -830,6 +830,23 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Transpose> (std::vector<size_t> & globalWS,
 {
     FFTKernelGenKeyParams fftParams;
     this->GetKernelGenKeyPvt<Transpose>( fftParams );
+
+    switch( fftParams.fft_precision )
+    {
+    case HCFFT_SINGLE:
+        loopCount = 16;
+        break;
+    case HCFFT_DOUBLE:
+        // Double precisions need about half the amount of LDS space as singles do
+        loopCount = 8;
+        break;
+    default:
+        return HCFFT_INVALID;
+        break;
+    }
+
+    blockSize.x = lwSize.x * reShapeFactor;
+    blockSize.y = lwSize.y / reShapeFactor * loopCount;
 
     // We need to make sure that the global work size is evenly divisible by the local work size
     // Our transpose works in tiles, so divide tiles in each dimension to get count of blocks, rounding up for remainder items
