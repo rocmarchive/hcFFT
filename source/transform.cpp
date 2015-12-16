@@ -15,6 +15,60 @@ static bool exist = false;
 static size_t countKernel;
 static std::vector<size_t> originalLength;
 
+bool has_suffix(const string& s, const string& suffix)
+{
+    return (s.size() >= suffix.size()) && equal(suffix.rbegin(), suffix.rend(), s.rbegin());
+}
+
+bool checkIfsoExist(hcfftDirection direction)
+{
+  DIR           *d;
+  struct dirent *dir;
+  d = opendir("/tmp/");
+  if (d)
+  {
+    while ((dir = readdir(d)) != NULL)
+    {
+      if(has_suffix(dir->d_name, ".so"))
+      {
+        string libFile(dir->d_name);
+
+        if(libFile.substr(0, 9) != "libkernel")
+          continue;
+
+        int i = 0;
+        size_t length = libFile.length();
+        size_t firstocc = libFile.find_first_of("_");
+
+        string type = libFile.substr(9, firstocc - 9);
+        if(!((direction == HCFFT_FORWARD && type == "Fwd") || (direction == HCFFT_BACKWARD && type == "Back")))
+          continue;
+
+        if( firstocc != std::string::npos)
+        {
+          ++firstocc;
+          size_t iter = (libFile.substr(firstocc, length - firstocc)).find("_");
+          while( iter != std::string::npos)
+          {
+            size_t N = (size_t)stoi(libFile.substr(firstocc, iter));
+            if(N != originalLength[i])
+              break;
+            i++;
+            firstocc  += iter+1;
+            iter = (libFile.substr(firstocc, length - firstocc )).find("_");
+          }
+        }
+        if( i == originalLength.size())
+          return true;
+      }
+    }
+
+    if(closedir(d) < 0)
+      return false;
+  }
+  return false;
+}
+
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
 //	Read the kernels that this plan uses from file, and store into the plan
@@ -292,7 +346,7 @@ hcfftStatus hcfftCreateDefaultPlanInternal (hcfftPlanHandle* plHandle,hcfftDim d
 
 // This external entry-point should not be called from within the library. Use clfftCreateDefaultPlanInternal instead.
 hcfftStatus	FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hcfftDim dim,
-						const size_t* clLengths )
+						const size_t* clLengths, hcfftDirection dir)
 {
 	hcfftStatus ret = hcfftCreateDefaultPlanInternal(plHandle, dim, clLengths);
 
@@ -312,6 +366,7 @@ hcfftStatus	FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
                 fftPlan->count = 0;
                 fftPlan->plHandleOrigin = *plHandle;
 		fftPlan->userPlan = true;
+                exist = checkIfsoExist(dir);
 	}
 
 	return ret;
@@ -1225,6 +1280,8 @@ case HCFFT_HERMITIAN_INTERLEAVED:
 		std::cout<<"Work size too large for clEnqueNDRangeKernel()"<<std::endl;
 	}
 	BUG_CHECK (gWorkSize.size() == lWorkSize.size());
+
+        remove(filename.c_str());
 
         void * kernelHandle = NULL;
         typedef void (FUNC_FFTFwd)(std::map<int, void*> *vectArr);

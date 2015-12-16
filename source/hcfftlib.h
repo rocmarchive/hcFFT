@@ -472,7 +472,7 @@ public:
               blockCompute(false), blockComputeType(BCT_C2C)
   {};
 
-  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle,hcfftDim dimension, const size_t *length);
+  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle,hcfftDim dimension, const size_t *length, hcfftDirection dir);
 
   hcfftStatus	hcfftBakePlan(hcfftPlanHandle plHandle);
 
