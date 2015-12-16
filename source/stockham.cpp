@@ -2683,8 +2683,8 @@ namespace StockhamGenerator
                                 str += "\nvoid ";
 
 				// Function name
-				if(fwd) { str += "fft_fwd"; str+= SztToStr(plHandle); }
-				else	{ str += "fft_back";  str+= SztToStr(plHandle); }
+				if(fwd) { str += "fft_fwd"; str+= SztToStr(count); }
+				else	{ str += "fft_back";  str+= SztToStr(count); }
 				str += "( std::map<int, void*> vectArr )\n\t{\n\t";
 
 			        str += "array_view<float,1> *cbP = (array_view<float,1> *)vectArr["; str += SztToStr(arg); str += "];\n";
@@ -3189,7 +3189,7 @@ namespace StockhamGenerator
 				if(numPasses == 1)
 				{
 					str += "\t";
-					str += PassName(plHandle, 0, fwd);
+					str += PassName(count, 0, fwd);
 					str += "("; str += rw; str += me;
 					str += "0, 0, ";
 					str += inBuf; str += outBuf;
@@ -3220,7 +3220,7 @@ namespace StockhamGenerator
 
 						str += exTab;
 						str += "\t";
-						str += PassName(plHandle, p->GetPosition(), fwd);
+						str += PassName(count, p->GetPosition(), fwd);
 						str += "(";
 
 						std::string ldsOff;

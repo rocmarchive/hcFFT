@@ -6,25 +6,27 @@ lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
 
 //	Static initialization of the plan count variable
 size_t FFTPlan::count	= 0;
-size_t FFTRepo::planCount	= 1;
+size_t FFTRepo::planCount = 1;
+static size_t beforeCompile = 99999999;
+static size_t beforeTransform = 99999999;
+static std::string kernellib;
+static std::string filename;
 static bool exist = false;
-static bool fileOpen = false;
+static size_t countKernel;
 static std::vector<size_t> originalLength;
 
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
 //	Read the kernels that this plan uses from file, and store into the plan
-hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators gen, const FFTKernelGenKeyParams& fftParams)
+hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators gen, const FFTKernelGenKeyParams& fftParams, string filename, bool writeFlag)
 {
 	FFTRepo& fftRepo	= FFTRepo::getInstance( );
 
 	std::string kernel;
 	fftRepo.getProgramCode( gen, plHandle, fftParams, kernel);
 
-        std::string filename;
-	filename = "/tmp/kernel0.cpp";
 	FILE *fp;
-	if(!fileOpen)
+	if(writeFlag)
 	{
 	        fp = fopen (filename.c_str(),"w");
 	        if (!fp)
@@ -32,7 +34,6 @@ hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators g
 	          std::cout<<" File kernel.cpp open failed for writing "<<std::endl;
 	          return HCFFT_ERROR;
 	        }
-		fileOpen = true;
 	}
 	else
 	{
@@ -65,29 +66,6 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
 	FFTKernelGenKeyParams fftParams;
 	fftPlan->GetKernelGenKey( fftParams );
 
-	WriteKernel( plHandle, gen, fftParams);
-
-        char cwd[1024];
-        if (getcwd(cwd, sizeof(cwd)) == NULL)
-	  std::cout<< "getcwd() error"<<std::endl;
-
-        std::string pwd(cwd);
-        std::string kernellib = "/tmp/libFFTKernel0.so";
-        string fftLibPath = pwd + "/../../../../Build/linux/";
-
-#ifdef DEBIAN
-        string Path= "/opt/hcc/bin/";
-        std::string execCmd = Path + "/clang++ `" + Path + "/clamp-config --build --cxxflags --ldflags --shared` /tmp/kernel0.cpp -o " + kernellib ;
-#else
-        char *compilerPath = (char*)calloc(100, 1);
-        compilerPath = getenv ("MCWCPPAMPBUILD");
-        if(!compilerPath)
-          std::cout<<"No Compiler Path Variable found. Please export MCWCPPAMPBUILD "<<std::endl;
-        std::string Path(compilerPath);
-        std::string execCmd = Path + "/compiler/bin/clang++ `" + Path + "/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` /tmp/kernel0.cpp -o " + kernellib ;
-#endif
-        system(execCmd.c_str());
-
 	// For real transforms we comppile either forward or backward kernel
 	bool r2c_transform = (fftParams.fft_inputLayout == HCFFT_REAL);
 	bool c2r_transform = (fftParams.fft_outputLayout == HCFFT_REAL);
@@ -98,6 +76,64 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
         bool buildFwdKernel = (gen == Stockham || gen == Transpose) ? ((!real_transform) || r2c_transform) : (r2c_transform || c2h) || (!(h2c || c2h));
         bool buildBwdKernel = (gen == Stockham || gen == Transpose) ? ((!real_transform) || c2r_transform) : (c2r_transform || h2c) || (!(h2c || c2h));
 
+        bool writeFlag = false;
+        string type;
+        if(buildFwdKernel)
+        {
+        type = "Fwd_";
+        }
+        if (buildBwdKernel)
+        {
+        type = "Back_";
+        }
+
+        if(beforeCompile != plHandleOrigin)
+        {
+	filename = "/tmp/kernel";
+        kernellib = "/tmp/libkernel";
+
+        filename += type;
+        kernellib += type;
+
+        for(int i = 0; i < (fftParams.fft_DataDim - 1); i++)
+        {
+        filename += SztToStr(originalLength[i]);
+        kernellib += SztToStr(originalLength[i]);
+        filename += "_";
+        kernellib += "_";
+        }
+        filename += ".cpp";
+        kernellib += ".so";
+        beforeCompile = plHandleOrigin;
+        writeFlag = true;
+        }
+
+        if(!exist)
+        {
+        WriteKernel( plHandle, gen, fftParams, filename, writeFlag);
+
+        char cwd[1024];
+        if (getcwd(cwd, sizeof(cwd)) == NULL)
+	  std::cout<< "getcwd() error"<<std::endl;
+
+        std::string pwd(cwd);
+
+        string fftLibPath = pwd + "/../../../../Build/linux/";
+
+#ifdef DEBIAN
+        string Path= "/opt/hcc/bin/";
+        std::string execCmd = Path + "/clang++ `" + Path + "/clamp-config --build --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
+#else
+        char *compilerPath = (char*)calloc(100, 1);
+        compilerPath = getenv ("MCWCPPAMPBUILD");
+        if(!compilerPath)
+          std::cout<<"No Compiler Path Variable found. Please export MCWCPPAMPBUILD "<<std::endl;
+        std::string Path(compilerPath);
+        std::string execCmd = Path + "/compiler/bin/clang++ `" + Path + "/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
+#endif
+        system(execCmd.c_str());
+
+        }
 	// get a kernel object handle for a kernel with the given name
 	if(buildFwdKernel)
 	{
@@ -1199,7 +1235,6 @@ case HCFFT_HERMITIAN_INTERLEAVED:
 	  std::cout<< "getcwd() error"<<std::endl;
 
         std::string pwd(cwd);
-        std::string kernellib = "/tmp/libFFTKernel0.so";
 
         char *err = (char*) calloc(128,2);
         kernelHandle = dlopen(kernellib.c_str(),RTLD_NOW);
@@ -1208,6 +1243,14 @@ case HCFFT_HERMITIAN_INTERLEAVED:
           std::cout << "Failed to load Kernel: "<< kernellib.c_str()<<std::endl;
           return HCFFT_ERROR;
         }
+
+        if(beforeTransform != fftPlan->plHandleOrigin)
+        {
+          countKernel = 0;
+          beforeTransform = fftPlan->plHandleOrigin;
+        }
+        else
+          countKernel++;
 
         if(fftPlan->gen == Copy)
 	{
@@ -1220,7 +1263,7 @@ case HCFFT_HERMITIAN_INTERLEAVED:
 
 		if(h2c)	funcName += "h2c";
 		else	funcName += "c2h";
-	        funcName +=  std::to_string(plHandle);
+	        funcName +=  std::to_string(countKernel);
 
 	        FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
 	        if (!FFTcall)
@@ -1237,7 +1280,7 @@ case HCFFT_HERMITIAN_INTERLEAVED:
 		if(dir == HCFFT_FORWARD)
 		{
 			std::string funcName = "fft_fwd";
-		        funcName +=  std::to_string(plHandle);
+		        funcName +=  std::to_string(countKernel);
 		        FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
 		        if (!FFTcall)
 		          std::cout<<"Loading fft_fwd fails "<<std::endl;
@@ -1251,7 +1294,7 @@ case HCFFT_HERMITIAN_INTERLEAVED:
 	        else if(dir == HCFFT_BACKWARD)
         	{
         		std::string funcName = "fft_back";
-	        	funcName +=  std::to_string(plHandle);
+			funcName +=  std::to_string(countKernel);
         		FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
         		if (!FFTcall)
         		  std::cout<<"Loading fft_back fails "<<std::endl;
@@ -1266,7 +1309,7 @@ case HCFFT_HERMITIAN_INTERLEAVED:
         else if(fftPlan->gen == Transpose)
 	{
 		std::string funcName = "transpose";
-		funcName +=  std::to_string(plHandle);
+		funcName +=  std::to_string(countKernel);
 		FFTcall= (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
 		if (!FFTcall)
 		  std::cout<<"Loading transpose fails "<<std::endl;
