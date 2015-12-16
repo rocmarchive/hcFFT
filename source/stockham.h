@@ -30,14 +30,6 @@ namespace StockhamGenerator
 		}
 	}
 
-	// Convert unsigned integers to string
-	inline std::string SztToStr(size_t i)
-	{
-		std::stringstream ss;
-		ss << i;
-		return ss.str();
-	}
-
 	inline std::string FloatToStr(double f)
 	{
 		std::stringstream ss;
@@ -103,18 +95,6 @@ namespace StockhamGenerator
 		default:
 			assert(false); return "";
 		}
-	}
-
-        inline std::string hcHeader()
-	{
-                return "#include \"hcfftlib.h\"\n"
-                       "#include <amp.h>\n"
-                       "#include <amp_math.h>\n"
-	               "#include <stdio.h>\n"
-                       "#include <iostream>\n"
-                       "#include <amp_short_vectors.h>\n"
-                       "using namespace Concurrency;\n"
-                       "using namespace Concurrency::graphics;\n";
 	}
 
 	template <Precision PR>
