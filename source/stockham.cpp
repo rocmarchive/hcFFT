@@ -76,7 +76,6 @@
 //       Radix 5: k*L + j, k*L + j + LS, k*L + j + 2*LS, k*L + j + 3*LS, k*L + j + 4*LS
 //
 
-static int first;
 
 namespace StockhamGenerator
 {
@@ -2548,11 +2547,6 @@ namespace StockhamGenerator
 			else
 				large1D = params.fft_N[0] * params.fft_N[1];
 
-                        if(!first)
-			{
-			// Pragma
-			str += hcHeader();
-
 			std::string sfx = FloatSuffix<PR>()+"\n";
 
 			// Vector type
@@ -2580,7 +2574,6 @@ namespace StockhamGenerator
 			str += "#define C7Q8  0.87484229096165666561546458979137" + sfx;
 
 			str += "\n";
-                       }
 
 			bool cReg = linearRegs ? true : false;
 
@@ -3391,7 +3384,6 @@ namespace StockhamGenerator
 
 				str += " });\n}}\n\n";
 
-				first = 1;
 				if(r2c2r)
 					break;
 			}
@@ -3592,6 +3584,8 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
     this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);
 
     std::string programCode;
+    programCode = hcHeader();
+
     Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
     switch(pr)
     {

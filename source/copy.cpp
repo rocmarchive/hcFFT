@@ -512,6 +512,8 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFT
   bool general = !(h2c || c2h);
 
   std::string programCode;
+  programCode = hcHeader();
+
   Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
   switch(pr)
   {

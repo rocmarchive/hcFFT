@@ -892,6 +892,7 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Transpose>(const hcfftPlanHandle plHandle
     this->GetWorkSizesPvt<Transpose> (gWorkSize, lWorkSize);
 
     std::string programCode;
+    programCode = hcHeader();
     genTransposeKernel( plHandle, fftParams, programCode, lwSize, reShapeFactor, loopCount, blockSize, outRowPadding, gWorkSize, lWorkSize, count);
 
     fftRepo.setProgramCode(Transpose, plHandle, fftParams, programCode);
