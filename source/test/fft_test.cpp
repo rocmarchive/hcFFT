@@ -45,7 +45,7 @@ int main(int argc,char* argv[])
     input[i] = i+1;
   }
 
-  hcfftStatus status = plan.hcfftCreateDefaultPlan (&planhandle, dimension, length);
+  hcfftStatus status = plan.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir);
   status = plan.hcfftSetPlanPrecision(planhandle, precision);
   if(status != HCFFT_SUCCESS)
   {
@@ -76,7 +76,7 @@ int main(int argc,char* argv[])
   {
     cout<<" bake plan error "<<endl;
   }
-  
+
   plan.hcfftEnqueueTransform(planhandle, dir, &inpAr, &opAr, NULL);
   opAr.synchronize();
 
@@ -91,7 +91,8 @@ int main(int argc,char* argv[])
   /*---------------------C2R---------------------------------------*/
 
   FFTPlan plan1;
-  status = plan1.hcfftCreateDefaultPlan (&planhandle, dimension, length);
+  dir = HCFFT_BACKWARD;
+  status = plan1.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir);
   status = plan1.hcfftSetPlanPrecision(planhandle, precision);
   if(status != HCFFT_SUCCESS)
   {
@@ -108,7 +109,6 @@ int main(int argc,char* argv[])
     cout<<" set result error "<<endl;
   }
 
-  dir = HCFFT_BACKWARD;
   status = plan1.hcfftSetLayout(planhandle, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
   if(status != HCFFT_SUCCESS)
   {
