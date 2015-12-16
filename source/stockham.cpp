@@ -1491,8 +1491,8 @@ namespace StockhamGenerator
 							bool inInterleaved, bool outInterleaved,
 							bool inReal, bool outReal,
 							size_t inStride, size_t outStride, double scale,
-                                                        size_t lWorkSize, bool gIn = false,
-                                                        bool gOut = false) const
+                                                        size_t lWorkSize, size_t count,
+                                                        bool gIn = false, bool gOut = false) const
 		{
                         const std::string bufferInRe  = (inReal || inInterleaved) ?   "bufIn"  : "bufInRe";
 			const std::string bufferInIm  = (inReal || inInterleaved) ?   "bufIn"  : "bufInIm";
@@ -1526,7 +1526,7 @@ namespace StockhamGenerator
 			passStr += "inline void\n";
 
 			//Function name
-			passStr += PassName(plHandle, position, fwd);
+			passStr += PassName(count, position, fwd);
 
 			// Function arguments
 			passStr += "(";
@@ -1939,9 +1939,9 @@ namespace StockhamGenerator
 			// Butterfly calls
 			if(radix > 1)
 			{
-				if(numB1) CallButterfly(ButterflyName(radix, 1, fwd, plHandle), 1, numB1, passStr);
-				if(numB2) CallButterfly(ButterflyName(radix, 2, fwd, plHandle), 2, numB2, passStr);
-				if(numB4) CallButterfly(ButterflyName(radix, 4, fwd, plHandle), 4, numB4, passStr);
+				if(numB1) CallButterfly(ButterflyName(radix, 1, fwd, count), 1, numB1, passStr);
+				if(numB2) CallButterfly(ButterflyName(radix, 2, fwd, count), 2, numB2, passStr);
+				if(numB4) CallButterfly(ButterflyName(radix, 4, fwd, count), 4, numB4, passStr);
 			}
 
 			passStr += "\n";
@@ -2518,7 +2518,7 @@ namespace StockhamGenerator
 		}
 	};
 
-        void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize)
+        void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count)
 		{
 
 			std::string twType = RegBaseType<PR>(2);
@@ -2605,9 +2605,9 @@ namespace StockhamGenerator
 					{
 						bool fwd = d ? false : true;
 
-						if(p->GetNumB1()) { Butterfly<PR> bfly(rad, 1, fwd, cReg); bfly.GenerateButterfly(str, plHandle); str += "\n"; }
-						if(p->GetNumB2()) { Butterfly<PR> bfly(rad, 2, fwd, cReg); bfly.GenerateButterfly(str, plHandle); str += "\n"; }
-						if(p->GetNumB4()) { Butterfly<PR> bfly(rad, 4, fwd, cReg); bfly.GenerateButterfly(str, plHandle); str += "\n"; }
+						if(p->GetNumB1()) { Butterfly<PR> bfly(rad, 1, fwd, cReg); bfly.GenerateButterfly(str, count); str += "\n"; }
+						if(p->GetNumB2()) { Butterfly<PR> bfly(rad, 2, fwd, cReg); bfly.GenerateButterfly(str, count); str += "\n"; }
+						if(p->GetNumB4()) { Butterfly<PR> bfly(rad, 4, fwd, cReg); bfly.GenerateButterfly(str, count); str += "\n"; }
 					}
 				}
 			}
@@ -2661,7 +2661,7 @@ namespace StockhamGenerator
 						if((p+1) != passes.end())	{ outIlvd = ldsInterleaved; }
 					}
 
-					p->GeneratePass(plHandle, fwd, str, tw3Step, inIlvd, outIlvd, inRl, outRl, ins, outs, s, lWorkSize[0], gIn, gOut);
+					p->GeneratePass(plHandle, fwd, str, tw3Step, inIlvd, outIlvd, inRl, outRl, ins, outs, s, lWorkSize[0], count, gIn, gOut);
 				}
 
 				// if real transform we do only 1 direction
@@ -3582,7 +3582,7 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS, 
 }
 
 template<>
-hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo) const
+hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const
 {
     FFTKernelGenKeyParams params;
     this->GetKernelGenKeyPvt<Stockham> (params);
@@ -3598,12 +3598,12 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
         case P_SINGLE:
 	{
 	  Kernel<P_SINGLE> kernel(params);
-	  kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize);
+	  kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
 	} break;
 	case P_DOUBLE:
 	{
 	  Kernel<P_DOUBLE> kernel(params);
-	  kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize);
+	  kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
 	} break;
     }
 

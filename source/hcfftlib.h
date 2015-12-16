@@ -539,7 +539,7 @@ public:
   hcfftStatus GetWorkSizesPvt (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
 
   template <hcfftGenerators G>
-  hcfftStatus GenerateKernelPvt (const hcfftPlanHandle plHandle, FFTRepo& fftRepo) const;
+  hcfftStatus GenerateKernelPvt (const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const;
 
   hcfftStatus GetMax1DLength (size_t *longest ) const;
 
@@ -547,7 +547,7 @@ public:
 
   hcfftStatus GetWorkSizes (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
 
-  hcfftStatus GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo) const;
+  hcfftStatus GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo, size_t count) const;
 
   hcfftStatus AllocateWriteBuffers ();
 

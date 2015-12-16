@@ -1339,7 +1339,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
      if(fftPlan->gen == Copy)
      {
-       fftPlan->GenerateKernel(plHandle, fftRepo);
+       fftPlan->GenerateKernel(plHandle, fftRepo, count);
        CompileKernels(plHandle, fftPlan->gen, fftPlan);
        fftPlan->baked = true;
        return HCFFT_SUCCESS;
@@ -2636,7 +2636,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		{
 			if (fftPlan->transflag) //Transpose for 2D
 			{
-			        fftPlan->GenerateKernel(plHandle, fftRepo);
+			        fftPlan->GenerateKernel(plHandle, fftRepo, count);
 			        CompileKernels(plHandle, fftPlan->gen, fftPlan);
 				fftPlan->baked		= true;
 				return	HCFFT_SUCCESS;
@@ -4510,7 +4510,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 	   }
 
 	//	For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
-	fftPlan->GenerateKernel( plHandle, fftRepo);
+	fftPlan->GenerateKernel( plHandle, fftRepo, count);
 	//	For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
 	CompileKernels( plHandle, fftPlan->gen, fftPlan );
 
@@ -5216,16 +5216,16 @@ hcfftStatus  FFTPlan::GetWorkSizes (std::vector<size_t> & globalws, std::vector<
 	}
 }
 
-hcfftStatus  FFTPlan::GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo) const
+hcfftStatus  FFTPlan::GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo, size_t count) const
 {
         switch(gen)
 	{
 	case Stockham:
-          return GenerateKernelPvt<Stockham>(plHandle, fftRepo);
+          return GenerateKernelPvt<Stockham>(plHandle, fftRepo, count);
 	case Copy:
-          return GenerateKernelPvt<Copy>(plHandle, fftRepo);
+          return GenerateKernelPvt<Copy>(plHandle, fftRepo, count);
 	case Transpose:
-          return GenerateKernelPvt<Transpose>(plHandle, fftRepo);
+          return GenerateKernelPvt<Transpose>(plHandle, fftRepo, count);
 	default:
           return HCFFT_ERROR;
 	}

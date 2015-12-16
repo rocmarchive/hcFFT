@@ -108,7 +108,7 @@ namespace CopyGenerator
 		assert(params.fft_placeness == HCFFT_OUTOFPLACE);
 	}
 
-        void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize)
+        void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count)
 	{
 		std::string rType  = RegBaseType<PR>(1);
 		std::string r2Type  = RegBaseType<PR>(2);
@@ -135,7 +135,7 @@ namespace CopyGenerator
 			else	str += "copy_c2h";
 		}
 
-		str+= SztToStr(plHandle);
+		str+= SztToStr(count);
 
 		str += "(std::map<int, void*> vectArr)";
 		str += "{\n\t";
@@ -497,7 +497,7 @@ hcfftStatus FFTPlan::GetMax1DLengthPvt<Copy> (size_t * longest) const
 using namespace CopyGenerator;
 
 template<>
-hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo) const
+hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const
 {
   FFTKernelGenKeyParams params;
   this->GetKernelGenKeyPvt<Copy> (params);
@@ -518,12 +518,12 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFT
   case P_SINGLE:
     {
       CopyKernel<P_SINGLE> kernel(params);
-      kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize);
+      kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
     } break;
   case P_DOUBLE:
     {
       CopyKernel<P_DOUBLE> kernel(params);
-      kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize);
+      kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
     } break;
   }
 

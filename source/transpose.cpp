@@ -233,7 +233,8 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
 }
 
 static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernelGenKeyParams & params, std::string& strKernel, const tile& lwSize, const size_t reShapeFactor,
-                                            const size_t loopCount, const tile& blockSize, const size_t outRowPadding, vector< size_t > gWorkSize, vector< size_t > lWorkSize)
+                                            const size_t loopCount, const tile& blockSize, const size_t outRowPadding, vector< size_t > gWorkSize, vector< size_t > lWorkSize,
+                                            size_t count)
 {
     strKernel.reserve( 4096 );
     std::stringstream transKernel( std::stringstream::out );
@@ -288,7 +289,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 			funcName = fwd ? "transpose_tw_fwd" : "transpose_tw_back";
 		else
 			funcName = "transpose";
-		funcName += SztToStr(plHandle);
+		funcName += SztToStr(count);
 
 		genTransposePrototype( params, lwSize, dtPlanar, dtComplex, funcName, transKernel, dtInput, dtOutput );
 
@@ -864,7 +865,7 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Transpose> (std::vector<size_t> & globalWS,
 //	OpenCL does not take unicode strings as input, so this routine returns only ASCII strings
 //	Feed this generator the FFTPlan, and it returns the generated program as a string
 template<>
-hcfftStatus FFTPlan::GenerateKernelPvt<Transpose>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo) const
+hcfftStatus FFTPlan::GenerateKernelPvt<Transpose>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const
 {
     FFTKernelGenKeyParams fftParams;
     this->GetKernelGenKeyPvt<Transpose>( fftParams );
@@ -891,7 +892,7 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Transpose>(const hcfftPlanHandle plHandle
     this->GetWorkSizesPvt<Transpose> (gWorkSize, lWorkSize);
 
     std::string programCode;
-    genTransposeKernel( plHandle, fftParams, programCode, lwSize, reShapeFactor, loopCount, blockSize, outRowPadding, gWorkSize, lWorkSize);
+    genTransposeKernel( plHandle, fftParams, programCode, lwSize, reShapeFactor, loopCount, blockSize, outRowPadding, gWorkSize, lWorkSize, count);
 
     fftRepo.setProgramCode(Transpose, plHandle, fftParams, programCode);
 
