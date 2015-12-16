@@ -7,6 +7,7 @@ lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
 //	Static initialization of the plan count variable
 size_t FFTPlan::count	= 0;
 size_t FFTRepo::planCount	= 1;
+static bool exist = false;
 static bool fileOpen = false;
 
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
@@ -56,7 +57,7 @@ hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators g
 }
 
 //	Compile the kernels that this plan uses, and store into the plan
-hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators gen, FFTPlan* fftPlan )
+hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators gen, FFTPlan* fftPlan, hcfftPlanHandle plHandleOrigin, bool exist)
 {
 	FFTRepo& fftRepo	= FFTRepo::getInstance( );
 
@@ -1339,8 +1340,12 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 
      if(fftPlan->gen == Copy)
      {
-       fftPlan->GenerateKernel(plHandle, fftRepo, count);
-       CompileKernels(plHandle, fftPlan->gen, fftPlan);
+       if(!exist)
+       {
+         fftPlan->GenerateKernel(plHandle, fftRepo, count);
+         count++;
+       }
+       CompileKernels(plHandle, fftPlan->gen, fftPlan, plHandleOrigin, exist);
        fftPlan->baked = true;
        return HCFFT_SUCCESS;
      }
@@ -2634,10 +2639,15 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		break;
 	    case HCFFT_2D:
 		{
+
 			if (fftPlan->transflag) //Transpose for 2D
 			{
-			        fftPlan->GenerateKernel(plHandle, fftRepo, count);
-			        CompileKernels(plHandle, fftPlan->gen, fftPlan);
+                                if(!exist)
+                                {
+                                  fftPlan->GenerateKernel(plHandle, fftRepo, count);
+                                  count++;
+                                }
+			        CompileKernels(plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, exist);
 				fftPlan->baked		= true;
 				return	HCFFT_SUCCESS;
 			}
@@ -4509,10 +4519,14 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle)
 		}
 	   }
 
+        if(!exist)
+        {
 	//	For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
 	fftPlan->GenerateKernel( plHandle, fftRepo, count);
 	//	For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
-	CompileKernels( plHandle, fftPlan->gen, fftPlan );
+        count++;
+        }
+	CompileKernels( plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, exist);
 
 	//	Allocate resources
 	fftPlan->AllocateWriteBuffers ();
