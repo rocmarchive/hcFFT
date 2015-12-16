@@ -9,6 +9,7 @@
 #include <complex>
 #include <unistd.h>
 #include "lock.h"
+#include <dirent.h>
 
 using namespace Concurrency;
 using namespace Concurrency::graphics;
@@ -140,6 +141,26 @@ inline size_t FloorPo2 (size_t n)
   while (0 != (tmp = n & (n-1)))
     n = tmp;
     return n;
+}
+
+// Convert unsigned integers to string
+inline std::string SztToStr(size_t i)
+{
+	std::stringstream ss;
+	ss << i;
+	return ss.str();
+}
+
+inline std::string hcHeader()
+{
+    return "#include \"hcfftlib.h\"\n"
+    "#include <amp.h>\n"
+    "#include <amp_math.h>\n"
+    "#include <stdio.h>\n"
+    "#include <iostream>\n"
+    "#include <amp_short_vectors.h>\n"
+    "using namespace Concurrency;\n"
+    "using namespace Concurrency::graphics;\n";
 }
 
 static size_t width(hcfftPrecision precision) {

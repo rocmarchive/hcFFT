@@ -288,17 +288,17 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 			funcName = fwd ? "transpose_tw_fwd" : "transpose_tw_back";
 		else
 			funcName = "transpose";
-		funcName += StockhamGenerator::SztToStr(plHandle);
+		funcName += SztToStr(plHandle);
 
 		genTransposePrototype( params, lwSize, dtPlanar, dtComplex, funcName, transKernel, dtInput, dtOutput );
 
 		hcKernWrite( transKernel, 3 ) << "\tConcurrency::extent<2> grdExt( ";
-		hcKernWrite( transKernel, 3 ) <<  StockhamGenerator::SztToStr(gWorkSize[0]) << ", "<< StockhamGenerator::SztToStr(gWorkSize[1]) << "); \n" << "\tConcurrency::tiled_extent< ";
-		hcKernWrite( transKernel, 3 ) <<  StockhamGenerator::SztToStr(lwSize.x) << ", "<< StockhamGenerator::SztToStr(lwSize.y) << "> t_ext(grdExt);\n";
+		hcKernWrite( transKernel, 3 ) <<  SztToStr(gWorkSize[0]) << ", "<< SztToStr(gWorkSize[1]) << "); \n" << "\tConcurrency::tiled_extent< ";
+		hcKernWrite( transKernel, 3 ) <<  SztToStr(lwSize.x) << ", "<< SztToStr(lwSize.y) << "> t_ext(grdExt);\n";
 
 		hcKernWrite( transKernel, 3 ) << "\tConcurrency::parallel_for_each(t_ext, [=] (Concurrency::tiled_index<";
-                hcKernWrite( transKernel, 3 ) <<  StockhamGenerator::SztToStr(lwSize.x);
-                hcKernWrite( transKernel, 3 ) <<  ", " << StockhamGenerator::SztToStr(lwSize.y) << " > tidx) restrict(amp)\n\t { ";
+                hcKernWrite( transKernel, 3 ) <<  SztToStr(lwSize.x);
+                hcKernWrite( transKernel, 3 ) <<  ", " << SztToStr(lwSize.y) << " > tidx) restrict(amp)\n\t { ";
 
 		hcKernWrite( transKernel, 3 ) << "const uint_2 localIndex( tidx.local[0] , tidx.local[1]); " << std::endl;
 		hcKernWrite( transKernel, 3 ) << "const uint_2 localExtent( t_ext.tile_dim0, t_ext.tile_dim1); " << std::endl;
