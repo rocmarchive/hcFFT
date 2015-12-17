@@ -44,19 +44,19 @@ ELSE(WIN32)
   if(EXISTS ${MCWHCCBUILD})
     execute_process(COMMAND ${CLAMP_CONFIG} --build --cxxflags
                             OUTPUT_VARIABLE CLAMP_CXXFLAGS)
-    execute_process(COMMAND ${CLAMP_CONFIG} --build --ldflags --shared
+    execute_process(COMMAND ${CLAMP_CONFIG} --build --ldflags 
                             OUTPUT_VARIABLE CLAMP_LDFLAGS)
   else(EXISTS ${MCWHCCBUILD})
     execute_process(COMMAND ${CLAMP_CONFIG} --cxxflags
                             OUTPUT_VARIABLE CLAMP_CXXFLAGS)
-    execute_process(COMMAND ${CLAMP_CONFIG} --ldflags --shared
+    execute_process(COMMAND ${CLAMP_CONFIG} --ldflags
                             OUTPUT_VARIABLE CLAMP_LDFLAGS)
   endif(EXISTS ${MCWHCCBUILD})
 
 
   string(STRIP "${CLAMP_CXXFLAGS}" CLAMP_CXXFLAGS)
   string(STRIP "${CLAMP_LDFLAGS}" CLAMP_LDFLAGS)
-  set (CLAMP_CXXFLAGS "${CLAMP_CXXFLAGS} -Wall -Wno-deprecated-register -Wdeprecated-declarations")
+  set (CLAMP_CXXFLAGS "${CLAMP_CXXFLAGS}")
   set (CLAMP_LDFLAGS "${CLAMP_LDFLAGS}")
 
 
