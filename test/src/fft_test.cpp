@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <cstdlib>
-#include "../hcfftlib.h"
+#include "hcfftlib.h"
 #include <dlfcn.h>
 #include <map>
 #include <amp.h>

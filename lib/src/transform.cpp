@@ -179,9 +179,9 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
         std::string execCmd = Path + "/clang++ `" + Path + "/clamp-config --build --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
 #else
         char *compilerPath = (char*)calloc(100, 1);
-        compilerPath = getenv ("MCWCPPAMPBUILD");
+        compilerPath = getenv ("MCWHCCBUILD");
         if(!compilerPath)
-          std::cout<<"No Compiler Path Variable found. Please export MCWCPPAMPBUILD "<<std::endl;
+          std::cout<<"No Compiler Path Variable found. Please export MCWHCCBUILD "<<std::endl;
         std::string Path(compilerPath);
         std::string execCmd = Path + "/compiler/bin/clang++ `" + Path + "/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
 #endif
