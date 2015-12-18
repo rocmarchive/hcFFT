@@ -53,11 +53,8 @@ This repository hosts the HCC implementation of FFT routines. The following are 
 
 (a) For Linux:
 
-       * cd ~/hcfft/Build/linux
-       
-       * sh build.sh
-
-       * sudo make install
+       * sh install.sh
+    
 
 (b)  For Windows: (Prerequisite: Visual Studio 12 version )
 
