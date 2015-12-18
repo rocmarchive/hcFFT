@@ -52,7 +52,7 @@ ELSE(WIN32)
   
   string(STRIP "${CLAMP_CXXFLAGS}" CLAMP_CXXFLAGS)
   string(STRIP "${CLAMP_LDFLAGS}" CLAMP_LDFLAGS)
-  set (CLAMP_CXXFLAGS "${CLAMP_CXXFLAGS} -Wall -Wno-deprecated-register -Wdeprecated-declarations")
+  set (CLAMP_CXXFLAGS "${CLAMP_CXXFLAGS}")
   set (CLAMP_LDFLAGS "${CLAMP_LDFLAGS}")
 
   FOREACH(src_file ${SRCS})

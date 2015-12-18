@@ -1313,8 +1313,6 @@ case HCFFT_HERMITIAN_INTERLEAVED:
 	{
 		bool h2c = ((fftPlan->ipLayout == HCFFT_HERMITIAN_PLANAR) ||
 			(fftPlan->ipLayout == HCFFT_HERMITIAN_INTERLEAVED) ) ? true : false;
-		bool c2h = ((fftPlan->opLayout == HCFFT_HERMITIAN_PLANAR) ||
-			(fftPlan->opLayout == HCFFT_HERMITIAN_INTERLEAVED) ) ? true : false;
 
 		std::string funcName = "copy_";
 
