@@ -29,6 +29,7 @@ using namespace Concurrency::graphics;
 #define HCFFT_CB_OSW 12
 #define HCFFT_CB_OS5 13
 #define HCFFT_CB_SIZE 32
+#define THREADS 16
 
 #define BUG_CHECK(_proposition) \
   { bool btmp = (_proposition); assert (btmp); if (! btmp)  return HCFFT_ERROR; }
