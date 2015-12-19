@@ -222,20 +222,21 @@ hcfftStatus FFTPlan::GetEnvelope (const FFTEnvelope** ppEnvelope) const {
 
 hcfftStatus FFTPlan::hcfftpadding(Concurrency::array_view<float ,1> &matrix,
                                   Concurrency::array_view<float ,1> &input,
-                                  size_t x_size, size_t pad_size, size_t y_size)
+                                  size_t x_size, size_t x_pad_size,
+                                  size_t y_size, size_t y_pad_size)
 {
-  Concurrency::extent<2> grdExt((y_size + (THREADS - 1)) & ~(THREADS - 1), (pad_size + (THREADS - 1)) & ~(THREADS - 1));
+  Concurrency::extent<2> grdExt((y_pad_size + (THREADS - 1)) & ~(THREADS - 1), (x_pad_size + (THREADS - 1)) & ~(THREADS - 1));
   Concurrency::tiled_extent<THREADS, THREADS> t_ext(grdExt);
   Concurrency::parallel_for_each(t_ext, [=] (Concurrency::tiled_index<THREADS, THREADS> tidx) restrict(amp)
   {
     int x = tidx.global[0];
     int y = tidx.global[1];
-    if( y < y_size && x < pad_size)
+    if( y < y_pad_size && x < x_pad_size)
     {
       if(y < y_size && x < x_size)
-        matrix[y * pad_size + x] = input[y * x_size + x];
+        matrix[y * x_pad_size + x] = input[y * x_size + x];
       else
-        matrix[y * pad_size + x] = 0.0;
+        matrix[y * x_pad_size + x] = 0.0;
     }
   });
   return HCFFT_SUCCESS;
