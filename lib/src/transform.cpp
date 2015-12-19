@@ -229,10 +229,11 @@ hcfftStatus FFTPlan::hcfftCheckSize(size_t* clLengths)
       ++(clLengths[i]);
     }
   }
+  return HCFFT_SUCCESS;
 }
 
-hcfftStatus FFTPlan::hcfftpadding(Concurrency::array_view<float ,1> &matrix,
-                                  Concurrency::array_view<float ,1> &input,
+hcfftStatus FFTPlan::hcfftpadding(Concurrency::array_view<float ,1> &input,
+                                  Concurrency::array_view<float ,1> &paddedmatrix,
                                   size_t x_size, size_t x_pad_size,
                                   size_t y_size, size_t y_pad_size)
 {
@@ -245,9 +246,9 @@ hcfftStatus FFTPlan::hcfftpadding(Concurrency::array_view<float ,1> &matrix,
     if( y < y_pad_size && x < x_pad_size)
     {
       if(y < y_size && x < x_size)
-        matrix[y * x_pad_size + x] = input[y * x_size + x];
+        paddedmatrix[y * x_pad_size + x] = input[y * x_size + x];
       else
-        matrix[y * x_pad_size + x] = 0.0;
+        paddedmatrix[y * x_pad_size + x] = 0.0;
     }
   });
   return HCFFT_SUCCESS;
