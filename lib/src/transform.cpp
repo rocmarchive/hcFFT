@@ -220,6 +220,17 @@ hcfftStatus FFTPlan::GetEnvelope (const FFTEnvelope** ppEnvelope) const {
   return HCFFT_SUCCESS;
 }
 
+hcfftStatus FFTPlan::hcfftCheckSize(size_t* clLengths)
+{
+  for(int i = 0;i < 2; i++)
+  {
+    while(!( (clLengths[i] % 2 == 0) || (clLengths[i] % 3 == 0) || (clLengths[i] % 5 == 0) || (clLengths[i] % 7 == 0)))
+    {
+      ++(clLengths[i]);
+    }
+  }
+}
+
 hcfftStatus FFTPlan::hcfftpadding(Concurrency::array_view<float ,1> &matrix,
                                   Concurrency::array_view<float ,1> &input,
                                   size_t x_size, size_t x_pad_size,
