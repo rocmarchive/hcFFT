@@ -254,6 +254,85 @@ hcfftStatus FFTPlan::hcfftpadding(Concurrency::array_view<float ,1> &input,
   return HCFFT_SUCCESS;
 }
 
+void inplace_padding_kernel(Concurrency::array_view<float ,1> &matrix,
+                            int x_size,
+                            int pad_size,
+                            int y_size,
+                            Concurrency::array_view<unsigned int ,1> &flags,
+                            int num_wg)
+{
+  Concurrency::extent<1> grdExt(num_wg * L_DIM);
+  Concurrency::tiled_extent< L_DIM> t_ext(grdExt);
+  Concurrency::parallel_for_each(t_ext, [=] (Concurrency::tiled_index<L_DIM> tidx) restrict(amp)
+  {
+    const int matrix_size = y_size * pad_size;
+    const int matrix_size_align = (matrix_size + t_ext.tile_dim0 - 1) / t_ext.tile_dim0 * t_ext.tile_dim0;
+    const int num_flags = matrix_size / (t_ext.tile_dim0 * REGS);
+  // Dynamic allocation of runtime workgroup id
+    tile_static int gid_;
+    if (tidx.local[0] == 0) gid_ = atomic_fetch_add(&flags[num_flags + 1], 1);
+    tidx.barrier.wait();
+    int my_s = gid_;
+
+    // Declare on-chip memory
+    float reg[REGS];
+    int pos = matrix_size_align - 1 - (my_s * REGS * t_ext.tile_dim0 + tidx.local[0]);
+    int my_s_row = pos / pad_size;
+    int my_x = pos % pad_size;
+    int pos2 = my_s_row * x_size + my_x;
+    // Load in on-chip memory
+    #pragma unroll
+    for (int j = 0; j < REGS; j++){
+      if (pos2 >= 0 && my_x < x_size) reg[j] = matrix[pos2];
+      else reg[j] = 0;
+    pos -= t_ext.tile_dim0;
+    my_s_row = pos / pad_size;
+    my_x = pos % pad_size;
+    pos2 = my_s_row * x_size + my_x;
+    }
+
+    tidx.barrier.wait();
+
+    // Set global synch
+#if ATOM
+    if (tidx.local[0] == 0){
+    while (__atomic_fetch_or(&flags[my_s], 0, 0) ==0){}
+      __atomic_fetch_or(&flags[my_s + 1], 1, 0);}
+#else
+    if (tidx.local[0] == 0){
+      while (flags[my_s] == 0){}
+        flags[my_s + 1] = 1;
+    }
+#endif
+
+    tidx.barrier.wait();
+
+    pos = matrix_size_align - 1 - (my_s * REGS * t_ext.tile_dim0 + tidx.local[0]);
+    // Store to global memory
+    #pragma unroll
+    for (int j = 0; j < REGS; j++){
+      if (pos >= 0 && pos < matrix_size) matrix[pos] = reg[j];
+      pos -= t_ext.tile_dim0;
+    }
+    });
+}
+
+hcfftStatus FFTPlan::hcfftInplacePadding(Concurrency::array_view<float ,1> &matrix,
+                                         int x_size,
+                                         int pad_size,
+                                         int y_size)
+{
+  const int num_flags = (y_size * pad_size) / (L_DIM * REGS);
+  unsigned int *flags = (unsigned int *)calloc(sizeof(unsigned int), num_flags + 2);
+  flags[0] = 1;
+  flags[num_flags + 1] = 0;
+
+  Concurrency::array_view<unsigned int, 1> d_flags(num_flags + 2, flags );
+  int num_wg = num_flags + 1;
+  inplace_padding_kernel(matrix, x_size, pad_size, y_size, d_flags, num_wg);
+  return HCFFT_SUCCESS;
+}
+
 hcfftStatus hcfftCreateDefaultPlanInternal (hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length) {
   if( length == NULL ) {
     return HCFFT_ERROR;
