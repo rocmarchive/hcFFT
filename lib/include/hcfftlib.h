@@ -30,6 +30,9 @@ using namespace Concurrency::graphics;
 #define HCFFT_CB_OS5 13
 #define HCFFT_CB_SIZE 32
 #define THREADS 16
+#define L_DIM 256
+#define ATOM 1
+#define REGS 64
 
 #define BUG_CHECK(_proposition) \
   { bool btmp = (_proposition); assert (btmp); if (! btmp)  return HCFFT_ERROR; }
@@ -462,6 +465,8 @@ class FFTPlan {
 
   hcfftStatus hcfftpadding(Concurrency::array_view<float ,1> &input, Concurrency::array_view<float ,1> &matrix,
                            size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
+
+  hcfftStatus hcfftInplacePadding(Concurrency::array_view<float ,1> &matrix, int x_size, int pad_size,  int y_size);
 
   hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir);
 
