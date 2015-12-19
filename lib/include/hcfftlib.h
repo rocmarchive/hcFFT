@@ -457,6 +457,11 @@ class FFTPlan {
     blockCompute(false), blockComputeType(BCT_C2C) {
   };
 
+  hcfftStatus hcfftCheckSize(size_t* clLengths);
+
+  hcfftStatus hcfftpadding(Concurrency::array_view<float ,1> &input, Concurrency::array_view<float ,1> &matrix,
+                           size_t x_size, size_t pad_size, size_t y_size);
+
   hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir);
 
   hcfftStatus hcfftBakePlan(hcfftPlanHandle plHandle);
