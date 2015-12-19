@@ -3,136 +3,119 @@
 using namespace std;
 
 #if defined( __GNUC__ )
-  typedef char TCHAR;
-  typedef char _TCHAR;
+typedef char TCHAR;
+typedef char _TCHAR;
 #define _tmain main
 
 #if defined( UNICODE )
-#define _T(x)	L ## x
+#define _T(x) L ## x
 #else
-#define _T(x)	x
+#define _T(x) x
 #endif
 #endif
 
-//	lockRAII provides an abstraction for the concept of a mutex; it wraps all  mutex functions in generic methods
-//	Linux implementation not done yet
-//	The template argument 'debugPrint' activates debugging information, but if not active the compiler optimizes
-//	the print statements out
+//  lockRAII provides an abstraction for the concept of a mutex; it wraps all  mutex functions in generic methods
+//  Linux implementation not done yet
+//  The template argument 'debugPrint' activates debugging information, but if not active the compiler optimizes
+//  the print statements out
 
 template< bool debugPrint >
-class lockRAII
-{
-	pthread_mutex_t	mutex;
-	pthread_mutexattr_t mAttr;
-	string	mutexName;
-	stringstream	tstream;
+class lockRAII {
+  pthread_mutex_t mutex;
+  pthread_mutexattr_t mAttr;
+  string  mutexName;
+  stringstream  tstream;
 
-	//	Does not make sense to create a copy of a lock object; private method
-	lockRAII( const lockRAII& rhs ): mutexName( rhs.mutexName )
-	{
-		tstream << std::hex << std::showbase;
-	}
+  //  Does not make sense to create a copy of a lock object; private method
+  lockRAII( const lockRAII& rhs ): mutexName( rhs.mutexName ) {
+    tstream << std::hex << std::showbase;
+  }
 
-	public:
-		lockRAII( )
-		{
-			tstream << std::hex << std::showbase;
-			pthread_mutexattr_init( &mAttr );
-			pthread_mutexattr_settype( &mAttr, PTHREAD_MUTEX_RECURSIVE );
-			pthread_mutex_init( &mutex, &mAttr );
-		}
+ public:
+  lockRAII( ) {
+    tstream << std::hex << std::showbase;
+    pthread_mutexattr_init( &mAttr );
+    pthread_mutexattr_settype( &mAttr, PTHREAD_MUTEX_RECURSIVE );
+    pthread_mutex_init( &mutex, &mAttr );
+  }
 
-		lockRAII( const string& name ): mutexName( name )
-		{
-			tstream << std::hex << std::showbase;
-			pthread_mutexattr_init( &mAttr );
-			pthread_mutexattr_settype( &mAttr, PTHREAD_MUTEX_RECURSIVE );
-			pthread_mutex_init( &mutex, &mAttr );
-		}
+  lockRAII( const string& name ): mutexName( name ) {
+    tstream << std::hex << std::showbase;
+    pthread_mutexattr_init( &mAttr );
+    pthread_mutexattr_settype( &mAttr, PTHREAD_MUTEX_RECURSIVE );
+    pthread_mutex_init( &mutex, &mAttr );
+  }
 
-		~lockRAII( )
-		{
-			pthread_mutex_destroy( &mutex );
-			pthread_mutexattr_destroy( &mAttr );
-		}
+  ~lockRAII( ) {
+    pthread_mutex_destroy( &mutex );
+    pthread_mutexattr_destroy( &mAttr );
+  }
 
-		string& getName( )
-		{
-			return mutexName;
-		}
+  string& getName( ) {
+    return mutexName;
+  }
 
-		void setName( const string& name )
-		{
-			mutexName	= name;
-		}
+  void setName( const string& name ) {
+    mutexName = name;
+  }
 
-		void enter( )
-		{
-			if( debugPrint )
-			{
-				tstream.str( _T( "" ) );
-				tstream << _T( "Attempting pthread_mutex_t( " ) << mutexName << _T( " )" ) << std::endl;
-				std::cout << tstream.str( );
-			}
+  void enter( ) {
+    if( debugPrint ) {
+      tstream.str( _T( "" ) );
+      tstream << _T( "Attempting pthread_mutex_t( " ) << mutexName << _T( " )" ) << std::endl;
+      std::cout << tstream.str( );
+    }
 
-			::pthread_mutex_lock( &mutex );
+    ::pthread_mutex_lock( &mutex );
 
-			if( debugPrint )
-			{
-				tstream.str( _T( "" ) );
-				tstream << _T( "Acquired pthread_mutex_t( " ) << mutexName << _T( " )" ) << std::endl;
-				std::cout << tstream.str( );
-			}
-		}
+    if( debugPrint ) {
+      tstream.str( _T( "" ) );
+      tstream << _T( "Acquired pthread_mutex_t( " ) << mutexName << _T( " )" ) << std::endl;
+      std::cout << tstream.str( );
+    }
+  }
 
-		void leave( )
-		{
-			if( debugPrint )
-			{
-				tstream.str( _T( "" ) );
-				tstream << _T( "Releasing pthread_mutex_t( " ) << mutexName << _T( " )" ) << std::endl;
-				std::cout << tstream.str( );
-			}
+  void leave( ) {
+    if( debugPrint ) {
+      tstream.str( _T( "" ) );
+      tstream << _T( "Releasing pthread_mutex_t( " ) << mutexName << _T( " )" ) << std::endl;
+      std::cout << tstream.str( );
+    }
 
-			::pthread_mutex_unlock( &mutex );
-		}
+    ::pthread_mutex_unlock( &mutex );
+  }
 };
 
-//	Class used to make sure that we enter and leave critical sections in pairs
-//	The template logic logs our CRITICAL_SECTION actions; if the template parameter is false,
-//	the branch is constant and the compiler will optimize the branch out
+//  Class used to make sure that we enter and leave critical sections in pairs
+//  The template logic logs our CRITICAL_SECTION actions; if the template parameter is false,
+//  the branch is constant and the compiler will optimize the branch out
 template< bool debugPrint >
-class scopedLock
-{
-	lockRAII< debugPrint >* sLock;
-	string sLockName;
-	stringstream tstream;
+class scopedLock {
+  lockRAII< debugPrint >* sLock;
+  string sLockName;
+  stringstream tstream;
 
-	public:
-		scopedLock( lockRAII< debugPrint >& lock, const string& name ): sLock( &lock ), sLockName( name )
-		{
-			if( debugPrint )
-			{
-				tstream.str( _T( "" ) );
-				tstream << _T( "Entering scopedLock( " ) << sLockName << _T( " )" ) << std::endl << std::endl;
-				std::cout << tstream.str( );
-			}
+ public:
+  scopedLock( lockRAII< debugPrint >& lock, const string& name ): sLock( &lock ), sLockName( name ) {
+    if( debugPrint ) {
+      tstream.str( _T( "" ) );
+      tstream << _T( "Entering scopedLock( " ) << sLockName << _T( " )" ) << std::endl << std::endl;
+      std::cout << tstream.str( );
+    }
 
-			sLock->enter( );
-		}
+    sLock->enter( );
+  }
 
-		~scopedLock( )
-		{
-			sLock->leave( );
+  ~scopedLock( ) {
+    sLock->leave( );
 
-			if( debugPrint )
-			{
-				tstream.str( _T( "" ) );
-				tstream << _T( "Left scopedLock( " ) << sLockName << _T( " )" ) << std::endl << std::endl;
-				std::cout << tstream.str( );
-			}
-		}
+    if( debugPrint ) {
+      tstream.str( _T( "" ) );
+      tstream << _T( "Left scopedLock( " ) << sLockName << _T( " )" ) << std::endl << std::endl;
+      std::cout << tstream.str( );
+    }
+  }
 };
-//	Convenience macro to enable/disable debugging print statements
+//  Convenience macro to enable/disable debugging print statements
 #define lockRAII lockRAII< false >
 #define scopedLock scopedLock< false >
