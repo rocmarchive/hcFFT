@@ -14,12 +14,7 @@ PROJECT (${PROJECT_NAME})
 MESSAGE(STATUS "PROJECT NAME    : ${PROJECT_NAME}")
 
 #Setting a variable for source files
-SET (SRCS
-    stockham.cpp 
-    transform.cpp
-    copy.cpp
-    transpose.cpp
-    )
+FILE(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 
 IF(WIN32)
   #include the additional libraries 
@@ -52,7 +47,7 @@ ELSE(WIN32)
   
   string(STRIP "${CLAMP_CXXFLAGS}" CLAMP_CXXFLAGS)
   string(STRIP "${CLAMP_LDFLAGS}" CLAMP_LDFLAGS)
-  set (CLAMP_CXXFLAGS "${CLAMP_CXXFLAGS}")
+  set (CLAMP_CXXFLAGS "${CLAMP_CXXFLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/../include")
   set (CLAMP_LDFLAGS "${CLAMP_LDFLAGS}")
 
   FOREACH(src_file ${SRCS})
@@ -62,6 +57,7 @@ ELSE(WIN32)
   ADD_EXECUTABLE("${PROJECT_NAME}.so" ${SRCS})
   SET_PROPERTY(TARGET "${PROJECT_NAME}.so" APPEND_STRING PROPERTY LINK_FLAGS " ${CLAMP_LDFLAGS}")
   INSTALL(TARGETS "${PROJECT_NAME}.so" DESTINATION "/usr/lib/")
-  INSTALL(FILES hcfftlib.h lock.h stockham.h  DESTINATION include)
+  FILE(GLOB HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h)
+  INSTALL(FILES ${HEADERS} DESTINATION include)
 
 ENDIF(WIN32)
