@@ -1,30 +1,47 @@
 # This script is invoked to install the hcfft library and test sources
 # Preliminary version
 
+# CHECK FOR COMPILER PATH
+if [ ! -z $MCWHCCBUILD] 
+then
+  if [ -x $MCWHCCBUILD/compiler/bin/clang++ ] 
+  then
+    cmake_c_compiler=$MCWHCCBUILD/compiler/bin/clang
+    cmake_cxx_compiler=$MCWHCCBUILD/compiler/bin/clang++
+  fi
+
+elif [ -x "/opt/hcc/bin/clang++" ] 
+then
+  cmake_c_compiler=/opt/hcc/bin/clang
+  cmake_cxx_compiler=/opt/hcc/bin/clang++
+else
+  echo "Clang compiler not found"
+  exit 1
+fi
+
 # CURRENT_WORK_DIRECTORY
 current_work_dir=$PWD
 
-#Move to library build
-cd $current_work_dir/lib/build/linux
+# MAKE BUILD DIR
+mkdir $current_work_dir/build
+mkdir $current_work_dir/build/lib
+mkdir $current_work_dir/build/test
 
-#Invoke build script
-sh build.sh
+# SET BUILD DIR
+build_dir=$current_work_dir/build
 
-# Install library
+#change to library build
+chdir $build_dir/lib
+
+# Cmake and make libhcfft: Install hcFFT
+cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
 sudo make install
 
-#Move to test build
-cd $current_work_dir/test/build/linux
+# Build Tests
+cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/ && make
 
-#Invoke build script
-sh build.sh
-
-# build test src
-make
-
-#Run a prelim test
-sh runme_ffttest.sh 2 12
-
+# Simple test to confirm installation
+$build_dir/test/src/fft 2 12
 
 # TODO: ADD More options to perform benchmark and testing
 

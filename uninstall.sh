@@ -4,20 +4,11 @@
 # CURRENT_WORK_DIRECTORY
 current_work_dir=$PWD
 
-#Move to library build
-cd $current_work_dir/lib/build/linux
+# Remove system wide installed lib and headers
+sudo xargs rm < $current_work_dir/build/lib/install_manifest.txt
 
-#Invoke clean script
-sh clean.sh
-
-#Move to test build
-cd $current_work_dir/test/build/linux
-
-#Invoke clean script
-sh clean.sh
-
-
-
+# Remove build
+sudo rm -rf $current_work_dir/build
 
 # TODO: ADD More options
 
