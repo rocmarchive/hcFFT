@@ -29,3 +29,4 @@ set_target_properties(libgtest PROPERTIES
 include_directories("${source_dir}/include")
 
 add_subdirectory(src)
+add_subdirectory(unit)
