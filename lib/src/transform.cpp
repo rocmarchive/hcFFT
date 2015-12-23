@@ -1,5 +1,6 @@
 #include <dlfcn.h>
 #include "hcfftlib.h"
+#include <unistd.h>
 
 //  Static initialization of the repo lock variable
 lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
@@ -155,28 +156,30 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
 
   if(!exist) {
     WriteKernel( plHandle, gen, fftParams, filename, writeFlag);
-    char cwd[1024];
 
-    if (getcwd(cwd, sizeof(cwd)) == NULL) {
-      std::cout << "getcwd() error" << std::endl;
+    // Check if the default compiler path exists
+    std::string execCmd = NULL; 
+    char fname[256] = "/opt/hcc/bin/clang++";
+    if( access( fname, F_OK ) != -1 ) {
+      // compiler exists
+      // install_mode = true;
+      string Path = "/opt/hcc/bin/";
+      execCmd = Path + "/clang++ `" + Path + "/clamp-config --install --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
+    } 
+    else if ( access ( getenv ("MCWHCCBUILD"), F_OK ) != -1) {
+      // TODO: This path shall be removed. User shall build from default path
+      // compiler doesn't exist in default path
+      // check if user has specified compiler build path
+      // build_mode = true;
+      char* compilerPath = getenv ("MCWHCCBUILD");
+      std::string Path(compilerPath);
+      std::string execCmd = Path + "/compiler/bin/clang++ `" + Path + "/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
     }
-
-    std::string pwd(cwd);
-    string fftLibPath = pwd + "/../../../../Build/linux/";
-#ifdef DEBIAN
-    string Path = "/opt/hcc/bin/";
-    std::string execCmd = Path + "/clang++ `" + Path + "/clamp-config --build --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
-#else
-    char* compilerPath = (char*)calloc(100, 1);
-    compilerPath = getenv ("MCWHCCBUILD");
-
-    if(!compilerPath) {
-      std::cout << "No Compiler Path Variable found. Please export MCWHCCBUILD " << std::endl;
+    else {
+      // No compiler found
+      std::cout << "HCC compiler not found" << std::endl;
+      exit(1);
     }
-
-    std::string Path(compilerPath);
-    std::string execCmd = Path + "/compiler/bin/clang++ `" + Path + "/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
-#endif
     system(execCmd.c_str());
   }
 
