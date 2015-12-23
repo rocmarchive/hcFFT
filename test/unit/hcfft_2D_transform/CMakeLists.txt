@@ -12,12 +12,12 @@ file(GLOB SRCS *.cpp)
 if(EXISTS ${MCWHCCBUILD})
   execute_process(COMMAND ${CLAMP_CONFIG} --build --cxxflags
                          OUTPUT_VARIABLE CLAMP_CXXFLAGS)
-  execute_process(COMMAND ${CLAMP_CONFIG} --build --ldflags 
+  execute_process(COMMAND ${CLAMP_CONFIG} --build --ldflags --gtest 
                             OUTPUT_VARIABLE CLAMP_LDFLAGS)
 else(EXISTS ${MCWHCCBUILD})
   execute_process(COMMAND ${CLAMP_CONFIG} --cxxflags
                             OUTPUT_VARIABLE CLAMP_CXXFLAGS)
-  execute_process(COMMAND ${CLAMP_CONFIG} --ldflags
+  execute_process(COMMAND ${CLAMP_CONFIG} --ldflags --gtest
                             OUTPUT_VARIABLE CLAMP_LDFLAGS)
 endif(EXISTS ${MCWHCCBUILD})
 
@@ -27,11 +27,11 @@ string(STRIP "${CLAMP_LDFLAGS}" CLAMP_LDFLAGS)
 set (CLAMP_CXXFLAGS "${CLAMP_CXXFLAGS}")
 set (CLAMP_LDFLAGS "${CLAMP_LDFLAGS}")
 
-SET_PROPERTY(SOURCE ${SRCS} APPEND_STRING PROPERTY COMPILE_FLAGS " ${CLAMP_CXXFLAGS}")
+SET_PROPERTY(SOURCE ${SRCS} APPEND_STRING PROPERTY COMPILE_FLAGS " ${CLAMP_CXXFLAGS} -DGTEST_HAS_TR1_TUPLE=0 ")
 ADD_EXECUTABLE(test_2D_transform ${SRCS})
-SET_PROPERTY(TARGET test_2D_transform APPEND_STRING PROPERTY LINK_FLAGS " ${CLAMP_LDFLAGS}")
+SET_PROPERTY(TARGET test_2D_transform APPEND_STRING PROPERTY LINK_FLAGS " ${CLAMP_LDFLAGS} ")
 
-TARGET_LINK_LIBRARIES(test_2D_transform hcfft libgtest)
+TARGET_LINK_LIBRARIES(test_2D_transform hcfft)
 
 add_test(NAME test2DTransform COMMAND test_2D_transform)
 
