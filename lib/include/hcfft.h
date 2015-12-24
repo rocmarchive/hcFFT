@@ -127,4 +127,22 @@ hcfftResult hcfftPlan2d(hcfftHandle *plan, int nx, int ny, hcfftType type);
 
 hcfftResult hcfftPlan3d(hcfftHandle *plan, int nx, int ny, int nz, hcfftType type);
 
+
+/* Function hcfftDestroy()
+   Description: 
+      Frees all GPU resources associated with a hcFFT plan and destroys the internal plan data structure. 
+   This function should be called once a plan is no longer needed, to avoid wasting GPU memory.
+
+   Input:
+   -----------------------------------------------------------------------------------------------------
+   plan 	The hcfftHandle object of the plan to be destroyed.
+
+   Return Values:
+   -----------------------------------------------------------------------------------------------------
+   HCFFT_SUCCESS 	hcFFT successfully destroyed the FFT plan.
+   HCFFT_INVALID_PLAN 	The plan parameter is not a valid handle.
+*/
+
+hcfftResult hcfftDestroy(hcfftHandle plan);
+
 #endif
