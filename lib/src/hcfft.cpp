@@ -69,7 +69,7 @@ hcfftResult hcfftPlan1d(hcfftHandle* plan, int nx, hcfftType type) {
   // length array to bookkeep dimension info
   size_t* length = (size_t*)malloc(sizeof(size_t) * dimension);
 
-  if (nx < 0) {
+  if ( nx < 0 ) {
      // invalid size
      return HCFFT_INVALID_SIZE;
   } else {
@@ -80,8 +80,26 @@ hcfftResult hcfftPlan1d(hcfftHandle* plan, int nx, hcfftType type) {
 
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
-  } else if ( status == HCFFT_SUCCEEDS ) {
-    return HCFFT_SUCCESS;
+  }
+  
+  // Default options
+  // set certain properties of plan with default values
+  // Set Precision
+  status = planObject.hcfftSetPlanPrecision(*plan, precision);
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED; 
+  }
+
+  // Set Transpose type
+  status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED; 
+  }
+  
+  // Set Result location data layout
+  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED; 
   }
 
   return HCFFT_SUCCESS;
@@ -168,8 +186,26 @@ hcfftResult hcfftPlan2d(hcfftHandle *plan, int nx, int ny, hcfftType type) {
 
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
-  } else if ( status == HCFFT_SUCCEEDS ) {
-    return HCFFT_SUCCESS;
+  }
+
+  // Default options
+  // set certain properties of plan with default values
+  // Set Precision
+  status = planObject.hcfftSetPlanPrecision(*plan, precision);
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED; 
+  }
+
+  // Set Transpose type
+  status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED; 
+  }
+  
+  // Set Result location data layout
+  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED; 
   }
 
   return HCFFT_SUCCESS;
@@ -258,8 +294,26 @@ hcfftResult hcfftPlan3d(hcfftHandle *plan, int nx, int ny, int nz, hcfftType typ
 
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
-  } else if ( status == HCFFT_SUCCEEDS ) {
-    return HCFFT_SUCCESS;
+  } 
+
+  // Default options
+  // set certain properties of plan with default values
+  // Set Precision
+  status = planObject.hcfftSetPlanPrecision(*plan, precision);
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED; 
+  }
+
+  // Set Transpose type
+  status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED; 
+  }
+  
+  // Set Result location data layout
+  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED; 
   }
 
   return HCFFT_SUCCESS;
