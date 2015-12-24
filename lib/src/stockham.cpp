@@ -4234,7 +4234,7 @@ hcfftStatus FFTPlan::GetMax1DLengthPvt<Stockham> (size_t* longest) const {
                   (1 * LdsperElement);
   result = FloorPo2 (result);
   *longest = result;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 
@@ -4338,7 +4338,7 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & param
 
   params.fft_fwdScale  = this->forwardScale;
   params.fft_backScale = this->backwardScale;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 template<>
@@ -4361,7 +4361,7 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS, 
     count = count * fftParams.blockSIMD;
     globalWS.push_back( static_cast< size_t >( count ) );
     localWS.push_back( fftParams.blockSIMD );
-    return    HCFFT_SUCCESS;
+    return    HCFFT_SUCCEEDS;
   }
 
   count = DivRoundingUp<unsigned long long> (count, fftParams.fft_R);      // count of WorkItems
@@ -4377,7 +4377,7 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS, 
   // 1 dimension work group size
   globalWS.push_back( static_cast< size_t >( count ) );
   localWS.push_back( fftParams.fft_SIMD );
-  return    HCFFT_SUCCESS;
+  return    HCFFT_SUCCEEDS;
 }
 
 template<>
@@ -4407,5 +4407,5 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
 
   fftRepo.setProgramCode( Stockham, plHandle, params, programCode);
   fftRepo.setProgramEntryPoints( Stockham, plHandle, params, "fft_fwd", "fft_back");
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }

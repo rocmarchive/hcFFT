@@ -72,7 +72,7 @@ static hcfftStatus genTwiddleMath( const FFTKernelGenKeyParams& params, std::str
 
   hcKernWrite( transKernel, 9 ) << "tmp.x = T.x;" << std::endl;
   hcKernWrite( transKernel, 9 ) << "tmp.y = T.y;" << std::endl;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 // These strings represent the names that are used as strKernel parameters
@@ -219,7 +219,7 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
       return HCFFT_INVALID;
   }
 
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernelGenKeyParams & params, std::string& strKernel, const tile& lwSize, const size_t reShapeFactor,
@@ -662,7 +662,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
     }
   }
 
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 
@@ -721,7 +721,7 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Transpose> (FFTKernelGenKeyParams & para
   // CL_DEVICE_MAX_WORK_ITEM_SIZES
   params.fft_R = 1; // Dont think i'll use
   params.fft_SIMD = pEnvelope->limit_WorkGroupSize; // Use devices maximum workgroup size
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 // Constants that specify the bounding sizes of the block that each workgroup will transpose
@@ -779,7 +779,7 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Transpose> (std::vector<size_t> & globalWS,
   localWS.clear( );
   localWS.push_back( lwSize.x );
   localWS.push_back( lwSize.y );
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 //  OpenCL does not take unicode strings as input, so this routine returns only ASCII strings
@@ -821,5 +821,5 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Transpose>(const hcfftPlanHandle plHandle
     fftRepo.setProgramEntryPoints( Transpose, plHandle, fftParams, "transpose", "transpose");
   }
 
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }

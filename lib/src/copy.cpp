@@ -510,7 +510,7 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Copy> (FFTKernelGenKeyParams & params) c
   params.fft_outStride[i] = this->oDist;
   params.fft_fwdScale  = this->forwardScale;
   params.fft_backScale = this->backwardScale;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 template<>
@@ -548,7 +548,7 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Copy> (std::vector<size_t> & globalWS, std:
 
   globalWS.push_back( count );
   localWS.push_back( 64 );
-  return    HCFFT_SUCCESS;
+  return    HCFFT_SUCCEEDS;
 }
 
 template<>
@@ -595,5 +595,5 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFT
     fftRepo.setProgramEntryPoints( Copy, plHandle, params, "copy_c2h", "copy_h2c");
   }
 
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }

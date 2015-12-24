@@ -31,19 +31,19 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform ) {
   hcfftStatus status = plan.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir);
   status = plan.hcfftSetPlanPrecision(planhandle, precision);
 
-  if(status != HCFFT_SUCCESS) {
+  if(status != HCFFT_SUCCEEDS) {
     cout << " set plan error " << endl;
   }
 
   status = plan.hcfftSetPlanTransposeResult(planhandle, transposeType);
 
-  if(status != HCFFT_SUCCESS) {
+  if(status != HCFFT_SUCCEEDS) {
     cout << " set hcfftSetPlanTransposeResult error " << endl;
   }
 
   status = plan.hcfftSetResultLocation(planhandle, HCFFT_OUTOFPLACE);
 
-  if(status != HCFFT_SUCCESS) {
+  if(status != HCFFT_SUCCEEDS) {
     cout << " set result error " << endl;
   }
 
@@ -53,13 +53,13 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform ) {
   //---------------------R2C--------------------------------------
   status = plan.hcfftSetLayout(planhandle, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
 
-  if(status != HCFFT_SUCCESS) {
+  if(status != HCFFT_SUCCEEDS) {
     cout << " set layout error " << endl;
   }
 
   status = plan.hcfftBakePlan(planhandle);
 
-  if(status != HCFFT_SUCCESS) {
+  if(status != HCFFT_SUCCEEDS) {
     cout << " bake plan error " << endl;
   }
 
@@ -74,31 +74,31 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform ) {
   status = plan1.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir);
   status = plan1.hcfftSetPlanPrecision(planhandle, precision);
 
-  if(status != HCFFT_SUCCESS) {
+  if(status != HCFFT_SUCCEEDS) {
     cout << " set plan error " << endl;
   }
 
   status = plan1.hcfftSetPlanTransposeResult(planhandle, transposeType);
 
-  if(status != HCFFT_SUCCESS) {
+  if(status != HCFFT_SUCCEEDS) {
     cout << " set hcfftSetPlanTransposeResult error " << endl;
   }
 
   status = plan1.hcfftSetResultLocation(planhandle, HCFFT_OUTOFPLACE);
 
-  if(status != HCFFT_SUCCESS) {
+  if(status != HCFFT_SUCCEEDS) {
     cout << " set result error " << endl;
   }
 
   status = plan1.hcfftSetLayout(planhandle, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
 
-  if(status != HCFFT_SUCCESS) {
+  if(status != HCFFT_SUCCEEDS) {
     cout << " set layout error " << endl;
   }
 
   status = plan1.hcfftBakePlan(planhandle);
 
-  if(status != HCFFT_SUCCESS) {
+  if(status != HCFFT_SUCCEEDS) {
     cout << " bake plan error " << endl;
   }
 

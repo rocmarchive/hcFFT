@@ -1,5 +1,5 @@
-#ifndef _HC_FFT_H_
-#define _HC_FFT_H_
+#ifndef _HC_FFT_LIB_H_
+#define _HC_FFT_LIB_H_
 
 #include <iostream>
 #include <stdio.h>
@@ -67,6 +67,7 @@ typedef enum hcfftLayout_ {
 typedef enum hcfftDirection_ {
   HCFFT_FORWARD = -1,
   HCFFT_BACKWARD = 1,
+  HCFFT_BOTH = 0
 } hcfftDirection;
 
 typedef enum hcfftResLocation_ {
@@ -80,7 +81,7 @@ typedef enum hcfftResTransposed_ {
 } hcfftResTransposed;
 
 typedef enum hcfftStatus_ {
-  HCFFT_SUCCESS = 0,
+  HCFFT_SUCCEEDS = 0,
   HCFFT_INVALID = -1,
   HCFFT_ERROR = -2
 } hcfftStatus;

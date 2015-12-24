@@ -108,7 +108,7 @@ hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators g
 
   fflush(fp);
   fclose(fp);
-  return  HCFFT_SUCCESS;
+  return  HCFFT_SUCCEEDS;
 }
 
 //  Compile the kernels that this plan uses, and store into the plan
@@ -194,7 +194,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
     fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, HCFFT_BACKWARD, entryPoint);
   }
 
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 //  This routine will query the OpenCL context for it's devices
@@ -215,12 +215,12 @@ hcfftStatus FFTPlan::SetEnvelope () {
     envelope.limit_Size[i] = 256;
   }
 
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::GetEnvelope (const FFTEnvelope** ppEnvelope) const {
   *ppEnvelope = &envelope;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus hcfftCreateDefaultPlanInternal (hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length) {
@@ -326,7 +326,7 @@ hcfftStatus hcfftCreateDefaultPlanInternal (hcfftPlanHandle* plHandle, hcfftDim 
   }
 
   fftPlan->plHandle = *plHandle;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 // This external entry-point should not be called from within the library. Use clfftCreateDefaultPlanInternal instead.
@@ -339,7 +339,7 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
     originalLength.push_back(clLengths[i]);
   }
 
-  if(ret == HCFFT_SUCCESS) {
+  if(ret == HCFFT_SUCCEEDS) {
     FFTRepo& fftRepo  = FFTRepo::getInstance( );
     FFTPlan* fftPlan = NULL;
     lockRAII* planLock  = NULL;
@@ -355,7 +355,7 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
 
 hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, Concurrency::array_view<float, 1>* clInputBuffers,
     Concurrency::array_view<float, 1>* clOutputBuffers, Concurrency::array_view<float, 1>* clTmpBuffers) {
-  hcfftStatus status = HCFFT_SUCCESS;
+  hcfftStatus status = HCFFT_SUCCEEDS;
   std::map<int, void*> vectArr;
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   FFTPlan* fftPlan  = NULL;
@@ -467,7 +467,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             out_local = (fftPlan->location == HCFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
             // another column FFT output, OUTOFPLACE + transpose
             hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, fftPlan->intBufferRC, out_local, localIntBuffer );
-            return  HCFFT_SUCCESS;
+            return  HCFFT_SUCCEEDS;
           } else {
             if (fftPlan->transflag) {
               //First transpose
@@ -493,7 +493,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               //Third Transpose
               // tmp->output
               hcfftEnqueueTransform( fftPlan->planTZ, dir, localIntBuffer, mybuffers, NULL );
-              return  HCFFT_SUCCESS;
+              return  HCFFT_SUCCEEDS;
             } else {
               if (fftPlan->large1D == 0) {
                 if(fftPlan->planCopy) {
@@ -598,7 +598,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               }
             }
 
-            return HCFFT_SUCCESS;
+            return HCFFT_SUCCEEDS;
           } else {
             if ( (fftPlan->large2D || fftPlan->length.size() > 2) &&
                  (fftPlan->ipLayout != HCFFT_REAL) && (fftPlan->opLayout != HCFFT_REAL)) {
@@ -1194,7 +1194,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
 
   // if we have already baked the plan and nothing has changed since, we're done here
   if( fftPlan->baked == true ) {
-    return HCFFT_SUCCESS;
+    return HCFFT_SUCCEEDS;
   }
 
   //find product of lengths
@@ -1269,7 +1269,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
 
     CompileKernels(plHandle, fftPlan->gen, fftPlan, plHandleOrigin, exist);
     fftPlan->baked = true;
-    return HCFFT_SUCCESS;
+    return HCFFT_SUCCEEDS;
   }
 
   // Compress the plan by discarding length '1' dimensions
@@ -1641,7 +1641,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             hcfftBakePlan(fftPlan->planTZ);
             fftPlan->transflag = true;
             fftPlan->baked = true;
-            return  HCFFT_SUCCESS;
+            return  HCFFT_SUCCEEDS;
           }
 
           size_t length0 = clLengths[0];
@@ -1829,7 +1829,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             hcfftBakePlan(fftPlan->planTZ);
             fftPlan->transflag = true;
             fftPlan->baked = true;
-            return  HCFFT_SUCCESS;
+            return  HCFFT_SUCCEEDS;
           } else if(fftPlan->ipLayout == HCFFT_REAL) {
             if (fftPlan->tmpBufSizeRC == 0 ) {
               fftPlan->tmpBufSizeRC = length0 * length1 *
@@ -2374,7 +2374,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
           }
 
           fftPlan->baked = true;
-          return  HCFFT_SUCCESS;
+          return  HCFFT_SUCCEEDS;
         }
       }
       break;
@@ -2388,7 +2388,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
 
           CompileKernels(plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, exist);
           fftPlan->baked    = true;
-          return  HCFFT_SUCCESS;
+          return  HCFFT_SUCCEEDS;
         }
 
         size_t length0 = fftPlan->length[0];
@@ -2571,7 +2571,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
 
           if (fftPlan->transposeType == HCFFT_TRANSPOSED) {
             fftPlan->baked = true;
-            return  HCFFT_SUCCESS;
+            return  HCFFT_SUCCEEDS;
           }
 
           //Create transpose plan for second transpose
@@ -2609,7 +2609,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
           transPlanY->transflag       = true;
           hcfftBakePlan(fftPlan->planTY);
           fftPlan->baked = true;
-          return  HCFFT_SUCCESS;
+          return  HCFFT_SUCCEEDS;
         }
 
         //check transposed
@@ -2760,7 +2760,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
 
             if (fftPlan->transposeType == HCFFT_TRANSPOSED) {
               fftPlan->baked = true;
-              return  HCFFT_SUCCESS;
+              return  HCFFT_SUCCEEDS;
             }
 
             // create second transpose plan
@@ -3272,7 +3272,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
         }
 
         fftPlan->baked = true;
-        return  HCFFT_SUCCESS;
+        return  HCFFT_SUCCEEDS;
       }
 
     case HCFFT_3D: {
@@ -3423,7 +3423,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
 
             if (fftPlan->transposeType == HCFFT_TRANSPOSED) {
               fftPlan->baked = true;
-              return  HCFFT_SUCCESS;
+              return  HCFFT_SUCCEEDS;
             }
 
             // create second transpose plan
@@ -3923,7 +3923,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
         }
 
         fftPlan->baked = true;
-        return  HCFFT_SUCCESS;
+        return  HCFFT_SUCCEEDS;
       }
   }
 
@@ -3939,7 +3939,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
   fftPlan->AllocateWriteBuffers ();
   //  Record that we baked the plan
   fftPlan->baked    = true;
-  return  HCFFT_SUCCESS;
+  return  HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftGetPlanPrecision( const  hcfftPlanHandle plHandle,  hcfftPrecision* precision ) {
@@ -3949,7 +3949,7 @@ hcfftStatus FFTPlan::hcfftGetPlanPrecision( const  hcfftPlanHandle plHandle,  hc
   fftRepo.getPlan(plHandle, fftPlan, planLock );
   scopedLock sLock(*planLock, _T( " hcfftGetPlanPrecision" ) );
   *precision = fftPlan->precision;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftSetPlanPrecision(  hcfftPlanHandle plHandle,  hcfftPrecision precision ) {
@@ -3961,7 +3961,7 @@ hcfftStatus FFTPlan::hcfftSetPlanPrecision(  hcfftPlanHandle plHandle,  hcfftPre
   //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked = false;
   fftPlan->precision = precision;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftGetPlanScale( const  hcfftPlanHandle plHandle,  hcfftDirection dir, float* scale ) {
@@ -3977,7 +3977,7 @@ hcfftStatus FFTPlan::hcfftGetPlanScale( const  hcfftPlanHandle plHandle,  hcfftD
     *scale = (float)(fftPlan->backwardScale);
   }
 
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftSetPlanScale(  hcfftPlanHandle plHandle,  hcfftDirection dir, float scale ) {
@@ -3995,7 +3995,7 @@ hcfftStatus FFTPlan::hcfftSetPlanScale(  hcfftPlanHandle plHandle,  hcfftDirecti
     fftPlan->backwardScale = scale;
   }
 
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftGetPlanBatchSize( const  hcfftPlanHandle plHandle, size_t* batchsize ) {
@@ -4005,7 +4005,7 @@ hcfftStatus FFTPlan::hcfftGetPlanBatchSize( const  hcfftPlanHandle plHandle, siz
   fftRepo.getPlan(plHandle, fftPlan, planLock );
   scopedLock sLock(*planLock, _T( " hcfftGetPlanBatchSize" ) );
   *batchsize = fftPlan->batchSize;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftSetPlanBatchSize( hcfftPlanHandle plHandle, size_t batchsize ) {
@@ -4017,7 +4017,7 @@ hcfftStatus FFTPlan::hcfftSetPlanBatchSize( hcfftPlanHandle plHandle, size_t bat
   //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked = false;
   fftPlan->batchSize = batchsize;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftGetPlanDim( const hcfftPlanHandle plHandle,  hcfftDim* dim, int* size ) {
@@ -4049,7 +4049,7 @@ hcfftStatus FFTPlan::hcfftGetPlanDim( const hcfftPlanHandle plHandle,  hcfftDim*
       break;
   }
 
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftSetPlanDim(  hcfftPlanHandle plHandle, const  hcfftDim dim ) {
@@ -4090,7 +4090,7 @@ hcfftStatus FFTPlan::hcfftSetPlanDim(  hcfftPlanHandle plHandle, const  hcfftDim
   //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked = false;
   fftPlan->dimension = dim;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftGetPlanLength( const  hcfftPlanHandle plHandle, const  hcfftDim dim, size_t* clLengths ) {
@@ -4140,7 +4140,7 @@ hcfftStatus FFTPlan::hcfftGetPlanLength( const  hcfftPlanHandle plHandle, const 
       break;
   }
 
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftSetPlanLength(  hcfftPlanHandle plHandle, const  hcfftDim dim, const size_t* clLengths ) {
@@ -4199,7 +4199,7 @@ hcfftStatus FFTPlan::hcfftSetPlanLength(  hcfftPlanHandle plHandle, const  hcfft
   fftPlan->dimension = dim;
   //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked = false;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftGetPlanInStride( const  hcfftPlanHandle plHandle, const  hcfftDim dim, size_t* clStrides ) {
@@ -4249,7 +4249,7 @@ hcfftStatus FFTPlan::hcfftGetPlanInStride( const  hcfftPlanHandle plHandle, cons
       break;
   }
 
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftSetPlanInStride(  hcfftPlanHandle plHandle, const  hcfftDim dim, size_t* clStrides ) {
@@ -4292,7 +4292,7 @@ hcfftStatus FFTPlan::hcfftSetPlanInStride(  hcfftPlanHandle plHandle, const  hcf
 
   //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked = false;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftGetPlanOutStride( const  hcfftPlanHandle plHandle, const  hcfftDim dim, size_t* clStrides ) {
@@ -4342,7 +4342,7 @@ hcfftStatus FFTPlan::hcfftGetPlanOutStride( const  hcfftPlanHandle plHandle, con
       break;
   }
 
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftSetPlanOutStride(  hcfftPlanHandle plHandle, const  hcfftDim dim, size_t* clStrides ) {
@@ -4382,7 +4382,7 @@ hcfftStatus FFTPlan::hcfftSetPlanOutStride(  hcfftPlanHandle plHandle, const  hc
 
   //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked  = false;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftGetPlanDistance( const  hcfftPlanHandle plHandle, size_t* iDist, size_t* oDist ) {
@@ -4393,7 +4393,7 @@ hcfftStatus FFTPlan::hcfftGetPlanDistance( const  hcfftPlanHandle plHandle, size
   scopedLock sLock( *planLock, _T( " hcfftGetPlanDistance" ) );
   *iDist = fftPlan->iDist;
   *oDist = fftPlan->oDist;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftSetPlanDistance(  hcfftPlanHandle plHandle, size_t iDist, size_t oDist ) {
@@ -4406,7 +4406,7 @@ hcfftStatus FFTPlan::hcfftSetPlanDistance(  hcfftPlanHandle plHandle, size_t iDi
   fftPlan->baked = false;
   fftPlan->iDist = iDist;
   fftPlan->oDist = oDist;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftGetLayout( const  hcfftPlanHandle plHandle,  hcfftIpLayout* iLayout,  hcfftOpLayout* oLayout ) {
@@ -4417,7 +4417,7 @@ hcfftStatus FFTPlan::hcfftGetLayout( const  hcfftPlanHandle plHandle,  hcfftIpLa
   scopedLock sLock(*planLock, _T( " hcfftGetLayout" ) );
   *iLayout = fftPlan->ipLayout;
   *oLayout = fftPlan->opLayout;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftSetLayout(  hcfftPlanHandle plHandle,  hcfftIpLayout iLayout,  hcfftOpLayout oLayout ) {
@@ -4487,7 +4487,7 @@ hcfftStatus FFTPlan::hcfftSetLayout(  hcfftPlanHandle plHandle,  hcfftIpLayout i
   fftPlan->baked  = false;
   fftPlan->ipLayout = iLayout;
   fftPlan->opLayout = oLayout;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftGetResultLocation( const  hcfftPlanHandle plHandle,  hcfftResLocation* placeness ) {
@@ -4497,7 +4497,7 @@ hcfftStatus FFTPlan::hcfftGetResultLocation( const  hcfftPlanHandle plHandle,  h
   fftRepo.getPlan( plHandle, fftPlan, planLock );
   scopedLock sLock( *planLock, _T( " hcfftGetResultLocation" ) );
   *placeness  = fftPlan->location;
-  return  HCFFT_SUCCESS;
+  return  HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftSetResultLocation(  hcfftPlanHandle plHandle,  hcfftResLocation placeness ) {
@@ -4509,7 +4509,7 @@ hcfftStatus FFTPlan::hcfftSetResultLocation(  hcfftPlanHandle plHandle,  hcfftRe
   //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked    = false;
   fftPlan->location = placeness;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftGetPlanTransposeResult( const  hcfftPlanHandle plHandle,  hcfftResTransposed* transposed ) {
@@ -4519,7 +4519,7 @@ hcfftStatus FFTPlan::hcfftGetPlanTransposeResult( const  hcfftPlanHandle plHandl
   fftRepo.getPlan( plHandle, fftPlan, planLock );
   scopedLock sLock( *planLock, _T( " hcfftGetResultLocation" ) );
   *transposed = fftPlan->transposeType;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftSetPlanTransposeResult(  hcfftPlanHandle plHandle,  hcfftResTransposed transposed ) {
@@ -4531,7 +4531,7 @@ hcfftStatus FFTPlan::hcfftSetPlanTransposeResult(  hcfftPlanHandle plHandle,  hc
   //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked    = false;
   fftPlan->transposeType  = transposed;
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::GetMax1DLength (size_t* longest ) const {
@@ -4541,12 +4541,12 @@ hcfftStatus FFTPlan::GetMax1DLength (size_t* longest ) const {
 
     case Copy: {
         *longest = 4096;
-        return HCFFT_SUCCESS;
+        return HCFFT_SUCCEEDS;
       }
 
     case Transpose: {
         *longest = 4096;
-        return HCFFT_SUCCESS;
+        return HCFFT_SUCCEEDS;
       }
 
     default:
@@ -4638,11 +4638,11 @@ hcfftStatus FFTPlan::hcfftDestroyPlan( hcfftPlanHandle* plHandle ) {
 
   fftPlan->ReleaseBuffers();
   fftRepo.deletePlan( plHandle );
-  return HCFFT_SUCCESS;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::AllocateWriteBuffers () {
-  hcfftStatus status = HCFFT_SUCCESS;
+  hcfftStatus status = HCFFT_SUCCEEDS;
   assert (NULL == const_buffer);
   assert(4 == sizeof(int));
   //  Construct the constant buffer and call clEnqueueWriteBuffer
@@ -4655,7 +4655,7 @@ hcfftStatus FFTPlan::AllocateWriteBuffers () {
 }
 
 hcfftStatus FFTPlan::ReleaseBuffers () {
-  hcfftStatus result = HCFFT_SUCCESS;
+  hcfftStatus result = HCFFT_SUCCEEDS;
 
   if( NULL != const_buffer ) {
     delete const_buffer;
@@ -4695,7 +4695,7 @@ hcfftStatus FFTRepo::createPlan( hcfftPlanHandle* plHandle, FFTPlan*& fftPlan ) 
   repoPlans[ planCount ] = make_pair( fftPlan, lockPlan );
   //  Assign the user handle the plan count (unique identifier), and bump the count for the next plan
   *plHandle = planCount++;
-  return  HCFFT_SUCCESS;
+  return  HCFFT_SUCCEEDS;
 }
 
 
@@ -4711,7 +4711,7 @@ hcfftStatus FFTRepo::getPlan( hcfftPlanHandle plHandle, FFTPlan*& fftPlan, lockR
   //  If plan is valid, return fill out the output pointers
   fftPlan   = iter->second.first;
   planLock  = iter->second.second;
-  return  HCFFT_SUCCESS;
+  return  HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTRepo::deletePlan( hcfftPlanHandle* plHandle ) {
@@ -4735,7 +4735,7 @@ hcfftStatus FFTRepo::deletePlan( hcfftPlanHandle* plHandle ) {
   repoPlans.erase( iter );
   //  Clear the client's handle to signify that the plan is gone
   *plHandle = 0;
-  return  HCFFT_SUCCESS;
+  return  HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTRepo::setProgramEntryPoints( const hcfftGenerators gen, const hcfftPlanHandle& handle,
@@ -4746,7 +4746,7 @@ hcfftStatus FFTRepo::setProgramEntryPoints( const hcfftGenerators gen, const hcf
   fftRepoValue& fft = mapFFTs[ key ];
   fft.EntryPoint_fwd  = kernel_fwd;
   fft.EntryPoint_back = kernel_back;
-  return  HCFFT_SUCCESS;
+  return  HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTRepo::getProgramEntryPoint( const hcfftGenerators gen, const hcfftPlanHandle& handle,
@@ -4778,7 +4778,7 @@ hcfftStatus FFTRepo::getProgramEntryPoint( const hcfftGenerators gen, const hcff
     return  HCFFT_ERROR;
   }
 
-  return  HCFFT_SUCCESS;
+  return  HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTRepo::setProgramCode( const hcfftGenerators gen, const hcfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, const std::string& kernel) {
@@ -4794,7 +4794,7 @@ hcfftStatus FFTRepo::setProgramCode( const hcfftGenerators gen, const hcfftPlanH
      << std::endl << std::endl;
   std::string prefixCopyright = ss.str();
   mapFFTs[ key ].ProgramString = prefixCopyright + kernel;
-  return  HCFFT_SUCCESS;
+  return  HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTRepo::getProgramCode( const hcfftGenerators gen, const hcfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, std::string& kernel) {
@@ -4807,7 +4807,7 @@ hcfftStatus FFTRepo::getProgramCode( const hcfftGenerators gen, const hcfftPlanH
   }
 
   kernel = pos->second.ProgramString;
-  return  HCFFT_SUCCESS;
+  return  HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTRepo::releaseResources( ) {
@@ -4832,6 +4832,6 @@ hcfftStatus FFTRepo::releaseResources( ) {
   planCount = 1;
   //  Release all strings
   mapFFTs.clear( );
-  return  HCFFT_SUCCESS;
+  return  HCFFT_SUCCEEDS;
 }
 /*------------------------------------------------FFTRepo----------------------------------------------------------------------------------*/
