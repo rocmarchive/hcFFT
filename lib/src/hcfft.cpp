@@ -1,5 +1,8 @@
 #include "hcfft.h"
 
+// Global Static plan object
+FFTPlan planObject;
+
 /******************************************************************************************************************
  * <i>  Function hcfftPlan1d()
    Description:
@@ -28,8 +31,6 @@
  */
 
 hcfftResult hcfftPlan1d(hcfftHandle* plan, int nx, hcfftType type) {
-  // Create plan object
-  FFTPlan planObject;
   // Set dimension as 1D
   hcfftDim dimension = HCFFT_1D; 
   
@@ -133,8 +134,6 @@ hcfftResult hcfftPlan1d(hcfftHandle* plan, int nx, hcfftType type) {
 */
 
 hcfftResult hcfftPlan2d(hcfftHandle *plan, int nx, int ny, hcfftType type) {
-  // Create plan object
-  FFTPlan planObject;
   // Set dimension as 2D
   hcfftDim dimension = HCFFT_2D; 
   
@@ -240,8 +239,6 @@ hcfftResult hcfftPlan2d(hcfftHandle *plan, int nx, int ny, hcfftType type) {
 */
 
 hcfftResult hcfftPlan3d(hcfftHandle *plan, int nx, int ny, int nz, hcfftType type) {
-  // Create plan object
-  FFTPlan planObject;
   // Set dimension as 3D
   hcfftDim dimension = HCFFT_3D; 
   
@@ -335,7 +332,6 @@ hcfftResult hcfftPlan3d(hcfftHandle *plan, int nx, int ny, int nz, hcfftType typ
 */
 
 hcfftResult hcfftDestroy(hcfftHandle plan) {
-  FFTPlan planObject;
   hcfftStatus status = planObject.hcfftDestroyPlan(&plan);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_INVALID_PLAN;
