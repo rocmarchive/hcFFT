@@ -76,8 +76,8 @@ hcfftResult hcfftPlan1d(hcfftHandle* plan, int nx, hcfftType type) {
   } else {
     length[0] = nx;
   }
-
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction);
+  auto planhandle = *plan;
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (&planhandle, dimension, length, direction);
 
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
@@ -86,19 +86,19 @@ hcfftResult hcfftPlan1d(hcfftHandle* plan, int nx, hcfftType type) {
   // Default options
   // set certain properties of plan with default values
   // Set Precision
-  status = planObject.hcfftSetPlanPrecision(*plan, precision);
+  status = planObject.hcfftSetPlanPrecision(planhandle, precision);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED; 
   }
 
   // Set Transpose type
-  status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
+  status = planObject.hcfftSetPlanTransposeResult(planhandle, HCFFT_NOTRANSPOSE);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED; 
   }
   
   // Set Result location data layout
-  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
+  status = planObject.hcfftSetResultLocation(planhandle, HCFFT_OUTOFPLACE); 
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED; 
   }
@@ -332,7 +332,8 @@ hcfftResult hcfftPlan3d(hcfftHandle *plan, int nx, int ny, int nz, hcfftType typ
 */
 
 hcfftResult hcfftDestroy(hcfftHandle plan) {
-  hcfftStatus status = planObject.hcfftDestroyPlan(&plan);
+  auto planHandle = plan;
+  hcfftStatus status = planObject.hcfftDestroyPlan(&planHandle);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_INVALID_PLAN;
   }
