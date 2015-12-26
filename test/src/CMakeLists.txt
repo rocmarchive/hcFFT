@@ -42,9 +42,9 @@ ELSE(WIN32)
     execute_process(COMMAND ${CLAMP_CONFIG} --build --ldflags 
                             OUTPUT_VARIABLE CLAMP_LDFLAGS)
   else(EXISTS ${MCWHCCBUILD})
-    execute_process(COMMAND ${CLAMP_CONFIG} --cxxflags
+    execute_process(COMMAND ${CLAMP_CONFIG} --install  --cxxflags
                             OUTPUT_VARIABLE CLAMP_CXXFLAGS)
-    execute_process(COMMAND ${CLAMP_CONFIG} --ldflags
+    execute_process(COMMAND ${CLAMP_CONFIG} --install --ldflags
                             OUTPUT_VARIABLE CLAMP_LDFLAGS)
   endif(EXISTS ${MCWHCCBUILD})
 
