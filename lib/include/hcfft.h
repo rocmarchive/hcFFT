@@ -38,6 +38,11 @@ typedef enum hcfftResult_t {
   HCFFT_NO_WORKSPACE   = 13  //  No workspace has been provided prior to plan execution
 } hcfftResult;
 
+/* Function hcfftCreate()
+Creates only an opaque handle, and allocates small data structures on the host.
+*/
+hcfftResult hcfftCreate(hcfftHandle *&plan);
+
 /*hcFFT Basic Plans*/
 
 /******************************************************************************************************************
