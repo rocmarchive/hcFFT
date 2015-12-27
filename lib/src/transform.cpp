@@ -351,8 +351,8 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
   return ret;
 }
 
-hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, Concurrency::array_view<float, 1>* clInputBuffers,
-    Concurrency::array_view<float, 1>* clOutputBuffers, Concurrency::array_view<float, 1>* clTmpBuffers) {
+hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, Concurrency::array_view<float>* clInputBuffers,
+    Concurrency::array_view<float>* clOutputBuffers, Concurrency::array_view<float>* clTmpBuffers) {
   hcfftStatus status = HCFFT_SUCCESS;
   std::map<int, void*> vectArr;
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
@@ -375,7 +375,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   }
 
   // we do not check the user provided buffer at this release
-  Concurrency::array_view<float, 1>* localIntBuffer = clTmpBuffers;
+  Concurrency::array_view<float>* localIntBuffer = clTmpBuffers;
 
   if( clTmpBuffers == NULL && fftPlan->tmpBufSize > 0 && fftPlan->intBuffer == NULL) {
     // create the intermediate buffers
@@ -383,7 +383,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
     // For outofplace operation, we have the choice not to create intermediate buffer
     // input ->(col+Transpose) output ->(col) output
     float* init = (float*)calloc(fftPlan->tmpBufSize / sizeof(float), sizeof(float));
-    Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSize / sizeof(float)), init);
+    Concurrency::array<float> arr = Concurrency::array<float>(Concurrency::extent<1>(fftPlan->tmpBufSize / sizeof(float)), init);
     fftPlan->intBuffer = new Concurrency::array_view<float>(arr);
     free(init);
   }
@@ -394,14 +394,14 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
   if( fftPlan->intBufferRC == NULL && fftPlan->tmpBufSizeRC > 0 ) {
     float* init = (float*)calloc(fftPlan->tmpBufSizeRC / sizeof(float), sizeof(float));
-    Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSizeRC / sizeof(float)), init);
+    Concurrency::array<float> arr = Concurrency::array<float>(Concurrency::extent<1>(fftPlan->tmpBufSizeRC / sizeof(float)), init);
     fftPlan->intBufferRC = new Concurrency::array_view<float>(arr);
     free(init);
   }
 
   if( fftPlan->intBufferC2R == NULL && fftPlan->tmpBufSizeC2R > 0 ) {
     float* init = (float*)calloc(fftPlan->tmpBufSizeC2R / sizeof(float), sizeof(float));
-    Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(fftPlan->tmpBufSizeC2R / sizeof(float)), init);
+    Concurrency::array<float> arr = Concurrency::array<float>(Concurrency::extent<1>(fftPlan->tmpBufSizeC2R / sizeof(float)), init);
     fftPlan->intBufferC2R = new Concurrency::array_view<float>(arr);
     free(init);
   }
@@ -425,7 +425,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             //First transpose
             // Input->tmp
             hcfftEnqueueTransform( fftPlan->planTX, dir, clInputBuffers, localIntBuffer, NULL);
-            Concurrency::array_view<float, 1>* mybuffers;
+            Concurrency::array_view<float>* mybuffers;
 
             if (fftPlan->location == HCFFT_INPLACE) {
               mybuffers = clInputBuffers;
@@ -451,7 +451,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hcfftEnqueueTransform( fftPlan->planX, HCFFT_FORWARD, clInputBuffers, fftPlan->intBufferRC, localIntBuffer);
             // another column FFT output, INPLACE
             hcfftEnqueueTransform( fftPlan->planY, HCFFT_FORWARD, fftPlan->intBufferRC, fftPlan->intBufferRC, localIntBuffer );
-            Concurrency::array_view<float, 1>* out_local;
+            Concurrency::array_view<float>* out_local;
             out_local = (fftPlan->location == HCFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
             // copy from full complex to hermitian
             hcfftEnqueueTransform( fftPlan->planRCcopy, HCFFT_FORWARD, fftPlan->intBufferRC, out_local, localIntBuffer );
@@ -461,7 +461,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             // First pass
             // column with twiddle first, INPLACE,
             hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, fftPlan->intBufferRC, fftPlan->intBufferRC, localIntBuffer);
-            Concurrency::array_view<float, 1>* out_local;
+            Concurrency::array_view<float>* out_local;
             out_local = (fftPlan->location == HCFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
             // another column FFT output, OUTOFPLACE + transpose
             hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, fftPlan->intBufferRC, out_local, localIntBuffer );
@@ -471,7 +471,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               //First transpose
               // Input->tmp
               hcfftEnqueueTransform( fftPlan->planTX, dir, clInputBuffers, localIntBuffer, NULL );
-              Concurrency::array_view<float, 1>* mybuffers;
+              Concurrency::array_view<float>* mybuffers;
 
               if (fftPlan->location == HCFFT_INPLACE) {
                 mybuffers = clInputBuffers;
@@ -501,7 +501,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
                                          hcfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, NULL, NULL);
                   // FFT INPLACE
                   hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
-                  Concurrency::array_view<float, 1>* mybuffers;
+                  Concurrency::array_view<float>* mybuffers;
 
                   if (fftPlan->location == HCFFT_INPLACE) {
                     mybuffers = clInputBuffers;
@@ -558,7 +558,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             //first time set up transpose kernel for 2D
             //First row
             hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, NULL );
-            Concurrency::array_view<float, 1>* mybuffers;
+            Concurrency::array_view<float>* mybuffers;
 
             if (fftPlan->location == HCFFT_INPLACE) {
               mybuffers = clInputBuffers;
@@ -630,7 +630,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
                   if(fftPlan->planTX) {
                     //First row
                     hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, NULL );
-                    Concurrency::array_view<float, 1>* mybuffers;
+                    Concurrency::array_view<float>* mybuffers;
 
                     if (fftPlan->location == HCFFT_INPLACE) {
                       mybuffers = clInputBuffers;
@@ -659,7 +659,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
                   }
                 } else if(fftPlan->opLayout == HCFFT_REAL) {
                   if(fftPlan->planTY) {
-                    Concurrency::array_view<float, 1>* mybuffers;
+                    Concurrency::array_view<float>* mybuffers;
 
                     if ( (fftPlan->location == HCFFT_INPLACE) ||
                          ((fftPlan->location == HCFFT_OUTOFPLACE) && (fftPlan->length.size() > 2)) ) {
@@ -682,7 +682,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
                       hcfftEnqueueTransform( fftPlan->planX, dir, mybuffers, clOutputBuffers, NULL );
                     }
                   } else {
-                    Concurrency::array_view<float, 1>* out_local, *int_local, *out_y;
+                    Concurrency::array_view<float>* out_local, *int_local, *out_y;
 
                     if(fftPlan->location == HCFFT_INPLACE) {
                       out_local = NULL;
@@ -4647,7 +4647,7 @@ hcfftStatus FFTPlan::AllocateWriteBuffers () {
   float ConstantBufferParams[HCFFT_CB_SIZE];
   memset (& ConstantBufferParams, 0, sizeof (ConstantBufferParams));
   ConstantBufferParams[1] = std::max<uint> (1, uint(batchSize));
-  Concurrency::array<float, 1> arr = Concurrency::array<float, 1>(Concurrency::extent<1>(HCFFT_CB_SIZE), ConstantBufferParams);
+  Concurrency::array<float> arr = Concurrency::array<float>(Concurrency::extent<1>(HCFFT_CB_SIZE), ConstantBufferParams);
   const_buffer = new Concurrency::array_view<float>(arr);
   return status;
 }

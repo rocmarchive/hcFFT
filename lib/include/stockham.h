@@ -261,11 +261,11 @@ class TwiddleTableLarge {
     // Construct array view from twiddlel array
     ss << "const array_view<";
     ss << RegBaseType<PR>(2);
-    ss << ",1> &";
+    ss << "> &";
     ss << TwTableLargeName();
     ss << " = array_view<";
     ss << RegBaseType<PR>(2);
-    ss << ",1>(";
+    ss << ">(";
     ss << SztToStr(Y * X);
     ss << ", twiddlel);";
     twStr += ss.str();
@@ -278,7 +278,7 @@ class TwiddleTableLarge {
       // Twiddle calc function
       ss << "inline ";
       ss << RegBaseType<PR>(2);
-      ss << "\n" << TwTableLargeFunc() << "(unsigned int u, const array_view<const float_2,1> &";
+      ss << "\n" << TwTableLargeFunc() << "(unsigned int u, const array_view<const float_2> &";
       ss << TwTableLargeName();
       ss << ")\n{\n";
       ss << "\t" "unsigned int j = u & " << unsigned(X - 1) << ";\n";
