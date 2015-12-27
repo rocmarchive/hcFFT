@@ -60,9 +60,9 @@ int main(int argc, char* argv[]) {
     cout << " set result error " << endl;
   }
 
-  Concurrency::array_view<float, 1> inpAr(realsize, input );
-  Concurrency::array_view<float, 1> inpAr1(realsize, inputz );
-  Concurrency::array_view<float, 1> opAr(cmplexsize, output );
+  Concurrency::array_view<float> inpAr(realsize, input );
+  Concurrency::array_view<float> inpAr1(realsize, inputz );
+  Concurrency::array_view<float> opAr(cmplexsize, output );
   /*---------------------R2C--------------------------------------*/
   status = plan.hcfftSetLayout(planhandle, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
 

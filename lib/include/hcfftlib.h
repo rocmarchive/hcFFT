@@ -407,13 +407,13 @@ class FFTPlan {
   size_t  large1D_Xfactor;
 
   size_t tmpBufSize;
-  Concurrency::array_view<float , 1>* intBuffer;
+  Concurrency::array_view<float>* intBuffer;
 
   size_t tmpBufSizeRC;
-  Concurrency::array_view<float , 1>* intBufferRC;
+  Concurrency::array_view<float>* intBufferRC;
 
   size_t  tmpBufSizeC2R;
-  Concurrency::array_view<float , 1>* intBufferC2R;
+  Concurrency::array_view<float>* intBufferC2R;
 
   bool transflag;
   bool transOutHorizontal;
@@ -422,7 +422,7 @@ class FFTPlan {
   bool  large2D;
   size_t  cacheSize;
 
-  Concurrency::array_view<float , 1>* const_buffer;
+  Concurrency::array_view<float>* const_buffer;
 
   // Real-Complex simple flag
   // if this is set we do real to-and-from full complex using simple algorithm
@@ -464,8 +464,8 @@ class FFTPlan {
 
   hcfftStatus hcfftDestroyPlan(hcfftPlanHandle* plHandle);
 
-  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, Concurrency::array_view<float, 1>* inputBuffers,
-                                    Concurrency::array_view<float, 1>* outputBuffers, Concurrency::array_view<float, 1>* tmpBuffer);
+  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, Concurrency::array_view<float>* inputBuffers,
+                                    Concurrency::array_view<float>* outputBuffers, Concurrency::array_view<float>* tmpBuffer);
 
   hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 

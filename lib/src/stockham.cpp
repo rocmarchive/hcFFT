@@ -571,7 +571,7 @@ class Pass {
       passStr += "\n\t";
       passStr += "const array_view<";
       passStr += RegBaseType<PR>(4);
-      passStr += ",1> &buff4g = ";
+      passStr += "> &buff4g = ";
       passStr += bufferRe;
       passStr += ";\n\t"; // Assuming 'outOffset' is 0, so not adding it here
 
@@ -1744,7 +1744,7 @@ class Pass {
         if(inInterleaved) {
           passStr += "const array_view<";
           passStr += regB2Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferInRe;
           passStr += ", ";
           passStr += "unsigned int iOffset,";
@@ -1755,7 +1755,7 @@ class Pass {
         } else if(inReal) {
           passStr += "const array_view< ";
           passStr += regB1Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferInRe;
           passStr += ", ";
           passStr += "unsigned int iOffset,";
@@ -1766,7 +1766,7 @@ class Pass {
         } else {
           passStr += "const array_view<";
           passStr += regB1Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferInRe;
           passStr += ", ";
           passStr += "unsigned int iOffset,";
@@ -1777,7 +1777,7 @@ class Pass {
 
           passStr += "const array_view<";
           passStr += regB1Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferInIm;
           passStr += ", ";
         }
@@ -1796,7 +1796,7 @@ class Pass {
         if(outInterleaved) {
           passStr += "const array_view<";
           passStr += regB2Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferOutRe;
           passStr += ", ";
           passStr += "unsigned int oOffset";
@@ -1808,7 +1808,7 @@ class Pass {
         } else if(outReal) {
           passStr += "const array_view<";
           passStr += regB1Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferOutRe;
           passStr += ", ";
           passStr += "unsigned int oOffset";
@@ -1820,7 +1820,7 @@ class Pass {
         } else {
           passStr += "const array_view< ";
           passStr += regB1Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferOutRe;
           passStr += ", ";
           passStr += "unsigned int oOffset,";
@@ -1831,7 +1831,7 @@ class Pass {
 
           passStr += "const array_view< ";
           passStr += regB1Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferOutIm;
         }
       } else {
@@ -1848,20 +1848,20 @@ class Pass {
         if(inInterleaved) {
           passStr += "const array_view< ";
           passStr += regB2Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferInRe;
           passStr += ", ";
           passStr += "unsigned int iOffset,";
         } else {
           passStr += "const array_view< ";
           passStr += regB1Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferInRe;
           passStr += ", ";
           passStr += "unsigned int iOffset,";
           passStr += "const array_view< ";
           passStr += regB1Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferInIm;
           passStr += ", ";
         }
@@ -1887,20 +1887,20 @@ class Pass {
         if(outInterleaved) {
           passStr += "const array_view< ";
           passStr += regB2Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferOutRe;
           passStr += ", ";
           passStr += " unsigned int oOffset";
         } else {
           passStr += "const array_view<";
           passStr += regB1Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferOutRe;
           passStr += ", ";
           passStr += "unsigned int oOffset,";
           passStr += "const array_view<";
           passStr += regB1Type;
-          passStr += ",1> &";
+          passStr += "> &";
           passStr += bufferOutIm;
         }
       } else {
@@ -1929,14 +1929,14 @@ class Pass {
     if(length > 1) {
       passStr += ", const array_view<const ";
       passStr += regB2Type;
-      passStr += ",1> &";
+      passStr += "> &";
       passStr += TwTableName();
     }
 
     if(fft_3StepTwiddle) {
       passStr += ", const array_view<const ";
       passStr += RegBaseType<PR>(2);
-      passStr += ",1> &";
+      passStr += "> &";
       passStr += TwTableLargeName();
     }
 
@@ -3298,10 +3298,10 @@ class Kernel {
       }
 
       str += "( std::map<int, void*> vectArr )\n\t{\n\t";
-      str += "array_view<float,1> *cbP = (array_view<float,1> *)vectArr[";
+      str += "array_view<float> *cbP = (array_view<float> *)vectArr[";
       str += SztToStr(arg);
       str += "];\n";
-      str += "array_view<float,1> &cb = *cbP;\n";
+      str += "array_view<float> &cb = *cbP;\n";
       arg++;
 
       // Function attributes
@@ -3310,30 +3310,30 @@ class Kernel {
           if(outInterleaved) {
             str += "const array_view<";
             str += r2Type;
-            str += ",1> *gbP = (";
+            str += "> *gbP = (";
             str += "const array_view<";
             str += r2Type;
-            str += ",1> *) vectArr[";
+            str += "> *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += r2Type;
-            str += ",1> &gb = *gbP;";
+            str += "> &gb = *gbP;";
             arg++;
           } else {
             str += "const array_view<";
             str += rType;
-            str += ",1> *gbP = (";
+            str += "> *gbP = (";
             str += "const array_view<";
             str += rType;
-            str += ",1> *) vectArr[";
+            str += "> *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += rType;
-            str += ",1> &gb = *gbP;";
+            str += "> &gb = *gbP;";
             arg++;
           }
         } else {
@@ -3344,42 +3344,42 @@ class Kernel {
           if(inInterleaved) {
             str += "const array_view<";
             str += r2Type;
-            str += ",1> *gbP = (";
+            str += "> *gbP = (";
             str += "const array_view<";
             str += r2Type;
-            str += ",1> *) vectArr[";
+            str += "> *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += r2Type;
-            str += ",1> &gb = *gbP;";
+            str += "> &gb = *gbP;";
             arg++;
           } else {
             str += "const array_view<";
             str += rType;
-            str += ",1> *gbReP = (";
+            str += "> *gbReP = (";
             str += "const array_view<";
             str += rType;
-            str += ",1> *) vectArr[";
+            str += "> *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += rType;
-            str += ",1> &gbRe = *gbReP;";
+            str += "> &gbRe = *gbReP;";
             arg++;
             str += "const array_view<";
             str += rType;
-            str += ",1> *gbImP = (";
+            str += "> *gbImP = (";
             str += "const array_view<";
             str += rType;
-            str += ",1> *) vectArr[";
+            str += "> *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             str += "const array_view<";
             str += rType;
-            str += ",1> &gbIm = *gbImP;";
+            str += "> &gbIm = *gbImP;";
             //Dereferencing the pointer
             arg++;
           }
@@ -3389,200 +3389,200 @@ class Kernel {
           if(inInterleaved) {
             str += "const array_view<";
             str += r2Type;
-            str += " ,1> *gbInP = (";
+            str += " > *gbInP = (";
             str += "const array_view<";
             str += r2Type;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += r2Type;
-            str += " ,1> &gbIn = *gbInP;";
+            str += " > &gbIn = *gbInP;";
             arg++;
           } else if(inReal) {
             str += "const array_view<";
             str += rType;
-            str += " ,1> *gbInP = (";
+            str += " > *gbInP = (";
             str += "const array_view<";
             str += rType;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += rType;
-            str += " ,1> &gbIn = *gbInP;";
+            str += " > &gbIn = *gbInP;";
             arg++;
           } else {
             str += "const array_view<";
             str += rType;
-            str += " ,1> *gbInReP = (";
+            str += " > *gbInReP = (";
             str += "const array_view<";
             str += rType;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += rType;
-            str += " ,1> &gbInRe = *gbInReP;";
+            str += " > &gbInRe = *gbInReP;";
             arg++;
             str += "const array_view<";
             str += rType;
-            str += " ,1> *gbInImP = (";
+            str += " > *gbInImP = (";
             str += "const array_view<";
             str += rType;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += rType;
-            str += " ,1> &gbInIm = *gbInImP;";
+            str += " > &gbInIm = *gbInImP;";
             arg++;
           }
 
           if(outInterleaved) {
             str += "const array_view<";
             str += r2Type;
-            str += " ,1> *gbOutP = (";
+            str += " > *gbOutP = (";
             str += "const array_view<";
             str += r2Type;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += r2Type;
-            str += " ,1> &gbOut = *gbOutP;";
+            str += " > &gbOut = *gbOutP;";
             arg++;
           } else if(outReal) {
             str += "const array_view<";
             str += rType;
-            str += " ,1> *gbOutP = (";
+            str += " > *gbOutP = (";
             str += "const array_view<";
             str += rType;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += rType;
-            str += " ,1> &gbOut = *gbOutP;";
+            str += " > &gbOut = *gbOutP;";
             arg++;
           } else {
             str += "const array_view<";
             str += rType;
-            str += " ,1> *gbOutReP = (";
+            str += " > *gbOutReP = (";
             str += "const array_view<";
             str += rType;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += rType;
-            str += " ,1> &gbOutRe = *gbOutReP;";
+            str += " > &gbOutRe = *gbOutReP;";
             arg++;
             str += "const array_view<";
             str += rType;
-            str += " ,1> *gbOutImP = (";
+            str += " > *gbOutImP = (";
             str += "const array_view<";
             str += rType;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += rType;
-            str += " ,1> &gbOutIm = *gbOutImP;";
+            str += " > &gbOutIm = *gbOutImP;";
             arg++;
           }
         } else {
           if(inInterleaved) {
             str += "const array_view<";
             str += r2Type;
-            str += " ,1> *gbInP = (";
+            str += " > *gbInP = (";
             str += "const array_view<";
             str += r2Type;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += r2Type;
-            str += " ,1> &gbIn = *gbInP;";
+            str += " > &gbIn = *gbInP;";
             arg++;
           } else {
             str += "const array_view<";
             str += rType;
-            str += " ,1> *gbInReP = (";
+            str += " > *gbInReP = (";
             str += "const array_view<";
             str += rType;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += rType;
-            str += " ,1> &gbInRe = *gbInReP;";
+            str += " > &gbInRe = *gbInReP;";
             arg++;
             str += "const array_view<";
             str += rType;
-            str += " ,1> *gbInImP = (";
+            str += " > *gbInImP = (";
             str += "const array_view<";
             str += rType;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += rType;
-            str += " ,1> &gbInIm = *gbInImP;";
+            str += " > &gbInIm = *gbInImP;";
             arg++;
           }
 
           if(outInterleaved) {
             str += "const array_view<";
             str += r2Type;
-            str += " ,1> *gbOutP = (";
+            str += " > *gbOutP = (";
             str += "const array_view<";
             str += r2Type;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += r2Type;
-            str += " ,1> &gbOut = *gbOutP;";
+            str += " > &gbOut = *gbOutP;";
             arg++;
           } else {
             str += "const array_view<";
             str += rType;
-            str += " ,1> *gbOutReP = (";
+            str += " > *gbOutReP = (";
             str += "const array_view<";
             str += rType;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += rType;
-            str += " ,1> &gbOutRe = *gbOutReP;";
+            str += " > &gbOutRe = *gbOutReP;";
             arg++;
             str += "const array_view<";
             str += rType;
-            str += " ,1> *gbOutImP = (";
+            str += " > *gbOutImP = (";
             str += "const array_view<";
             str += rType;
-            str += " ,1> *) vectArr[";
+            str += " > *) vectArr[";
             str += SztToStr(arg);
             str += "];\n";
             //Dereferencing the pointer
             str += "const array_view<";
             str += rType;
-            str += " ,1> &gbOutIm = *gbOutImP;";
+            str += " > &gbOutIm = *gbOutImP;";
             arg++;
           }
         }
@@ -3602,11 +3602,11 @@ class Kernel {
         // Construct array view from twiddle array
         str += "const array_view<";
         str += twType;
-        str += ",1> &";
+        str += "> &";
         str += TwTableName();
         str += " = array_view<";
         str += twType;
-        str += ",1>(";
+        str += ">(";
         str += SztToStr(length - 1);
         str += ", twiddlev);";
       }
