@@ -16,7 +16,9 @@ cd $current_work_dir/test/build/linux
 #Invoke clean script
 sh clean.sh
 
-
+#Remove cached kernel and binary objects
+sudo rm -f /tmp/*.bin
+sudo rm -f /tmp/libkernel*.so
 
 
 # TODO: ADD More options
