@@ -3,6 +3,11 @@
 
 #include "hcfftlib.h"
 
+typedef float hcfftReal;
+typedef float2 hcfftComplex;
+typedef double hcfftDoubleReal;
+typedef double2 hcfftDoubleComplex;
+
 /* hcfft API Specification */
 
 /* Reference: http://docs.nvidia.com/cuda/hcfft/index.html#hcfft-api-reference */
@@ -149,5 +154,107 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
 */
 
 hcfftResult hcfftDestroy(hcfftHandle plan);
+
+/* hcFFT Execution
+
+  Functions hcfftExecC2C() and hcfftExecZ2Z()
+
+  Description:
+       hcfftExecC2C() (hcfftExecZ2Z()) executes a single-precision (double-precision) complex-to-complex transform 
+  plan in the transform direction as specified by direction parameter. hcFFT uses the GPU memory pointed to by the 
+  idata parameter as input data. This function stores the Fourier coefficients in the odata array. 
+  If idata and odata are the same, this method does an in-place transform.
+
+  Input:
+  ----------------------------------------------------------------------------------------------------------
+  plan 	hcfftHandle returned by hcfftCreate
+  idata 	Pointer to the complex input data (in GPU memory) to transform
+  odata 	Pointer to the complex output data (in GPU memory)
+  direction 	The transform direction: HCFFT_FORWARD or HCFFT_INVERSE
+
+  Output:
+  -----------------------------------------------------------------------------------------------------------
+  odata 	Contains the complex Fourier coefficients
+
+  Return Values:
+  ------------------------------------------------------------------------------------------------------------ 
+  HCFFT_SUCCESS 	hcFFT successfully executed the FFT plan.
+  HCFFT_INVALID_PLAN 	The plan parameter is not a valid handle.
+  HCFFT_INVALID_VALUE 	At least one of the parameters idata, odata, and direction is not valid.
+  HCFFT_INTERNAL_ERROR 	An internal driver error was detected.
+  HCFFT_EXEC_FAILED 	hcFFT failed to execute the transform on the GPU.
+  HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize. */
+
+
+hcfftResult hcfftExecC2C(hcfftHandle plan, Concurrency::array_view<hcfftComplex> *idata, Concurrency::array_view<hcfftComplex> *odata, int direction);
+
+hcfftResult hcfftExecZ2Z(hcfftHandle plan, Concurrency::array_view<hcfftDoubleComplex> *idata, Concurrency::array_view<hcfftDoubleComplex> *odata, int direction);
+
+/*
+  Functions hcfftExecR2C() and hcfftExecD2Z()
+
+  Description:
+       hcfftExecR2C() (hcfftExecD2Z()) executes a single-precision (double-precision) real-to-complex, implicitly forward, 
+  hcFFT transform plan. hcFFT uses as input data the GPU memory pointed to by the idata parameter. This function stores 
+  the nonredundant Fourier coefficients in the odata array. Pointers to idata and odata are both required to be aligned 
+  to hcfftComplex data type in single-precision transforms and hcfftDoubleComplex data type in double-precision transforms. 
+  If idata and odata are the same, this method does an in-place transform. Note the data layout differences between in-place 
+  and out-of-place transforms as described in Parameter hcfftType.
+
+  Input:
+  -----------------------------------------------------------------------------------------------------------------------
+  plan 	hcfftHandle returned by hcfftCreate
+  idata 	Pointer to the real input data (in GPU memory) to transform
+  odata 	Pointer to the complex output data (in GPU memory)
+
+  Output:
+  -----------------------------------------------------------------------------------------------------------------------
+  odata 	Contains the complex Fourier coefficients
+
+  Return Values:
+  ------------------------------------------------------------------------------------------------------------------------
+  HCFFT_SUCCESS 	hcFFT successfully executed the FFT plan.
+  HCFFT_INVALID_PLAN 	The plan parameter is not a valid handle.
+  HCFFT_INVALID_VALUE 	At least one of the parameters idata and odata is not valid.
+  HCFFT_INTERNAL_ERROR 	An internal driver error was detected.
+  HCFFT_EXEC_FAILED 	hcFFT failed to execute the transform on the GPU.
+  HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize.
+*/  
+
+hcfftResult hcfftExecR2C(hcfftHandle plan, Concurrency::array_view<hcfftReal> *idata, Concurrency::array_view<hcfftComplex> *odata);
+hcfftResult hcfftExecD2Z(hcfftHandle plan, Concurrency::array_view<hcfftDoubleReal> *idata, Concurrency::array_view<hcfftDoubleComplex> *odata);
+
+/* Functions hcfftExecC2R() and hcfftExecZ2D()
+
+  Description:
+     hcfftExecC2R() (hcfftExecZ2D()) executes a single-precision (double-precision) complex-to-real, 
+  implicitly inverse, hcFFT transform plan. hcFFT uses as input data the GPU memory pointed to by the 
+  idata parameter. The input array holds only the nonredundant complex Fourier coefficients. This function 
+  stores the real output values in the odata array. and pointers are both required to be aligned to hcfftComplex 
+  data type in single-precision transforms and hcfftDoubleComplex type in double-precision transforms. If idata 
+  and odata are the same, this method does an in-place transform.
+
+  Input:
+  ------------------------------------------------------------------------------------------------------------------
+  plan 	hcfftHandle returned by hcfftCreate
+  idata 	Pointer to the complex input data (in GPU memory) to transform
+  odata 	Pointer to the real output data (in GPU memory)
+
+  Output:
+  ------------------------------------------------------------------------------------------------------------------
+  odata 	Contains the real output data
+
+  Return Values:
+  -------------------------------------------------------------------------------------------------------------------
+  HCFFT_SUCCESS 	hcFFT successfully executed the FFT plan.
+  HCFFT_INVALID_PLAN 	The plan parameter is not a valid handle.
+  HCFFT_INVALID_VALUE 	At least one of the parameters idata and odata is not valid.
+  HCFFT_INTERNAL_ERROR 	An internal driver error was detected.
+  HCFFT_EXEC_FAILED 	hcFFT failed to execute the transform on the GPU.
+  HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize.
+*/
+
+hcfftResult hcfftExecC2R(hcfftHandle plan, Concurrency::array_view<hcfftComplex> *idata, Concurrency::array_view<hcfftReal> *odata);
+hcfftResult hcfftExecZ2D(hcfftHandle plan, Concurrency::array_view<hcfftComplex> *idata, Concurrency::array_view<hcfftReal> *odata);
 
 #endif
