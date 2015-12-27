@@ -368,3 +368,45 @@ hcfftResult hcfftDestroy(hcfftHandle plan) {
   }
   return HCFFT_SUCCESS;
 }
+
+/* Functions hcfftExecR2C() and hcfftExecD2Z()
+   Description:
+      hcfftExecR2C() (hcfftExecD2Z()) executes a single-precision (double-precision) real-to-complex, implicitly forward,
+   hcFFT transform plan. hcFFT uses as input data the GPU memory pointed to by the idata parameter. This function stores
+   the nonredundant Fourier coefficients in the odata array. Pointers to idata and odata are both required to be aligned
+   to hcfftComplex data type in single-precision transforms and hcfftDoubleComplex data type in double-precision transforms.
+   If idata and odata are the same, this method does an in-place transform. Note the data layout differences between in-place
+   and out-of-place transforms as described in Parameter hcfftType.
+
+   Input:
+   -----------------------------------------------------------------------------------------------------------------------
+   plan 	hcfftHandle returned by hcfftCreate
+   idata 	Pointer to the real input data (in GPU memory) to transform
+   odata 	Pointer to the complex output data (in GPU memory)
+
+   Output:
+   -----------------------------------------------------------------------------------------------------------------------
+   odata 	Contains the complex Fourier coefficients
+
+   Return Values:
+   ------------------------------------------------------------------------------------------------------------------------
+   HCFFT_SUCCESS 	hcFFT successfully executed the FFT plan.
+   HCFFT_INVALID_PLAN 	The plan parameter is not a valid handle.
+   HCFFT_INVALID_VALUE 	At least one of the parameters idata and odata is not valid.
+   HCFFT_INTERNAL_ERROR 	An internal driver error was detected.
+   HCFFT_EXEC_FAILED 	hcFFT failed to execute the transform on the GPU.
+   HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize.
+*/
+
+hcfftResult hcfftExecR2C(hcfftHandle plan, Concurrency::array_view<hcfftReal> *idata, Concurrency::array_view<hcfftComplex> *odata)
+{
+  hcfftDirection dir = HCFFT_FORWARD;
+  Concurrency::array_view<hcfftReal> odataR = odata->reinterpret_as<hcfftReal>();
+
+  hcfftStatus status = planObject.hcfftEnqueueTransform(plan, dir, idata, &odataR, NULL);
+  if (status != HCFFT_SUCCEEDS) {
+    return HCFFT_EXEC_FAILED;
+  }
+
+  return HCFFT_SUCCESS;
+}
