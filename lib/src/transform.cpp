@@ -158,7 +158,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
     WriteKernel( plHandle, gen, fftParams, filename, writeFlag);
 
     // Check if the default compiler path exists
-    std::string execCmd = NULL; 
+    std::string execCmd; 
     char fname[256] = "/opt/hcc/bin/clang++";
     if( access( fname, F_OK ) != -1 ) {
       // compiler exists
@@ -182,7 +182,6 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
     }
     system(execCmd.c_str());
   }
-
   // get a kernel object handle for a kernel with the given name
   if(buildFwdKernel) {
     std::string entryPoint;
