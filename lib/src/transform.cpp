@@ -178,7 +178,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
     else {
       // No compiler found
       std::cout << "HCC compiler not found" << std::endl;
-      exit(1);
+      return HCFFT_INVALID;
     }
     system(execCmd.c_str());
   }
