@@ -420,3 +420,55 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, Concurrency::array_view<hcfftReal> *i
 
   return HCFFT_SUCCESS;
 }
+
+/* Functions hcfftExecC2R() and hcfftExecZ2D()
+   Description:
+     hcfftExecC2R() (hcfftExecZ2D()) executes a single-precision (double-precision) complex-to-real,
+   implicitly inverse, hcFFT transform plan. hcFFT uses as input data the GPU memory pointed to by the
+   idata parameter. The input array holds only the nonredundant complex Fourier coefficients. This function
+   stores the real output values in the odata array. and pointers are both required to be aligned to hcfftComplex
+   data type in single-precision transforms and hcfftDoubleComplex type in double-precision transforms. If idata
+   and odata are the same, this method does an in-place transform.
+
+   Input:
+   ------------------------------------------------------------------------------------------------------------------
+   plan 	hcfftHandle returned by hcfftCreate
+   idata 	Pointer to the complex input data (in GPU memory) to transform
+   odata 	Pointer to the real output data (in GPU memory)
+
+   Output:
+   ------------------------------------------------------------------------------------------------------------------
+   odata 	Contains the real output data
+
+   Return Values:
+   -------------------------------------------------------------------------------------------------------------------
+   HCFFT_SUCCESS 	hcFFT successfully executed the FFT plan.
+   HCFFT_INVALID_PLAN 	The plan parameter is not a valid handle.
+   HCFFT_INVALID_VALUE 	At least one of the parameters idata and odata is not valid.
+   HCFFT_INTERNAL_ERROR 	An internal driver error was detected.
+   HCFFT_EXEC_FAILED 	hcFFT failed to execute the transform on the GPU.
+   HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize.
+*/
+
+hcfftResult hcfftExecC2R(hcfftHandle plan, Concurrency::array_view<hcfftComplex> *idata, Concurrency::array_view<hcfftReal> *odata)
+{
+  hcfftDirection dir = HCFFT_BACKWARD;
+  Concurrency::array_view<hcfftReal> idataR = idata->reinterpret_as<hcfftReal>();
+
+  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftBakePlan(plan);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftEnqueueTransform(plan, dir, &idataR, odata, NULL);
+  if (status != HCFFT_SUCCEEDS) {
+    return HCFFT_EXEC_FAILED;
+  }
+
+  return HCFFT_SUCCESS;
+}
