@@ -403,7 +403,17 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, Concurrency::array_view<hcfftReal> *i
   hcfftDirection dir = HCFFT_FORWARD;
   Concurrency::array_view<hcfftReal> odataR = odata->reinterpret_as<hcfftReal>();
 
-  hcfftStatus status = planObject.hcfftEnqueueTransform(plan, dir, idata, &odataR, NULL);
+  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftBakePlan(plan);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftEnqueueTransform(plan, dir, idata, &odataR, NULL);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }
