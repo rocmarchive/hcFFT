@@ -11,8 +11,8 @@ sudo xargs rm < $current_work_dir/build/lib/install_manifest.txt
 sudo rm -rf $current_work_dir/build
 
 # Remove temporarly cached kernel shared objects and binaries
-rm /tmp/libkernel*.so
-rm /tmp/*.bin
+sudo rm -f /tmp/libkernel*.so
+sudo rm -f /tmp/*.bin
 
 # TODO: ADD More options
 
