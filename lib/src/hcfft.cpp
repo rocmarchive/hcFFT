@@ -400,6 +400,13 @@ hcfftResult hcfftDestroy(hcfftHandle plan) {
 
 hcfftResult hcfftExecR2C(hcfftHandle plan, Concurrency::array_view<hcfftReal> *idata, Concurrency::array_view<hcfftComplex> *odata)
 {
+  // Nullity check
+  if( idata == NULL || odata == NULL) {
+    return HCFFT_INVALID_VALUE;
+  }
+
+  // TODO: Check validity of plan
+  
   hcfftDirection dir = HCFFT_FORWARD;
   Concurrency::array_view<hcfftReal> odataR = odata->reinterpret_as<hcfftReal>();
 
@@ -452,6 +459,13 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, Concurrency::array_view<hcfftReal> *i
 
 hcfftResult hcfftExecC2R(hcfftHandle plan, Concurrency::array_view<hcfftComplex> *idata, Concurrency::array_view<hcfftReal> *odata)
 {
+  // Nullity check
+  if( idata == NULL || odata == NULL) {
+    return HCFFT_INVALID_VALUE;
+  }
+
+  // TODO: Check validity of plan
+
   hcfftDirection dir = HCFFT_BACKWARD;
   Concurrency::array_view<hcfftReal> idataR = idata->reinterpret_as<hcfftReal>();
 
