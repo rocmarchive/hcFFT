@@ -16,6 +16,7 @@ This repository hosts the HCC implementation of FFT routines. The following are 
 * **Ubuntu Pack**: libc6-dev-i386
 * **AMD APP SDK** : Ver 2.9.1 launched on 18/8/2014 from [here](http://developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/)
 * **AMD Driver installer**: amd-driver-installer-15.20
+* ** FFTW CPU library for testing purpose
 
 
 ## Installation Steps:
@@ -73,15 +74,11 @@ This repository hosts the HCC implementation of FFT routines. The following are 
 
 ### C. Unit testing
 
-(a) For Linux:
+Installation steps for FFTW CPU based FFT library
 
-1. FFT R2C and C2R Testing: 
-     
-     * cd ~/hcfft/source/test/build/linux/
-
-     * sh build.sh
-     
-     * make
-     
-     * ./runme_ffttest.sh N1 N2
-      where N1 and N2 are sizes.
+1. wget http://www.fftw.org/fftw-3.3.4.tar.gz
+2. tar -xvf fftw-3.3.4.tar.gz
+3. cd fftw-3.3.4/
+4. ./configure
+5. make
+6. sudo make install
