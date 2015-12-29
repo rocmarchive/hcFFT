@@ -1,6 +1,7 @@
 #include "hcfft.h"
 #include "gtest/gtest.h"
 #include"fftw3.h"
+#include "clFFT.h"
 #define VECTOR_SIZE 1024
  
 TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
@@ -26,30 +27,132 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   status =  hcfftDestroy(*plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
 
-  // FFTW work flow
-  double *in;
-  fftw_complex *out;
-  int n = VECTOR_SIZE;
-  int nc = ( n / 2 ) + 1;
-  fftw_plan plan_forward;
-  in = (double *)fftw_malloc ( sizeof ( double ) * n );
-  out = (fftw_complex *)fftw_malloc ( sizeof ( fftw_complex ) * nc );
-  // Populate the input as given to hcfft
-  for(int i = 0; i < n; i++) {
-    in[i] = input[i];
-  }
-  plan_forward = fftw_plan_dft_r2c_1d ( n, in, out, FFTW_ESTIMATE );
-  fftw_execute ( plan_forward );
-  fftw_destroy_plan ( plan_forward );
-  //Compare the results of FFTW and HCFFT with 0.01 precision
-  for(int i=0; i< nc; i++) {
-    EXPECT_NEAR((float)out[i][0], odata[i].x, 0.01);
-    EXPECT_NEAR((float)out[i][1], odata[i].y, 0.01);
+  // clFFT work flow
+  cl_int err;
+  cl_platform_id platform = 0;
+  cl_device_id device = 0;
+  cl_context_properties props[3] = { CL_CONTEXT_PLATFORM, 0, 0 };
+  cl_context ctx = 0;
+  cl_command_queue queue = 0;
+  cl_mem bufX, bufY, bufZ;
+  float *X, *Y, *Xout;
+  cl_event event = NULL;
+  int ret = 0;
+  size_t N1;
+  N1 = VECTOR_SIZE;
+
+  /* FFT library realted declarations */
+  clfftPlanHandle planHandle;
+  clfftDim dim = CLFFT_1D;
+  size_t clLengths[1] = { N1};
+
+  /* Setup OpenCL environment. */
+  err = clGetPlatformIDs( 1, &platform, NULL );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL );
+  EXPECT_EQ(err, CL_SUCCESS);
+ 
+  props[1] = (cl_context_properties)platform;
+  ctx = clCreateContext( props, 1, &device, NULL, NULL, &err );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  queue = clCreateCommandQueue( ctx, device, 0, &err );
+  EXPECT_EQ(err, CL_SUCCESS);
+ 
+  /* Setup clFFT. */
+  clfftSetupData fftSetup;
+  err = clfftInitSetupData(&fftSetup);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetup(&fftSetup);
+  EXPECT_EQ(err, CL_SUCCESS);
+ 
+
+  /* Allocate host & initialize data. */
+  /* Only allocation shown for simplicity. */
+  size_t realSize = N1;
+  size_t complexSize = (1+(N1/2)) * 2;
+
+  X = (float *)calloc(realSize, sizeof(*X));
+  Y = (float *)calloc(complexSize, sizeof(*Y));
+  for(int i=0;i<realSize;i++) {
+          X[i] = input[i];
   }
 
-  // free up allocated resources
-  fftw_free(in);
-  fftw_free(out);
+  /* Prepare OpenCL memory objects and place data inside them. */
+  bufX = clCreateBuffer( ctx, CL_MEM_READ_WRITE, realSize * sizeof(*X), NULL, &err );
+  EXPECT_EQ(err, CL_SUCCESS);
+    
+  bufY = clCreateBuffer( ctx, CL_MEM_READ_WRITE, complexSize * sizeof(*Y), NULL, &err );
+  EXPECT_EQ(err, CL_SUCCESS);
+    
+  err = clEnqueueWriteBuffer( queue, bufX, CL_TRUE, 0,
+  realSize * sizeof( *X ), X, 0, NULL, NULL );
+  EXPECT_EQ(err, CL_SUCCESS);
+ 
+  err = clEnqueueWriteBuffer( queue, bufY, CL_TRUE, 0,
+  complexSize * sizeof( *Y ), Y, 0, NULL, NULL );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  /*------------------------------------------------------R2C--------------------------------------------------------------------*/
+  /* Create a default plan for a complex FFT. */
+
+  err = clfftCreateDefaultPlan(&planHandle, ctx, dim, clLengths);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  /* Set plan parameters. */
+  err = clfftSetPlanTransposeResult(planHandle, CLFFT_NOTRANSPOSE);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanPrecision(planHandle, CLFFT_SINGLE);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetLayout(planHandle, CLFFT_REAL, CLFFT_HERMITIAN_INTERLEAVED);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  /* Bake the plan. */
+  err = clfftBakePlan(planHandle, 1, &queue, NULL, NULL);
+  EXPECT_EQ(err, CL_SUCCESS);
+ 
+  /* Execute the plan. */
+  err = clfftEnqueueTransform(planHandle, CLFFT_FORWARD, 1, &queue, 0, NULL, NULL, &bufX, &bufY, NULL);
+  EXPECT_EQ(err, CL_SUCCESS);
+ 
+  /* Wait for calculations to be finished. */
+  err = clFinish(queue);
+  EXPECT_EQ(err, CL_SUCCESS);
+ 
+  /* Fetch results of calculations. */
+  err = clEnqueueReadBuffer( queue, bufY, CL_TRUE, 0, complexSize * sizeof( *Y ), Y, 0, NULL, NULL );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  //Compare the results of clFFT and HCFFT with 0.01 precision
+  for(int i=0; i< Csize; i++) {
+    EXPECT_NEAR(odata[i].x, Y[2*i], 0.01);
+    EXPECT_NEAR(odata[i].y, Y[2*i+1], 0.01);
+  }
+
+  /* Release OpenCL memory objects. */
+  clReleaseMemObject( bufX );
+  clReleaseMemObject( bufY );
+
+  free(X);
+  free(Y);
+
+  /* Release the plan. */
+  err = clfftDestroyPlan( &planHandle );
+  EXPECT_EQ(err, CL_SUCCESS);
+ 
+  /* Release clFFT library. */
+  clfftTeardown( );
+
+  /* Release OpenCL working objects. */
+  clReleaseCommandQueue( queue );
+  clReleaseContext( ctx );
 }
 
 TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2R ) {
