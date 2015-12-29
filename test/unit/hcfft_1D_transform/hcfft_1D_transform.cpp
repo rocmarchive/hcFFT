@@ -21,6 +21,7 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   Concurrency::array_view<hcfftReal> idata(Rsize, input);
   Concurrency::array_view<hcfftComplex> odata(Csize, output);
   status = hcfftExecR2C(*plan, &idata, &odata);
+  odata.synchronize();
   EXPECT_EQ(status, HCFFT_SUCCESS);
   status =  hcfftDestroy(*plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
@@ -49,8 +50,6 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   // free up allocated resources
   fftw_free(in);
   fftw_free(out);
-  free(input);
-  fftw_free(output);
 }
 
 TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2R ) {
@@ -65,7 +64,6 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2R ) {
     input[i].x = i + 100;
     input[i].y = 0.0;
   }
-
   hcfftReal *output = (hcfftReal*)calloc(Rsize, sizeof(hcfftReal));
   Concurrency::array_view<hcfftComplex> idata(Csize, input);
   Concurrency::array_view<hcfftReal> odata(Rsize, output);
