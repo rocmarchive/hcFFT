@@ -23,7 +23,7 @@ bool has_suffix(const string& s, const string& suffix) {
 bool checkIfsoExist(hcfftDirection direction) {
   DIR*           d;
   struct dirent* dir;
-  d = opendir("/tmp/");
+  d = opendir("/tmp/kernCache/");
 
   if (d) {
     while ((dir = readdir(d)) != NULL) {
@@ -136,8 +136,8 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
   }
 
   if(beforeCompile != plHandleOrigin) {
-    filename = "/tmp/kernel";
-    kernellib = "/tmp/libkernel";
+    filename = "/tmp/kernCache/kernel";
+    kernellib = "/tmp/kernCache/libkernel";
     filename += type;
     kernellib += type;
 
