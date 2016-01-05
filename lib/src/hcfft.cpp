@@ -77,7 +77,7 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
                      precision = HCFFT_DOUBLE;
                      direction = HCFFT_BOTH;
                      break;
-    default:    
+    default:
                      // Invalid type
                      return HCFFT_INVALID_VALUE;
   }
@@ -185,7 +185,7 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
                      precision = HCFFT_DOUBLE;
                      direction = HCFFT_BOTH;
                      break;
-    default:    
+    default:
                      // Invalid type
                      return HCFFT_INVALID_VALUE;
   }
@@ -295,7 +295,7 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
                      precision = HCFFT_DOUBLE;
                      direction = HCFFT_BOTH;
                      break;
-    default:    
+    default:
                      // Invalid type
                      return HCFFT_INVALID_VALUE;
   }
@@ -485,4 +485,62 @@ hcfftResult hcfftExecC2R(hcfftHandle plan, Concurrency::array_view<hcfftComplex>
   }
 
   return HCFFT_SUCCESS;
+}
+
+/* Functions hcfftExecC2C() and hcfftExecZ2Z()
+   Description:
+     hcfftExecC2C() (hcfftExecZ2Z()) executes a single-precision (double-precision) complex-to-complex transform
+   plan in the transform direction as specified by direction parameter. hcFFT uses the GPU memory pointed to by the
+   idata parameter as input data. This function stores the Fourier coefficients in the odata array.
+   If idata and odata are the same, this method does an in-place transform.
+
+   Input:
+   ----------------------------------------------------------------------------------------------------------
+   plan 	hcfftHandle returned by hcfftCreate
+   idata 	Pointer to the complex input data (in GPU memory) to transform
+   odata 	Pointer to the complex output data (in GPU memory)
+   direction 	The transform direction: HCFFT_FORWARD or HCFFT_INVERSE
+
+   Output:
+   -----------------------------------------------------------------------------------------------------------
+   odata 	Contains the complex Fourier coefficients
+
+   Return Values:
+   ------------------------------------------------------------------------------------------------------------
+   HCFFT_SUCCESS 	hcFFT successfully executed the FFT plan.
+   HCFFT_INVALID_PLAN 	The plan parameter is not a valid handle.
+   HCFFT_INVALID_VALUE 	At least one of the parameters idata, odata, and direction is not valid.
+   HCFFT_INTERNAL_ERROR 	An internal driver error was detected.
+   HCFFT_EXEC_FAILED 	hcFFT failed to execute the transform on the GPU.
+   HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize. */
+
+hcfftResult hcfftExecC2C(hcfftHandle plan, Concurrency::array_view<hcfftComplex> *idata, Concurrency::array_view<hcfftComplex> *odata, int direction)
+{
+  // Nullity check
+  if( idata == NULL || odata == NULL) {
+    return HCFFT_INVALID_VALUE;
+  }
+
+  // TODO: Check validity of plan
+
+  Concurrency::array_view<hcfftReal> idataR = idata->reinterpret_as<hcfftReal>();
+  Concurrency::array_view<hcfftReal> odataR = odata->reinterpret_as<hcfftReal>();
+
+  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_HERMITIAN_INTERLEAVED);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftBakePlan(plan);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftEnqueueTransform(plan, (hcfftDirection)direction, &idataR, &odataR, NULL);
+  if (status != HCFFT_SUCCEEDS) {
+    return HCFFT_EXEC_FAILED;
+  }
+
+  return HCFFT_SUCCESS;
+
 }
