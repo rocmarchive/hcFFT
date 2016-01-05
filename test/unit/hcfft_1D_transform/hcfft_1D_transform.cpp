@@ -34,8 +34,8 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   cl_context_properties props[3] = { CL_CONTEXT_PLATFORM, 0, 0 };
   cl_context ctx = 0;
   cl_command_queue queue = 0;
-  cl_mem bufX, bufY, bufZ;
-  float *X, *Y, *Xout;
+  cl_mem bufX, bufY;
+  float *X, *Y;
   cl_event event = NULL;
   int ret = 0;
   size_t N1;
