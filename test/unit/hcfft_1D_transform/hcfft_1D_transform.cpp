@@ -1,7 +1,7 @@
 #include "hcfft.h"
 #include "gtest/gtest.h"
-#include"fftw3.h"
 #include "clFFT.h"
+
 #define VECTOR_SIZE 1024
 
 TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
@@ -68,15 +68,14 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   err = clfftSetup(&fftSetup);
   EXPECT_EQ(err, CL_SUCCESS);
  
-
   /* Allocate host & initialize data. */
   /* Only allocation shown for simplicity. */
   size_t realSize = N1;
-  size_t complexSize = (1+(N1/2)) * 2;
+  size_t complexSize = (1 + (N1 / 2)) * 2;
 
   X = (float *)calloc(realSize, sizeof(*X));
   Y = (float *)calloc(complexSize, sizeof(*Y));
-  for(int i=0;i<realSize;i++) {
+  for(int i = 0; i < realSize; i++) {
           X[i] = input[i];
   }
 
@@ -131,9 +130,9 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   //Compare the results of clFFT and HCFFT with 0.01 precision
-  for(int i=0; i< Csize; i++) {
-    EXPECT_NEAR(odata[i].x, Y[2*i], 0.01);
-    EXPECT_NEAR(odata[i].y, Y[2*i+1], 0.01);
+  for(int i = 0; i < Csize; i++) {
+    EXPECT_NEAR(odata[i].x, Y[2 * i], 0.01);
+    EXPECT_NEAR(odata[i].y, Y[2 * i + 1], 0.01);
   }
 
   /* Release OpenCL memory objects. */
