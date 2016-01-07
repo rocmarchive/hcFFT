@@ -36,6 +36,11 @@ bool checkIfsoExist(hcfftDirection direction) {
 
         int i = 0;
         size_t length = libFile.length();
+        size_t n = std::count(libFile.begin(), libFile.end(), '_');
+        if((n - 1) != originalLength.size()) {
+          continue;
+        }
+
         size_t firstocc = libFile.find_first_of("_");
         string type = libFile.substr(9, firstocc - 9);
 
