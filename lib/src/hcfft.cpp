@@ -526,7 +526,7 @@ hcfftResult hcfftExecC2C(hcfftHandle plan, Concurrency::array_view<hcfftComplex>
   Concurrency::array_view<hcfftReal> idataR = idata->reinterpret_as<hcfftReal>();
   Concurrency::array_view<hcfftReal> odataR = odata->reinterpret_as<hcfftReal>();
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_HERMITIAN_INTERLEAVED);
+  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
