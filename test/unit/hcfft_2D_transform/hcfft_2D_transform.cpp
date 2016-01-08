@@ -308,7 +308,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   hcfftHandle *plan = NULL;
   hcfftResult status  = hcfftPlan2d(plan, VECTOR_SIZE, VECTOR_SIZE, HCFFT_C2C);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  int hSize = VECTOR_SIZE * VECTOR_SIZE * 2;
+  int hSize = VECTOR_SIZE * VECTOR_SIZE;
   hcfftComplex *input = (hcfftComplex*)calloc(hSize, sizeof(hcfftComplex));
   hcfftComplex *output = (hcfftComplex*)calloc(hSize, sizeof(hcfftComplex));
   int seed = 123456789;
@@ -407,7 +407,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   err = clfftSetPlanPrecision(planHandle, CLFFT_SINGLE);
   EXPECT_EQ(err, CL_SUCCESS);
 
-  err = clfftSetLayout(planHandle, CLFFT_HERMITIAN_INTERLEAVED, CLFFT_HERMITIAN_INTERLEAVED);
+  err = clfftSetLayout(planHandle, CLFFT_COMPLEX_INTERLEAVED, CLFFT_COMPLEX_INTERLEAVED);
   EXPECT_EQ(err, CL_SUCCESS);
 
   err = clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
@@ -430,7 +430,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   //Compare the results of clFFT and HCFFT with 0.01 precision
-  for(int i = 0; i < size / 2; i++) {
+  for(int i = 0; i < hSize; i++) {
     EXPECT_NEAR(odata[i].x, Y[2 * i], 0.01);
     EXPECT_NEAR(odata[i].y, Y[2 * i + 1], 0.01);
   }
