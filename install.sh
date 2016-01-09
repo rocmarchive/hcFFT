@@ -23,7 +23,7 @@ sh build.sh
 make
 
 #Run a prelim test
-sh runme_ffttest.sh 2 12
+#sh runme_ffttest.sh 2 12
 
 
 # TODO: ADD More options to perform benchmark and testing
