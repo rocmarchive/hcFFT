@@ -285,14 +285,12 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 
     funcName += SztToStr(count);
     genTransposePrototype( params, lwSize, dtPlanar, dtComplex, funcName, transKernel, dtInput, dtOutput );
-    hcKernWrite( transKernel, 3 ) << "\tConcurrency::extent<2> grdExt( ";
-    hcKernWrite( transKernel, 3 ) <<  SztToStr(gWorkSize[0]) << ", " << SztToStr(gWorkSize[1]) << "); \n" << "\tConcurrency::tiled_extent< ";
-    hcKernWrite( transKernel, 3 ) <<  SztToStr(lwSize.x) << ", " << SztToStr(lwSize.y) << "> t_ext(grdExt);\n";
-    hcKernWrite( transKernel, 3 ) << "\tConcurrency::parallel_for_each(t_ext, [=] (Concurrency::tiled_index<";
-    hcKernWrite( transKernel, 3 ) <<  SztToStr(lwSize.x);
-    hcKernWrite( transKernel, 3 ) <<  ", " << SztToStr(lwSize.y) << " > tidx) restrict(amp)\n\t { ";
+    hcKernWrite( transKernel, 3 ) << "\thc::extent<2> grdExt( ";
+    hcKernWrite( transKernel, 3 ) <<  SztToStr(gWorkSize[0]) << ", " << SztToStr(gWorkSize[1]) << "); \n" << "\thc::tiled_extent<2> t_ext = grdExt.tile(";
+    hcKernWrite( transKernel, 3 ) <<  SztToStr(lwSize.x) << ", " << SztToStr(lwSize.y) << ");\n";
+    hcKernWrite( transKernel, 3 ) << "\thc::parallel_for_each(t_ext, [=] (hc::tiled_index<2> &tidx) __attribute__((hc))\n\t { ";
     hcKernWrite( transKernel, 3 ) << "const uint_2 localIndex( tidx.local[0] , tidx.local[1]); " << std::endl;
-    hcKernWrite( transKernel, 3 ) << "const uint_2 localExtent( t_ext.tile_dim0, t_ext.tile_dim1); " << std::endl;
+    hcKernWrite( transKernel, 3 ) << "const uint_2 localExtent( t_ext.tile_dim[0], t_ext.tile_dim[1]); " << std::endl;
     hcKernWrite( transKernel, 3 ) << "const uint_2 groupIndex(tidx.tile[0] , tidx.tile[1]);" << std::endl;
     hcKernWrite( transKernel, 3 ) << std::endl;
     hcKernWrite( transKernel, 3 ) << "// Calculate the unit address (in terms of datatype) of the beginning of the Tile for the WG block" << std::endl;

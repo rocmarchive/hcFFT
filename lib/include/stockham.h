@@ -355,7 +355,7 @@ class Butterfly {
       }
     }
 
-    bflyStr += " restrict(amp)\n{\n\n";
+    bflyStr += " __attribute__((hc))\n{\n\n";
 
     // Temporary variables
     // Allocate temporary variables if we are not using complex registers (cReg = 0) or if cReg is true, then

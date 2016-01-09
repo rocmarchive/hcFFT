@@ -4,17 +4,15 @@
 #include "hcfftlib.h"
 #include <dlfcn.h>
 #include <map>
-#include <amp.h>
-#include <amp_short_vectors.h>
+#include <hc.hpp>
 #include <cfloat>
 #include <stdio.h>
 #include <cmath>
 
 #define PRINT 0
 
-using namespace Concurrency::graphics;
+using namespace hc;
 using namespace std;
-using namespace Concurrency;
 
 int main(int argc, char* argv[]) {
   FFTPlan plan;
@@ -60,9 +58,9 @@ int main(int argc, char* argv[]) {
     cout << " set result error " << endl;
   }
 
-  Concurrency::array_view<float> inpAr(realsize, input );
-  Concurrency::array_view<float> inpAr1(realsize, inputz );
-  Concurrency::array_view<float> opAr(cmplexsize, output );
+  hc::array_view<float> inpAr(realsize, input );
+  hc::array_view<float> inpAr1(realsize, inputz );
+  hc::array_view<float> opAr(cmplexsize, output );
   /*---------------------R2C--------------------------------------*/
   status = plan.hcfftSetLayout(planhandle, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
 

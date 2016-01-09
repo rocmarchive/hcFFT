@@ -42,28 +42,28 @@ IF(WIN32)
 ELSE(WIN32)
   # Choice to take compilation flags from source or package
   if(EXISTS ${MCWHCCBUILD})
-    execute_process(COMMAND ${CLAMP_CONFIG} --build --cxxflags
-                            OUTPUT_VARIABLE CLAMP_CXXFLAGS)
-    execute_process(COMMAND ${CLAMP_CONFIG} --build --ldflags 
-                            OUTPUT_VARIABLE CLAMP_LDFLAGS)
+    execute_process(COMMAND ${HCC_CONFIG} --build --cxxflags
+                            OUTPUT_VARIABLE HCC_CXXFLAGS)
+    execute_process(COMMAND ${HCC_CONFIG} --build --ldflags
+                            OUTPUT_VARIABLE HCC_LDFLAGS)
   else(EXISTS ${MCWHCCBUILD})
-    execute_process(COMMAND ${CLAMP_CONFIG} --cxxflags
-                            OUTPUT_VARIABLE CLAMP_CXXFLAGS)
-    execute_process(COMMAND ${CLAMP_CONFIG} --ldflags
-                            OUTPUT_VARIABLE CLAMP_LDFLAGS)
+    execute_process(COMMAND ${HCC_CONFIG} --cxxflags
+                            OUTPUT_VARIABLE HCC_CXXFLAGS)
+    execute_process(COMMAND ${HCC_CONFIG} --ldflags
+                            OUTPUT_VARIABLE HCC_LDFLAGS)
   endif(EXISTS ${MCWHCCBUILD})
 
 
-  string(STRIP "${CLAMP_CXXFLAGS}" CLAMP_CXXFLAGS)
-  string(STRIP "${CLAMP_LDFLAGS}" CLAMP_LDFLAGS)
-  set (CLAMP_CXXFLAGS "${CLAMP_CXXFLAGS}")
-  set (CLAMP_LDFLAGS "${CLAMP_LDFLAGS}")
+  string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
+  string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
+  set (HCC_CXXFLAGS "${HCC_CXXFLAGS}")
+  set (HCC_LDFLAGS "${HCC_LDFLAGS}")
 
 
   SET (LINK "-lhcfft")
-  SET_PROPERTY(SOURCE ${TESTSRCS} APPEND_STRING PROPERTY COMPILE_FLAGS " ${CLAMP_CXXFLAGS}")
+  SET_PROPERTY(SOURCE ${TESTSRCS} APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS}")
   STRING( REPLACE "_test.cpp" "" testname ${TESTSRCS} )
   ADD_EXECUTABLE( ${testname} ${TESTSRCS} )
-  SET_PROPERTY(TARGET ${testname} APPEND_STRING PROPERTY LINK_FLAGS " ${CLAMP_LDFLAGS} ${LINK}")
+  SET_PROPERTY(TARGET ${testname} APPEND_STRING PROPERTY LINK_FLAGS " ${HCC_LDFLAGS} ${LINK}")
 
 ENDIF(WIN32)

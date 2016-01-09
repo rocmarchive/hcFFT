@@ -3,16 +3,13 @@
 
 #include <iostream>
 #include <stdio.h>
-#include <amp.h>
-#include <amp_math.h>
-#include <amp_short_vectors.h>
+#include <hc.hpp>
 #include <complex>
 #include <unistd.h>
 #include "lock.h"
 #include <dirent.h>
 
-using namespace Concurrency;
-using namespace Concurrency::graphics;
+using namespace hc;
 
 #define HCFFT_CB_NY 0
 #define HCFFT_CB_NZ 1
@@ -147,13 +144,10 @@ inline std::string SztToStr(size_t i) {
 
 inline std::string hcHeader() {
   return "#include \"hcfftlib.h\"\n"
-         "#include <amp.h>\n"
-         "#include <amp_math.h>\n"
+         "#include <hc.hpp>\n"
          "#include <stdio.h>\n"
          "#include <iostream>\n"
-         "#include <amp_short_vectors.h>\n"
-         "using namespace Concurrency;\n"
-         "using namespace Concurrency::graphics;\n";
+         "using namespace hc;\n";
 }
 
 static size_t width(hcfftPrecision precision) {
@@ -406,13 +400,13 @@ class FFTPlan {
   size_t  large1D_Xfactor;
 
   size_t tmpBufSize;
-  Concurrency::array_view<float>* intBuffer;
+  hc::array_view<float>* intBuffer;
 
   size_t tmpBufSizeRC;
-  Concurrency::array_view<float>* intBufferRC;
+  hc::array_view<float>* intBufferRC;
 
   size_t  tmpBufSizeC2R;
-  Concurrency::array_view<float>* intBufferC2R;
+  hc::array_view<float>* intBufferC2R;
 
   bool transflag;
   bool transOutHorizontal;
@@ -421,7 +415,7 @@ class FFTPlan {
   bool  large2D;
   size_t  cacheSize;
 
-  Concurrency::array_view<float>* const_buffer;
+  hc::array_view<float>* const_buffer;
 
   // Real-Complex simple flag
   // if this is set we do real to-and-from full complex using simple algorithm
@@ -463,8 +457,8 @@ class FFTPlan {
 
   hcfftStatus hcfftDestroyPlan(hcfftPlanHandle* plHandle);
 
-  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, Concurrency::array_view<float>* inputBuffers,
-                                    Concurrency::array_view<float>* outputBuffers, Concurrency::array_view<float>* tmpBuffer);
+  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, hc::array_view<float>* inputBuffers,
+                                    hc::array_view<float>* outputBuffers, hc::array_view<float>* tmpBuffer);
 
   hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 

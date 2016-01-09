@@ -1940,9 +1940,7 @@ class Pass {
       passStr += TwTableLargeName();
     }
 
-    passStr += ", Concurrency::tiled_index<";
-    passStr += SztToStr(lWorkSize);
-    passStr += ", 1> tidx) restrict(amp)\n{\n";
+    passStr += ", hc::tiled_index<2> &tidx) __attribute__((hc))\n{\n";
 
     // Register Declarations
     if(!linearRegs) {
@@ -3618,15 +3616,15 @@ class Kernel {
         twLarge.TwiddleLargeAV<PR>(str);
       }
 
-      str += "\tConcurrency::extent<2> grdExt( ";
+      str += "\thc::extent<2> grdExt( ";
       str += SztToStr(gWorkSize[0]);
       str += ", 1 ); \n";
-      str += "\tConcurrency::tiled_extent< ";
+      str += "\thc::tiled_extent<2> t_ext = grdExt.tile(";
       str += SztToStr(lWorkSize[0]);
-      str += ", 1> t_ext(grdExt);\n";
-      str += "\tConcurrency::parallel_for_each(t_ext, [=] (Concurrency::tiled_index<";
-      str += SztToStr(lWorkSize[0]);
-      str += ", 1> tidx) restrict(amp)\n\t { ";
+      str += ",1);\n";
+
+      str += "\thc::parallel_for_each(t_ext, [=] (hc::tiled_index<2> tidx) __attribute__((hc))\n\t { ";
+
       // Initialize
       str += "\t";
       str += "unsigned int me = tidx.local[0];\n\t";
