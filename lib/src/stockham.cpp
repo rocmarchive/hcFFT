@@ -3298,10 +3298,16 @@ class Kernel {
       }
 
       str += "( std::map<int, void*> vectArr )\n\t{\n\t";
-      str += "array_view<float> *cbP = (array_view<float> *)vectArr[";
+      str += "array_view<";
+      str += rType;
+      str += "> *cbP = (array_view<";
+      str += rType;
+      str += "> *)vectArr[";
       str += SztToStr(arg);
       str += "];\n";
-      str += "array_view<float> &cb = *cbP;\n";
+      str += "array_view<";
+      str += rType;
+      str += "> &cb = *cbP;\n";
       arg++;
 
       // Function attributes

@@ -278,7 +278,9 @@ class TwiddleTableLarge {
       // Twiddle calc function
       ss << "inline ";
       ss << RegBaseType<PR>(2);
-      ss << "\n" << TwTableLargeFunc() << "(unsigned int u, const array_view<const float_2> &";
+      ss << "\n" << TwTableLargeFunc() << "(unsigned int u, const array_view<const ";
+      ss << RegBaseType<PR>(2);
+      ss << "> &";
       ss << TwTableLargeName();
       ss << ")\n{\n";
       ss << "\t" "unsigned int j = u & " << unsigned(X - 1) << ";\n";
