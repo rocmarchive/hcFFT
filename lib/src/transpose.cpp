@@ -243,6 +243,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
     case HCFFT_DOUBLE:
       dtPlanar = "double";
       dtComplex = "double_2";
+      break;
 
     default:
       return HCFFT_INVALID;
