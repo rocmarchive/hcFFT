@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include "lock.h"
 #include <dirent.h>
+#include <hc_short_vector.hpp>
 
 using namespace hc;
 
@@ -146,8 +147,10 @@ inline std::string hcHeader() {
   return "#include \"hcfftlib.h\"\n"
          "#include <hc.hpp>\n"
          "#include <stdio.h>\n"
+         "#include <hc_short_vector.hpp>\n"
          "#include <iostream>\n"
-         "using namespace hc;\n";
+         "using namespace hc;\n"
+         "using namespace hc::short_vector;\n";
 }
 
 static size_t width(hcfftPrecision precision) {
