@@ -5522,6 +5522,22 @@ hcfftStatus FFTPlan::ReleaseBuffers () {
     delete intBufferC2R;
   }
 
+  if( NULL != const_bufferD ) {
+    delete const_bufferD;
+  }
+
+  if( NULL != intBufferD ) {
+    delete intBufferD;
+  }
+
+  if( NULL != intBufferRCD ) {
+    delete intBufferRCD;
+  }
+
+  if( NULL != intBufferC2RD ) {
+    delete intBufferC2RD;
+  }
+
   return result;
 }
 
