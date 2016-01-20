@@ -439,7 +439,7 @@ class CopyKernel {
       str += "}\n\n";
     }
 
-    str += " });\n}}\n\n";
+    str += " }).wait();\n}}\n\n";
   }
 };
 };

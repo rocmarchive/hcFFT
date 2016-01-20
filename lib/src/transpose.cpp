@@ -640,7 +640,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
       }
     }
 
-    hcKernWrite( transKernel, 0 ) << "});\n}}\n" << std::endl;
+    hcKernWrite( transKernel, 0 ) << "}).wait();\n}}\n" << std::endl;
     strKernel += transKernel.str( );
     //std::cout << strKernel;
 

@@ -4079,7 +4079,7 @@ class Kernel {
         str += "\t}\n\n";
       }
 
-      str += " });\n}}\n\n";
+      str += " }).wait();\n}}\n\n";
 
       if(r2c2r) {
         break;
