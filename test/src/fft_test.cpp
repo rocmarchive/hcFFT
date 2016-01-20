@@ -176,4 +176,11 @@ int main(int argc, char* argv[]) {
   cout << " TEST PASSED " << std::endl;
   status = plan1.hcfftDestroyPlan(&planhandle);
 
+  hc::am_free(ipDev);
+  hc::am_free(ipzDev);
+  hc::am_free(opDev);
+
+  free(ipHost);
+  free(ipzHost);
+  free(opHost);
 }
