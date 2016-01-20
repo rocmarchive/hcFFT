@@ -4079,7 +4079,21 @@ class Kernel {
         str += "\t}\n\n";
       }
 
-      str += " }).wait();\n}}\n\n";
+      str += " }).wait();\n";
+
+      if(length > 1) {
+        str += "hc::am_free(";
+        str += TwTableName();
+        str += ");";
+      }
+
+      if(params.fft_3StepTwiddle) {
+         str += "hc::am_free(";
+        str += TwTableLargeName();
+        str += ");";
+      }
+
+      str += "}}\n\n";
 
       if(r2c2r) {
         break;
