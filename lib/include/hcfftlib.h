@@ -3,12 +3,13 @@
 
 #include <iostream>
 #include <stdio.h>
-#include <hc.hpp>
 #include <complex>
 #include <unistd.h>
 #include "lock.h"
 #include <dirent.h>
+#include <hc.hpp>
 #include <hc_short_vector.hpp>
+#include "hc_am.hpp"
 
 using namespace hc;
 
@@ -146,6 +147,7 @@ inline std::string SztToStr(size_t i) {
 inline std::string hcHeader() {
   return "#include \"hcfftlib.h\"\n"
          "#include <hc.hpp>\n"
+         "#include <hc_am.hpp>\n"
          "#include <stdio.h>\n"
          "#include <hc_short_vector.hpp>\n"
          "#include <iostream>\n"
@@ -356,6 +358,7 @@ class FFTRepo;
 
 class FFTPlan {
  public:
+  accelerator acc;
   hcfftDim dimension;
   hcfftIpLayout ipLayout;
   hcfftOpLayout opLayout;
@@ -403,13 +406,13 @@ class FFTPlan {
   size_t  large1D_Xfactor;
 
   size_t tmpBufSize;
-  hc::array_view<float>* intBuffer;
+  float* intBuffer;
 
   size_t tmpBufSizeRC;
-  hc::array_view<float>* intBufferRC;
+  float* intBufferRC;
 
   size_t  tmpBufSizeC2R;
-  hc::array_view<float>* intBufferC2R;
+  float* intBufferC2R;
 
   bool transflag;
   bool transOutHorizontal;
@@ -418,7 +421,7 @@ class FFTPlan {
   bool  large2D;
   size_t  cacheSize;
 
-  hc::array_view<float>* const_buffer;
+  float* const_buffer;
 
   // Real-Complex simple flag
   // if this is set we do real to-and-from full complex using simple algorithm
@@ -454,14 +457,14 @@ class FFTPlan {
     blockCompute(false), blockComputeType(BCT_C2C) {
   };
 
-  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir);
+  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, accelerator acc);
 
   hcfftStatus hcfftBakePlan(hcfftPlanHandle plHandle);
 
   hcfftStatus hcfftDestroyPlan(hcfftPlanHandle* plHandle);
 
-  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, hc::array_view<float>* inputBuffers,
-                                    hc::array_view<float>* outputBuffers, hc::array_view<float>* tmpBuffer);
+  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, float* inputBuffers,
+                                    float* outputBuffers, float* tmpBuffer);
 
   hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 
