@@ -409,12 +409,15 @@ class FFTPlan {
 
   size_t tmpBufSize;
   float* intBuffer;
+  double* intBufferD;
 
   size_t tmpBufSizeRC;
   float* intBufferRC;
+  double* intBufferRCD;
 
   size_t  tmpBufSizeC2R;
   float* intBufferC2R;
+  double* intBufferC2RD;
 
   bool transflag;
   bool transOutHorizontal;
@@ -424,6 +427,7 @@ class FFTPlan {
   size_t  cacheSize;
 
   float* const_buffer;
+  double* const_bufferD;
 
   // Real-Complex simple flag
   // if this is set we do real to-and-from full complex using simple algorithm
@@ -453,9 +457,10 @@ class FFTPlan {
     twiddleFront(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
     planTX(0), planTY(0), planTZ(0), planRCcopy(0), planCopy(0), plHandle(0), plHandleOrigin(0),
     bLdsComplex(false), uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
-    intBuffer( NULL ), tmpBufSizeRC(0), intBufferRC(NULL), tmpBufSizeC2R(0),
-    intBufferC2R(NULL), transflag(false), transOutHorizontal(false), large1D(0), large2D(false),
-    const_buffer(NULL), RCsimple(false), realSpecial(false), realSpecial_Nr(0), userPlan(false),
+    intBuffer( NULL ), intBufferD(NULL), tmpBufSizeRC(0), intBufferRC(NULL), intBufferRCD(NULL),
+    tmpBufSizeC2R(0), intBufferC2RD(NULL), intBufferC2R(NULL), transflag(false),
+    transOutHorizontal(false), large1D(0), large2D(false), const_buffer(NULL), const_bufferD(NULL),
+    RCsimple(false), realSpecial(false), realSpecial_Nr(0), userPlan(false),
     blockCompute(false), blockComputeType(BCT_C2C) {
   };
 
@@ -467,6 +472,9 @@ class FFTPlan {
 
   hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, float* inputBuffers,
                                     float* outputBuffers, float* tmpBuffer);
+
+  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, double* inputBuffers,
+                                    double* outputBuffers, double* tmpBuffer);
 
   hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 
