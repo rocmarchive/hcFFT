@@ -569,13 +569,12 @@ class Pass {
       assert((numButterfly * workGroupSize) == algLS);
       assert(bufferRe.compare(bufferIm) == 0); // Make sure Real & Imag buffer strings are same for interleaved data
       passStr += "\n\t";
-      passStr += "const array_view<";
       passStr += RegBaseType<PR>(4);
-      passStr += "> &buff4g = ";
+      passStr += "*buff4g = (";
+      passStr += RegBaseType<PR>(4);
+      passStr += "*)";
       passStr += bufferRe;
-      passStr += ".reinterpret_as<";
-      passStr += RegBaseType<PR>(4);
-      passStr += ">();\n\t";
+      passStr += ";\n\t";
 
       for(size_t r = 0; r < radix; r++) { // setting the radix loop outside to facilitate grouped writing
         butterflyIndex = numPrev;
@@ -1743,9 +1742,8 @@ class Pass {
     if(r2c || c2r) {
       if(gIn) {
         if(inInterleaved) {
-          passStr += "const array_view<";
           passStr += regB2Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferInRe;
           passStr += ", ";
           passStr += "unsigned int iOffset,";
@@ -1754,9 +1752,8 @@ class Pass {
             passStr += "unsigned int iOffset2,";
           }
         } else if(inReal) {
-          passStr += "const array_view< ";
           passStr += regB1Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferInRe;
           passStr += ", ";
           passStr += "unsigned int iOffset,";
@@ -1765,9 +1762,8 @@ class Pass {
             passStr += "unsigned int iOffset2,";
           }
         } else {
-          passStr += "const array_view<";
           passStr += regB1Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferInRe;
           passStr += ", ";
           passStr += "unsigned int iOffset,";
@@ -1776,9 +1772,8 @@ class Pass {
             passStr += "unsigned int iOffset2,";
           }
 
-          passStr += "const array_view<";
           passStr += regB1Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferInIm;
           passStr += ", ";
         }
@@ -1795,9 +1790,8 @@ class Pass {
 
       if(gOut) {
         if(outInterleaved) {
-          passStr += "const array_view<";
           passStr += regB2Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferOutRe;
           passStr += ", ";
           passStr += "unsigned int oOffset";
@@ -1807,9 +1801,8 @@ class Pass {
             passStr += "unsigned int oOffset2";
           }
         } else if(outReal) {
-          passStr += "const array_view<";
           passStr += regB1Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferOutRe;
           passStr += ", ";
           passStr += "unsigned int oOffset";
@@ -1819,9 +1812,8 @@ class Pass {
             passStr += "unsigned int oOffset2";
           }
         } else {
-          passStr += "const array_view< ";
           passStr += regB1Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferOutRe;
           passStr += ", ";
           passStr += "unsigned int oOffset,";
@@ -1830,9 +1822,8 @@ class Pass {
             passStr += "unsigned int oOffset2,";
           }
 
-          passStr += "const array_view< ";
           passStr += regB1Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferOutIm;
         }
       } else {
@@ -1847,22 +1838,19 @@ class Pass {
     } else {
       if(gIn) {
         if(inInterleaved) {
-          passStr += "const array_view< ";
           passStr += regB2Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferInRe;
           passStr += ", ";
           passStr += "unsigned int iOffset,";
         } else {
-          passStr += "const array_view< ";
           passStr += regB1Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferInRe;
           passStr += ", ";
           passStr += "unsigned int iOffset,";
-          passStr += "const array_view< ";
           passStr += regB1Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferInIm;
           passStr += ", ";
         }
@@ -1886,22 +1874,19 @@ class Pass {
 
       if(gOut) {
         if(outInterleaved) {
-          passStr += "const array_view< ";
           passStr += regB2Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferOutRe;
           passStr += ", ";
           passStr += " unsigned int oOffset";
         } else {
-          passStr += "const array_view<";
           passStr += regB1Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferOutRe;
           passStr += ", ";
           passStr += "unsigned int oOffset,";
-          passStr += "const array_view<";
           passStr += regB1Type;
-          passStr += "> &";
+          passStr += " *";
           passStr += bufferOutIm;
         }
       } else {
@@ -1928,22 +1913,20 @@ class Pass {
     }
 
     if(length > 1) {
-      passStr += ", const array_view<const ";
+      passStr += ", ";
       passStr += regB2Type;
-      passStr += "> &";
+      passStr += " *";
       passStr += TwTableName();
     }
 
     if(fft_3StepTwiddle) {
-      passStr += ", const array_view<const ";
+      passStr += ", ";
       passStr += RegBaseType<PR>(2);
-      passStr += "> &";
+      passStr += " *";
       passStr += TwTableLargeName();
     }
 
-    passStr += ", Concurrency::tiled_index<";
-    passStr += SztToStr(lWorkSize);
-    passStr += ", 1> tidx) restrict(amp)\n{\n";
+    passStr += ", hc::tiled_index<2> &tidx) [[hc]]\n{\n";
 
     // Register Declarations
     if(!linearRegs) {
@@ -3115,10 +3098,7 @@ class Kernel {
     }
 
     std::string sfx = FloatSuffix<PR>() + "\n";
-    // Vector type
-    str += "#define fvect2 ";
-    str += RegBaseType<PR>(2);
-    str += "\n\n";
+
     //constants
     str += "#define C8Q  0.70710678118654752440084436210485";
     str += sfx;
@@ -3298,43 +3278,33 @@ class Kernel {
         str += SztToStr(count);
       }
 
-      str += "( std::map<int, void*> vectArr )\n\t{\n\t";
-      str += "array_view<float> *cbP = (array_view<float> *)vectArr[";
+      str += "( std::map<int, void*> vectArr, accelerator &acc )\n\t{\n\t";
+      str += rType;
+      str += " *cb = static_cast<";
+      str += rType;
+      str += "*> (vectArr[";
       str += SztToStr(arg);
-      str += "];\n";
-      str += "array_view<float> &cb = *cbP;\n";
+      str += "]);\n";
       arg++;
 
       // Function attributes
       if(params.fft_placeness == HCFFT_INPLACE) {
         if(r2c2r) {
           if(outInterleaved) {
-            str += "const array_view<";
             str += r2Type;
-            str += "> *gbP = (";
-            str += "const array_view<";
+            str += " *gb = static_cast<";
             str += r2Type;
-            str += "> *) vectArr[";
+            str += "*> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += r2Type;
-            str += "> &gb = *gbP;";
+            str += "]);\n";
             arg++;
           } else {
-            str += "const array_view<";
             str += rType;
-            str += "> *gbP = (";
-            str += "const array_view<";
+            str += " *gb = static_cast<";
             str += rType;
-            str += "> *) vectArr[";
+            str += "*> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += rType;
-            str += "> &gb = *gbP;";
+            str += "]);\n";
             arg++;
           }
         } else {
@@ -3343,247 +3313,145 @@ class Kernel {
           assert(params.fft_inStride[0] == params.fft_outStride[0]);
 
           if(inInterleaved) {
-            str += "const array_view<";
             str += r2Type;
-            str += "> *gbP = (";
-            str += "const array_view<";
+            str += " *gb = static_cast<";
             str += r2Type;
-            str += "> *) vectArr[";
+            str += "*> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += r2Type;
-            str += "> &gb = *gbP;";
+            str += "]);\n";
             arg++;
           } else {
-            str += "const array_view<";
             str += rType;
-            str += "> *gbReP = (";
-            str += "const array_view<";
+            str += " *gbRe = static_cast<";
             str += rType;
-            str += "> *) vectArr[";
+            str += "*> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += rType;
-            str += "> &gbRe = *gbReP;";
+            str += "]);\n";
             arg++;
-            str += "const array_view<";
             str += rType;
-            str += "> *gbImP = (";
-            str += "const array_view<";
+            str += " *gbIm = static_cast<";
             str += rType;
-            str += "> *) vectArr[";
+            str += "*> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            str += "const array_view<";
-            str += rType;
-            str += "> &gbIm = *gbImP;";
-            //Dereferencing the pointer
+            str += "]);\n";
             arg++;
           }
         }
       } else {
         if(r2c2r) {
           if(inInterleaved) {
-            str += "const array_view<";
             str += r2Type;
-            str += " > *gbInP = (";
-            str += "const array_view<";
+            str += " *gbIn = static_cast<";
             str += r2Type;
-            str += " > *) vectArr[";
+            str += "*> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += r2Type;
-            str += " > &gbIn = *gbInP;";
+            str += "]);\n";
             arg++;
           } else if(inReal) {
-            str += "const array_view<";
             str += rType;
-            str += " > *gbInP = (";
-            str += "const array_view<";
+            str += " *gbIn = static_cast<";
             str += rType;
-            str += " > *) vectArr[";
+            str += "*> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += rType;
-            str += " > &gbIn = *gbInP;";
+            str += "]);\n";
             arg++;
           } else {
-            str += "const array_view<";
             str += rType;
-            str += " > *gbInReP = (";
-            str += "const array_view<";
+            str += " *gbInRe = static_cast<";
             str += rType;
-            str += " > *) vectArr[";
+            str += "*> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += rType;
-            str += " > &gbInRe = *gbInReP;";
+            str += "]);\n";
             arg++;
-            str += "const array_view<";
             str += rType;
-            str += " > *gbInImP = (";
-            str += "const array_view<";
+            str += " *gbInIm = static_cast<";
             str += rType;
-            str += " > *) vectArr[";
+            str += "*> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += rType;
-            str += " > &gbInIm = *gbInImP;";
+            str += "]);\n";
             arg++;
           }
 
           if(outInterleaved) {
-            str += "const array_view<";
             str += r2Type;
-            str += " > *gbOutP = (";
-            str += "const array_view<";
+            str += " *gbOut = static_cast<";
             str += r2Type;
-            str += " > *) vectArr[";
+            str += "*> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += r2Type;
-            str += " > &gbOut = *gbOutP;";
+            str += "]);\n";
             arg++;
           } else if(outReal) {
-            str += "const array_view<";
             str += rType;
-            str += " > *gbOutP = (";
-            str += "const array_view<";
+            str += " *gbOut = static_cast<";
             str += rType;
-            str += " > *) vectArr[";
+            str += " *> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += rType;
-            str += " > &gbOut = *gbOutP;";
+            str += "]);\n";
             arg++;
           } else {
-            str += "const array_view<";
             str += rType;
-            str += " > *gbOutReP = (";
-            str += "const array_view<";
+            str += " *gbOutRe = static_cast<";
             str += rType;
-            str += " > *) vectArr[";
+            str += " *> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += rType;
-            str += " > &gbOutRe = *gbOutReP;";
+            str += "]);\n";
             arg++;
-            str += "const array_view<";
             str += rType;
-            str += " > *gbOutImP = (";
-            str += "const array_view<";
+            str += " *gbOutImP = static_cast<";
             str += rType;
-            str += " > *) vectArr[";
+            str += " *> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += rType;
-            str += " > &gbOutIm = *gbOutImP;";
+            str += "]);\n";
             arg++;
           }
         } else {
           if(inInterleaved) {
-            str += "const array_view<";
             str += r2Type;
-            str += " > *gbInP = (";
-            str += "const array_view<";
+            str += " *gbIn = static_cast<";
             str += r2Type;
-            str += " > *) vectArr[";
+            str += " *> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += r2Type;
-            str += " > &gbIn = *gbInP;";
+            str += "]);\n";
             arg++;
           } else {
-            str += "const array_view<";
             str += rType;
-            str += " > *gbInReP = (";
-            str += "const array_view<";
+            str += " *gbInRe = static_cast<";
             str += rType;
-            str += " > *) vectArr[";
+            str += "*> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += rType;
-            str += " > &gbInRe = *gbInReP;";
+            str += "]);\n";
             arg++;
-            str += "const array_view<";
             str += rType;
-            str += " > *gbInImP = (";
-            str += "const array_view<";
+            str += " *gbInIm = static_cast<";
             str += rType;
-            str += " > *) vectArr[";
+            str += " *> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += rType;
-            str += " > &gbInIm = *gbInImP;";
+            str += "]);\n";
             arg++;
           }
 
           if(outInterleaved) {
-            str += "const array_view<";
             str += r2Type;
-            str += " > *gbOutP = (";
-            str += "const array_view<";
+            str += " *gbOut = static_cast<";
             str += r2Type;
-            str += " > *) vectArr[";
+            str += "*> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += r2Type;
-            str += " > &gbOut = *gbOutP;";
+            str += "]);\n";
             arg++;
           } else {
-            str += "const array_view<";
             str += rType;
-            str += " > *gbOutReP = (";
-            str += "const array_view<";
+            str += " *gbOutRe = static_cast<";
             str += rType;
-            str += " > *) vectArr[";
+            str += " *> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += rType;
-            str += " > &gbOutRe = *gbOutReP;";
+            str += "]);\n";
             arg++;
-            str += "const array_view<";
             str += rType;
-            str += " > *gbOutImP = (";
-            str += "const array_view<";
+            str += " *gbOutIm = static_cast<";
             str += rType;
-            str += " > *) vectArr[";
+            str += " *> (vectArr[";
             str += SztToStr(arg);
-            str += "];\n";
-            //Dereferencing the pointer
-            str += "const array_view<";
-            str += rType;
-            str += " > &gbOutIm = *gbOutImP;";
+            str += "]);\n";
             arg++;
           }
         }
@@ -3601,15 +3469,21 @@ class Kernel {
         twTable.GenerateTwiddleTable<PR>(radices, str);
         str += "};\n\n";
         // Construct array view from twiddle array
-        str += "const array_view<";
         str += twType;
-        str += "> &";
+        str += " *";
         str += TwTableName();
-        str += " = array_view<";
+        str += " = hc::am_alloc(sizeof(";
         str += twType;
-        str += ">(";
+        str += ") * ";
         str += SztToStr(length - 1);
-        str += ", twiddlev);";
+        str += ", acc, 0);";
+        str += "hc::am_copy(";
+        str += TwTableName();
+        str += ", twiddlev, sizeof(";
+        str += twType;
+        str += ") * ";
+        str += SztToStr(length - 1);
+        str += ");";
       }
 
       str += "\n";
@@ -3619,15 +3493,15 @@ class Kernel {
         twLarge.TwiddleLargeAV<PR>(str);
       }
 
-      str += "\tConcurrency::extent<2> grdExt( ";
+      str += "\thc::extent<2> grdExt( ";
       str += SztToStr(gWorkSize[0]);
       str += ", 1 ); \n";
-      str += "\tConcurrency::tiled_extent< ";
+      str += "\thc::tiled_extent<2> t_ext = grdExt.tile(";
       str += SztToStr(lWorkSize[0]);
-      str += ", 1> t_ext(grdExt);\n";
-      str += "\tConcurrency::parallel_for_each(t_ext, [=] (Concurrency::tiled_index<";
-      str += SztToStr(lWorkSize[0]);
-      str += ", 1> tidx) restrict(amp)\n\t { ";
+      str += ",1);\n";
+
+      str += "\thc::parallel_for_each(t_ext, [=] (hc::tiled_index<2> tidx) [[hc]]\n\t { ";
+
       // Initialize
       str += "\t";
       str += "unsigned int me = tidx.local[0];\n\t";
@@ -3684,6 +3558,8 @@ class Kernel {
         str += IterRegs("", false);
         str += ";\n\n";
       }
+
+      std::cout << "params.fft_N[0] "<<params.fft_N[0] << " params.fft_N[1] "<<params.fft_N[1]<<std::endl;
 
       // Calculate total transform count
       std::string totalBatch = "(";
@@ -4205,7 +4081,21 @@ class Kernel {
         str += "\t}\n\n";
       }
 
-      str += " });\n}}\n\n";
+      str += " }).wait();\n";
+
+      if(length > 1) {
+        str += "hc::am_free(";
+        str += TwTableName();
+        str += ");";
+      }
+
+      if(params.fft_3StepTwiddle) {
+         str += "hc::am_free(";
+        str += TwTableLargeName();
+        str += ");";
+      }
+
+      str += "}}\n\n";
 
       if(r2c2r) {
         break;
