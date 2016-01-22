@@ -88,13 +88,12 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
   uint arg = 0;
   // Declare and define the function
   hcKernWrite( transKernel, 0 ) << "extern \"C\"\n { void" << std::endl;
-  hcKernWrite( transKernel, 0 ) << funcName << "(  std::map<int, void*> vectArr ) \n {";
+  hcKernWrite( transKernel, 0 ) << funcName << "(  std::map<int, void*> vectArr, accelerator &acc ) \n {";
 
   switch( params.fft_inputLayout ) {
     case HCFFT_COMPLEX_INTERLEAVED:
       dtInput = dtComplex;
-      hcKernWrite( transKernel, 0 ) << "const array_view<" << dtInput << "> *pmComplexInP = (const array_view< " << dtInput << "> *)vectArr[" << arg++ << "];";
-      hcKernWrite( transKernel, 0 ) << " const array_view<" << dtInput << " > &" << pmComplexIn << " = *pmComplexInP;";
+      hcKernWrite( transKernel, 0 ) << dtInput << " *"<<pmComplexIn<<" = static_cast< " << dtInput << "*> (vectArr[" << arg++ << "]);";
 
       switch( params.fft_placeness ) {
         case HCFFT_INPLACE:
@@ -105,16 +104,13 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
           switch( params.fft_outputLayout ) {
             case HCFFT_COMPLEX_INTERLEAVED:
               dtOutput = dtComplex;
-              hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << "> *pmComplexOutP = (const array_view< " << dtOutput << "> *)vectArr[" << arg++ << "];";
-              hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput << " > &" << pmComplexOut << " = *pmComplexOutP;";
+              hcKernWrite( transKernel, 0 ) << dtOutput << " *"<< pmComplexOut << " = static_cast< " << dtOutput << "*> (vectArr[" << arg++ << "]);";
               break;
 
             case HCFFT_COMPLEX_PLANAR:
               dtOutput = dtPlanar;
-              hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << "> *pmRealOutP = (const array_view< " << dtOutput << "> *)vectArr[" << arg++ << "];";
-              hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput << " > &" << pmRealOut << " = *pmRealOutP;";
-              hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << "> *pmImagOutP = (const array_view< " << dtOutput << "> *)vectArr[" << arg++ << "];";
-              hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput << " > &" << pmImagOut << " = *pmImagOutP;";
+              hcKernWrite( transKernel, 0 ) << dtOutput << " * "<< pmRealOut << " = static_cast< " << dtOutput << "*> (vectArr[" << arg++ << "]);";
+              hcKernWrite( transKernel, 0 ) << dtOutput << "* "<< pmImagOut << " = static_cast< " << dtOutput << "*> (vectArr[" << arg++ << "]);";
               break;
 
             case HCFFT_HERMITIAN_INTERLEAVED:
@@ -134,10 +130,8 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
 
     case HCFFT_COMPLEX_PLANAR:
       dtInput = dtPlanar;
-      hcKernWrite( transKernel, 0 ) << "const array_view<" << dtInput << "> *pmRealInP = (const array_view< " << dtInput << "> *)vectArr[" << arg++ << "];";
-      hcKernWrite( transKernel, 0 ) << " const array_view<" << dtInput << " > &" << pmRealIn << " = *pmRealInP;";
-      hcKernWrite( transKernel, 0 ) << "const array_view<" << dtInput << "> *pmImagInP = (const array_view< " << dtInput << "> *)vectArr[" << arg++ << "];";
-      hcKernWrite( transKernel, 0 ) << " const array_view<" << dtInput << " > &" << pmImagIn << " = *pmImagInP;";
+      hcKernWrite( transKernel, 0 ) << dtInput << " * " << pmRealIn << " = static_cast< " << dtInput << "*> (vectArr[" << arg++ << "]);";
+      hcKernWrite( transKernel, 0 ) << dtInput << " * " << pmImagIn << " = static_cast< " << dtInput << "*> (vectArr[" << arg++ << "]);";
 
       switch( params.fft_placeness ) {
         case HCFFT_INPLACE:
@@ -148,16 +142,13 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
           switch( params.fft_outputLayout ) {
             case HCFFT_COMPLEX_INTERLEAVED:
               dtOutput = dtComplex;
-              hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << "> *pmComplexOutP = (const array_view< " << dtOutput << "> *)vectArr[" << arg++ << "];";
-              hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput << " > &" << pmComplexOut << " = *pmComplexOutP;";
+              hcKernWrite( transKernel, 0 ) << dtOutput << " *" << pmComplexOut << " = static_cast< " << dtOutput << "*> (vectArr[" << arg++ << "]);";
               break;
 
             case HCFFT_COMPLEX_PLANAR:
               dtOutput = dtPlanar;
-              hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << "> *pmRealOutP = (const array_view< " << dtOutput << "> *)vectArr[" << arg++ << "];";
-              hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput << " > &" << pmRealOut << " = *pmRealOutP;";
-              hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << "> *pmImagOutP = (const array_view< " << dtOutput << "> *)vectArr[" << arg++ << "];";
-              hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput << " > &" << pmImagOut << " = *pmImagOutP;";
+              hcKernWrite( transKernel, 0 ) << dtOutput << " *" << pmRealOut << " = static_cast< " << dtOutput << "*> (vectArr[" << arg++ << "]);";
+              hcKernWrite( transKernel, 0 ) << dtOutput << " *" << pmImagOut << " = static_cast< " << dtOutput << "*> (vectArr[" << arg++ << "]);";
               break;
 
             case HCFFT_HERMITIAN_INTERLEAVED:
@@ -181,8 +172,7 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
 
     case HCFFT_REAL:
       dtInput = dtPlanar;
-      hcKernWrite( transKernel, 0 ) << "const array_view<" << dtInput << "> *pmRealInP = (const array_view< " << dtInput << "> *)vectArr[" << arg++ << "];";
-      hcKernWrite( transKernel, 0 ) << " const array_view<" << dtInput << " > &" << pmRealIn << " = *pmRealInP;";
+      hcKernWrite( transKernel, 0 ) << dtInput << " *" << pmRealIn << " = static_cast< " << dtInput << "*> (vectArr[" << arg++ << "]);";
 
       switch( params.fft_placeness ) {
         case HCFFT_INPLACE:
@@ -199,8 +189,7 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
 
             case HCFFT_REAL:
               dtOutput = dtPlanar;
-              hcKernWrite( transKernel, 0 ) << "const array_view<" << dtOutput << "> *pmRealOutP = (const array_view< " << dtOutput << "> *)vectArr[" << arg++ << "];";
-              hcKernWrite( transKernel, 0 ) << " const array_view<" << dtOutput << " > &" << pmRealOut << " = *pmRealOutP;";
+              hcKernWrite( transKernel, 0 ) << dtOutput << " *" << pmRealOut << " = static_cast<" << dtOutput << "*> (vectArr[" << arg++ << "]);";
               break;
 
             default:
@@ -285,14 +274,12 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 
     funcName += SztToStr(count);
     genTransposePrototype( params, lwSize, dtPlanar, dtComplex, funcName, transKernel, dtInput, dtOutput );
-    hcKernWrite( transKernel, 3 ) << "\tConcurrency::extent<2> grdExt( ";
-    hcKernWrite( transKernel, 3 ) <<  SztToStr(gWorkSize[0]) << ", " << SztToStr(gWorkSize[1]) << "); \n" << "\tConcurrency::tiled_extent< ";
-    hcKernWrite( transKernel, 3 ) <<  SztToStr(lwSize.x) << ", " << SztToStr(lwSize.y) << "> t_ext(grdExt);\n";
-    hcKernWrite( transKernel, 3 ) << "\tConcurrency::parallel_for_each(t_ext, [=] (Concurrency::tiled_index<";
-    hcKernWrite( transKernel, 3 ) <<  SztToStr(lwSize.x);
-    hcKernWrite( transKernel, 3 ) <<  ", " << SztToStr(lwSize.y) << " > tidx) restrict(amp)\n\t { ";
+    hcKernWrite( transKernel, 3 ) << "\thc::extent<2> grdExt( ";
+    hcKernWrite( transKernel, 3 ) <<  SztToStr(gWorkSize[0]) << ", " << SztToStr(gWorkSize[1]) << "); \n" << "\thc::tiled_extent<2> t_ext = grdExt.tile(";
+    hcKernWrite( transKernel, 3 ) <<  SztToStr(lwSize.x) << ", " << SztToStr(lwSize.y) << ");\n";
+    hcKernWrite( transKernel, 3 ) << "\thc::parallel_for_each(t_ext, [=] (hc::tiled_index<2> &tidx) [[hc]]\n\t { ";
     hcKernWrite( transKernel, 3 ) << "const uint_2 localIndex( tidx.local[0] , tidx.local[1]); " << std::endl;
-    hcKernWrite( transKernel, 3 ) << "const uint_2 localExtent( t_ext.tile_dim0, t_ext.tile_dim1); " << std::endl;
+    hcKernWrite( transKernel, 3 ) << "const uint_2 localExtent( tidx.tile_dim[0], tidx.tile_dim[1]); " << std::endl;
     hcKernWrite( transKernel, 3 ) << "const uint_2 groupIndex(tidx.tile[0] , tidx.tile[1]);" << std::endl;
     hcKernWrite( transKernel, 3 ) << std::endl;
     hcKernWrite( transKernel, 3 ) << "// Calculate the unit address (in terms of datatype) of the beginning of the Tile for the WG block" << std::endl;
@@ -350,8 +337,8 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
         break;
 
       case HCFFT_COMPLEX_PLANAR:
-        hcKernWrite( transKernel, 3 ) << "global realTileInOffset = iOffset;" << std::endl;
-        hcKernWrite( transKernel, 3 ) << "global imagTileInOffset = iOffset;" << std::endl;
+        hcKernWrite( transKernel, 3 ) << "uint realTileInOffset = iOffset;" << std::endl;
+        hcKernWrite( transKernel, 3 ) << "uint imagTileInOffset = iOffset;" << std::endl;
         break;
 
       case HCFFT_HERMITIAN_INTERLEAVED:
@@ -359,7 +346,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
         return HCFFT_INVALID;
 
       case HCFFT_REAL:
-        hcKernWrite( transKernel, 3 ) << "global tileInOffset = iOffset;" << std::endl;
+        hcKernWrite( transKernel, 3 ) << "uint tileInOffset = iOffset;" << std::endl;
         break;
     }
 
@@ -653,7 +640,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
       }
     }
 
-    hcKernWrite( transKernel, 0 ) << "});\n}}\n" << std::endl;
+    hcKernWrite( transKernel, 0 ) << "}).wait();\n}}\n" << std::endl;
     strKernel += transKernel.str( );
     //std::cout << strKernel;
 
