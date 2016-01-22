@@ -259,15 +259,21 @@ class TwiddleTableLarge {
 
     ss << "};\n\n";
     // Construct array view from twiddlel array
-    ss << "const array_view<";
     ss << RegBaseType<PR>(2);
-    ss << "> &";
+    ss << " *";
     ss << TwTableLargeName();
-    ss << " = array_view<";
+    ss << " = hc::am_alloc(sizeof(";
     ss << RegBaseType<PR>(2);
-    ss << ">(";
+    ss << ") * ";
     ss << SztToStr(Y * X);
-    ss << ", twiddlel);";
+    ss << ", acc, 0);\n\t";
+    ss << "hc::am_copy(";
+    ss << TwTableLargeName();
+    ss << ", twiddlel, ";
+    ss << SztToStr(Y * X);
+    ss << " * sizeof(";
+    ss << RegBaseType<PR>(2);
+    ss << "));";
     twStr += ss.str();
   }
 
@@ -278,7 +284,9 @@ class TwiddleTableLarge {
       // Twiddle calc function
       ss << "inline ";
       ss << RegBaseType<PR>(2);
-      ss << "\n" << TwTableLargeFunc() << "(unsigned int u, const array_view<const float_2> &";
+      ss << "\n" << TwTableLargeFunc() << "(unsigned int u, ";
+      ss << RegBaseType<PR>(2);
+      ss << " *";
       ss << TwTableLargeName();
       ss << ")\n{\n";
       ss << "\t" "unsigned int j = u & " << unsigned(X - 1) << ";\n";
@@ -355,7 +363,7 @@ class Butterfly {
       }
     }
 
-    bflyStr += " restrict(amp)\n{\n\n";
+    bflyStr += " __attribute__((hc))\n{\n\n";
 
     // Temporary variables
     // Allocate temporary variables if we are not using complex registers (cReg = 0) or if cReg is true, then
@@ -468,7 +476,7 @@ class Butterfly {
                 "\n\t"
                 "(R2[0]) = (R0[0]) - (R2[0]);\n\t"
                 "(R0[0]) = 2.0f * (R0[0]) - (R2[0]);\n\t"
-                "(R3[0]) = (R1[0]) + fvect2(-(R3[0]).y, (R3[0]).x);\n\t"
+                "(R3[0]) = (R1[0]) + float_2(-(R3[0]).y, (R3[0]).x);\n\t"
                 "(R1[0]) = 2.0f * (R1[0]) - (R3[0]);\n\t";
             } else {
               bflyStr +=
@@ -493,7 +501,7 @@ class Butterfly {
                 "\n\t"
                 "(R2[0]) = (R0[0]) - (R2[0]);\n\t"
                 "(R0[0]) = 2.0f * (R0[0]) - (R2[0]);\n\t"
-                "(R3[0]) = (R1[0]) + fvect2((R3[0]).y, -(R3[0]).x);\n\t"
+                "(R3[0]) = (R1[0]) + float_2((R3[0]).y, -(R3[0]).x);\n\t"
                 "(R1[0]) = 2.0f * (R1[0]) - (R3[0]);\n\t";
             } else {
               bflyStr +=
@@ -1111,20 +1119,20 @@ class Butterfly {
                 "\n\t"
                 "(R2[0]) = (R0[0]) - (R2[0]);\n\t"
                 "(R0[0]) = 2.0f * (R0[0]) - (R2[0]);\n\t"
-                "(R3[0]) = (R1[0]) + fvect2(-(R3[0]).y, (R3[0]).x);\n\t"
+                "(R3[0]) = (R1[0]) + float_2(-(R3[0]).y, (R3[0]).x);\n\t"
                 "(R1[0]) = 2.0f * (R1[0]) - (R3[0]);\n\t"
                 "(R6[0]) = (R4[0]) - (R6[0]);\n\t"
                 "(R4[0]) = 2.0f * (R4[0]) - (R6[0]);\n\t"
-                "(R7[0]) = (R5[0]) + fvect2(-(R7[0]).y, (R7[0]).x);\n\t"
+                "(R7[0]) = (R5[0]) + float_2(-(R7[0]).y, (R7[0]).x);\n\t"
                 "(R5[0]) = 2.0f * (R5[0]) - (R7[0]);\n\t"
                 "\n\t"
                 "(R4[0]) = (R0[0]) - (R4[0]);\n\t"
                 "(R0[0]) = 2.0f * (R0[0]) - (R4[0]);\n\t"
-                "(R5[0]) = ((R1[0]) - C8Q * (R5[0])) - C8Q * fvect2((R5[0]).y, -(R5[0]).x);\n\t"
+                "(R5[0]) = ((R1[0]) - C8Q * (R5[0])) - C8Q * float_2((R5[0]).y, -(R5[0]).x);\n\t"
                 "(R1[0]) = 2.0f * (R1[0]) - (R5[0]);\n\t"
-                "(R6[0]) = (R2[0]) + fvect2(-(R6[0]).y, (R6[0]).x);\n\t"
+                "(R6[0]) = (R2[0]) + float_2(-(R6[0]).y, (R6[0]).x);\n\t"
                 "(R2[0]) = 2.0f * (R2[0]) - (R6[0]);\n\t"
-                "(R7[0]) = ((R3[0]) + C8Q * (R7[0])) - C8Q * fvect2((R7[0]).y, -(R7[0]).x);\n\t"
+                "(R7[0]) = ((R3[0]) + C8Q * (R7[0])) - C8Q * float_2((R7[0]).y, -(R7[0]).x);\n\t"
                 "(R3[0]) = 2.0f * (R3[0]) - (R7[0]);\n\t";
             } else {
               bflyStr +=
@@ -1161,20 +1169,20 @@ class Butterfly {
                 "\n\t"
                 "(R2[0]) = (R0[0]) - (R2[0]);\n\t"
                 "(R0[0]) = 2.0f * (R0[0]) - (R2[0]);\n\t"
-                "(R3[0]) = (R1[0]) + fvect2((R3[0]).y, -(R3[0]).x);\n\t"
+                "(R3[0]) = (R1[0]) + float_2((R3[0]).y, -(R3[0]).x);\n\t"
                 "(R1[0]) = 2.0f * (R1[0]) - (R3[0]);\n\t"
                 "(R6[0]) = (R4[0]) - (R6[0]);\n\t"
                 "(R4[0]) = 2.0f * (R4[0]) - (R6[0]);\n\t"
-                "(R7[0]) = (R5[0]) + fvect2((R7[0]).y, -(R7[0]).x);\n\t"
+                "(R7[0]) = (R5[0]) + float_2((R7[0]).y, -(R7[0]).x);\n\t"
                 "(R5[0]) = 2.0f * (R5[0]) - (R7[0]);\n\t"
                 "\n\t"
                 "(R4[0]) = (R0[0]) - (R4[0]);\n\t"
                 "(R0[0]) = 2.0f * (R0[0]) - (R4[0]);\n\t"
-                "(R5[0]) = ((R1[0]) - C8Q * (R5[0])) + C8Q * fvect2((R5[0]).y, -(R5[0]).x);\n\t"
+                "(R5[0]) = ((R1[0]) - C8Q * (R5[0])) + C8Q * float_2((R5[0]).y, -(R5[0]).x);\n\t"
                 "(R1[0]) = 2.0f * (R1[0]) - (R5[0]);\n\t"
-                "(R6[0]) = (R2[0]) + fvect2((R6[0]).y, -(R6[0]).x);\n\t"
+                "(R6[0]) = (R2[0]) + float_2((R6[0]).y, -(R6[0]).x);\n\t"
                 "(R2[0]) = 2.0f * (R2[0]) - (R6[0]);\n\t"
-                "(R7[0]) = ((R3[0]) + C8Q * (R7[0])) + C8Q * fvect2((R7[0]).y, -(R7[0]).x);\n\t"
+                "(R7[0]) = ((R3[0]) + C8Q * (R7[0])) + C8Q * float_2((R7[0]).y, -(R7[0]).x);\n\t"
                 "(R3[0]) = 2.0f * (R3[0]) - (R7[0]);\n\t";
             } else {
               bflyStr +=
