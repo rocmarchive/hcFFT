@@ -44,7 +44,7 @@ cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_CO
 mkdir -p /tmp/kernCache
 
 # Simple test to confirm installation
-$build_dir/test/src/fft 2 12
+#$build_dir/test/src/fft 2 12
 
 # TODO: ADD More options to perform benchmark and testing
 

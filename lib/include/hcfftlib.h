@@ -3,16 +3,16 @@
 
 #include <iostream>
 #include <stdio.h>
-#include <amp.h>
-#include <amp_math.h>
-#include <amp_short_vectors.h>
 #include <complex>
 #include <unistd.h>
 #include "lock.h"
 #include <dirent.h>
+#include <hc.hpp>
+#include <hc_short_vector.hpp>
+#include "hc_am.hpp"
 
-using namespace Concurrency;
-using namespace Concurrency::graphics;
+using namespace hc;
+using namespace hc::short_vector;
 
 #define HCFFT_CB_NY 0
 #define HCFFT_CB_NZ 1
@@ -67,7 +67,7 @@ typedef enum hcfftLayout_ {
 typedef enum hcfftDirection_ {
   HCFFT_FORWARD = -1,
   HCFFT_BACKWARD = 1,
-  HCFFT_BOTH = 0
+  HCFFT_BOTH = 0,
 } hcfftDirection;
 
 typedef enum hcfftResLocation_ {
@@ -148,13 +148,13 @@ inline std::string SztToStr(size_t i) {
 
 inline std::string hcHeader() {
   return "#include \"hcfftlib.h\"\n"
-         "#include <amp.h>\n"
-         "#include <amp_math.h>\n"
+         "#include <hc.hpp>\n"
+         "#include <hc_am.hpp>\n"
          "#include <stdio.h>\n"
+         "#include <hc_short_vector.hpp>\n"
          "#include <iostream>\n"
-         "#include <amp_short_vectors.h>\n"
-         "using namespace Concurrency;\n"
-         "using namespace Concurrency::graphics;\n";
+         "using namespace hc;\n"
+         "using namespace hc::short_vector;\n";
 }
 
 static size_t width(hcfftPrecision precision) {
@@ -360,6 +360,7 @@ class FFTRepo;
 
 class FFTPlan {
  public:
+  accelerator acc;
   hcfftDim dimension;
   hcfftIpLayout ipLayout;
   hcfftOpLayout opLayout;
@@ -407,13 +408,13 @@ class FFTPlan {
   size_t  large1D_Xfactor;
 
   size_t tmpBufSize;
-  Concurrency::array_view<float>* intBuffer;
+  float* intBuffer;
 
   size_t tmpBufSizeRC;
-  Concurrency::array_view<float>* intBufferRC;
+  float* intBufferRC;
 
   size_t  tmpBufSizeC2R;
-  Concurrency::array_view<float>* intBufferC2R;
+  float* intBufferC2R;
 
   bool transflag;
   bool transOutHorizontal;
@@ -422,7 +423,7 @@ class FFTPlan {
   bool  large2D;
   size_t  cacheSize;
 
-  Concurrency::array_view<float>* const_buffer;
+  float* const_buffer;
 
   // Real-Complex simple flag
   // if this is set we do real to-and-from full complex using simple algorithm
@@ -458,14 +459,14 @@ class FFTPlan {
     blockCompute(false), blockComputeType(BCT_C2C) {
   };
 
-  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir);
+  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, accelerator acc);
 
   hcfftStatus hcfftBakePlan(hcfftPlanHandle plHandle);
 
   hcfftStatus hcfftDestroyPlan(hcfftPlanHandle* plHandle);
 
-  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, Concurrency::array_view<float>* inputBuffers,
-                                    Concurrency::array_view<float>* outputBuffers, Concurrency::array_view<float>* tmpBuffer);
+  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, float* inputBuffers,
+                                    float* outputBuffers, float* tmpBuffer);
 
   hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 

@@ -4,9 +4,9 @@
 #include "hcfftlib.h"
 
 typedef float hcfftReal;
-typedef float2 hcfftComplex;
+typedef float_2 hcfftComplex;
 typedef double hcfftDoubleReal;
-typedef double2 hcfftDoubleComplex;
+typedef double_2 hcfftDoubleComplex;
 
 /* hcfft API Specification */
 
@@ -186,9 +186,9 @@ hcfftResult hcfftDestroy(hcfftHandle plan);
   HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize. */
 
 
-hcfftResult hcfftExecC2C(hcfftHandle plan, Concurrency::array_view<hcfftComplex> *idata, Concurrency::array_view<hcfftComplex> *odata, int direction);
+hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex *idata, hcfftComplex *odata, int direction);
 
-hcfftResult hcfftExecZ2Z(hcfftHandle plan, Concurrency::array_view<hcfftDoubleComplex> *idata, Concurrency::array_view<hcfftDoubleComplex> *odata, int direction);
+hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubleComplex *odata, int direction);
 
 /*
   Functions hcfftExecR2C() and hcfftExecD2Z()
@@ -221,8 +221,8 @@ hcfftResult hcfftExecZ2Z(hcfftHandle plan, Concurrency::array_view<hcfftDoubleCo
   HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize.
 */  
 
-hcfftResult hcfftExecR2C(hcfftHandle plan, Concurrency::array_view<hcfftReal> *idata, Concurrency::array_view<hcfftComplex> *odata);
-hcfftResult hcfftExecD2Z(hcfftHandle plan, Concurrency::array_view<hcfftDoubleReal> *idata, Concurrency::array_view<hcfftDoubleComplex> *odata);
+hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata);
+hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal *idata, hcfftDoubleComplex *odata);
 
 /* Functions hcfftExecC2R() and hcfftExecZ2D()
 
@@ -254,7 +254,7 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, Concurrency::array_view<hcfftDoubleRe
   HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize.
 */
 
-hcfftResult hcfftExecC2R(hcfftHandle plan, Concurrency::array_view<hcfftComplex> *idata, Concurrency::array_view<hcfftReal> *odata);
-hcfftResult hcfftExecZ2D(hcfftHandle plan, Concurrency::array_view<hcfftComplex> *idata, Concurrency::array_view<hcfftReal> *odata);
+hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata);
+hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata);
 
 #endif

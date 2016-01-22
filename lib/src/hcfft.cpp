@@ -3,6 +3,22 @@
 // Global Static plan object
 FFTPlan planObject;
 
+/* Function hcfftXtSetGPUs()
+Returns GPUs are to be used with the plan
+*/
+hcfftResult hcfftXtSetGPUs(accelerator &acc)
+{
+  std::vector<accelerator> accs = accelerator::get_all();
+  if(accs.size() == 0) {
+    std::wcout << "There is no acclerator!\n";
+    // Since this case is to test on GPU device, skip if there is CPU only
+    return HCFFT_SETUP_FAILED;
+  }
+  assert(accs.size() && "Number of Accelerators == 0!");
+  acc = accs[1];
+  return HCFFT_SUCCESS;
+}
+
 /* Function hcfftCreate()
 Creates only an opaque handle, and allocates small data structures on the host.
 */
@@ -96,9 +112,13 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
   hcfftResult res = hcfftCreate(plan);
   if(res != HCFFT_SUCCESS)
     return HCFFT_ALLOC_FAILED;
-  
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction);
 
+  accelerator acc;
+  res = hcfftXtSetGPUs(acc);
+  if(res != HCFFT_SUCCESS)
+    return HCFFT_SETUP_FAILED;
+
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc);
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
   }
@@ -206,7 +226,12 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
   if(res != HCFFT_SUCCESS)
     return HCFFT_ALLOC_FAILED;
 
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction);
+  accelerator acc;
+  res = hcfftXtSetGPUs(acc);
+  if(res != HCFFT_SUCCESS)
+    return HCFFT_SETUP_FAILED;
+
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc);
 
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
@@ -317,7 +342,12 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
   if(res != HCFFT_SUCCESS)
     return HCFFT_ALLOC_FAILED;
 
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction);
+  accelerator acc;
+  res = hcfftXtSetGPUs(acc);
+  if(res != HCFFT_SUCCESS)
+    return HCFFT_SETUP_FAILED;
+
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc);
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
   } 
@@ -398,7 +428,7 @@ hcfftResult hcfftDestroy(hcfftHandle plan) {
    HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize.
 */
 
-hcfftResult hcfftExecR2C(hcfftHandle plan, Concurrency::array_view<hcfftReal> *idata, Concurrency::array_view<hcfftComplex> *odata)
+hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata)
 {
   // Nullity check
   if( idata == NULL || odata == NULL) {
@@ -408,7 +438,7 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, Concurrency::array_view<hcfftReal> *i
   // TODO: Check validity of plan
   
   hcfftDirection dir = HCFFT_FORWARD;
-  Concurrency::array_view<hcfftReal> odataR = odata->reinterpret_as<hcfftReal>();
+  hcfftReal *odataR = (hcfftReal*)odata;
 
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
   if(status != HCFFT_SUCCEEDS) {
@@ -420,7 +450,7 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, Concurrency::array_view<hcfftReal> *i
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, dir, idata, &odataR, NULL);
+  status = planObject.hcfftEnqueueTransform(plan, dir, idata, odataR, NULL);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }
@@ -457,7 +487,7 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, Concurrency::array_view<hcfftReal> *i
    HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize.
 */
 
-hcfftResult hcfftExecC2R(hcfftHandle plan, Concurrency::array_view<hcfftComplex> *idata, Concurrency::array_view<hcfftReal> *odata)
+hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata)
 {
   // Nullity check
   if( idata == NULL || odata == NULL) {
@@ -467,7 +497,7 @@ hcfftResult hcfftExecC2R(hcfftHandle plan, Concurrency::array_view<hcfftComplex>
   // TODO: Check validity of plan
 
   hcfftDirection dir = HCFFT_BACKWARD;
-  Concurrency::array_view<hcfftReal> idataR = idata->reinterpret_as<hcfftReal>();
+  hcfftReal *idataR = (hcfftReal*)idata;
 
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
   if(status != HCFFT_SUCCEEDS) {
@@ -479,7 +509,7 @@ hcfftResult hcfftExecC2R(hcfftHandle plan, Concurrency::array_view<hcfftComplex>
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, dir, &idataR, odata, NULL);
+  status = planObject.hcfftEnqueueTransform(plan, dir, idataR, odata, NULL);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }
@@ -514,7 +544,7 @@ hcfftResult hcfftExecC2R(hcfftHandle plan, Concurrency::array_view<hcfftComplex>
    HCFFT_EXEC_FAILED 	hcFFT failed to execute the transform on the GPU.
    HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize. */
 
-hcfftResult hcfftExecC2C(hcfftHandle plan, Concurrency::array_view<hcfftComplex> *idata, Concurrency::array_view<hcfftComplex> *odata, int direction)
+hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex *idata, hcfftComplex *odata, int direction)
 {
   // Nullity check
   if( idata == NULL || odata == NULL) {
@@ -523,8 +553,8 @@ hcfftResult hcfftExecC2C(hcfftHandle plan, Concurrency::array_view<hcfftComplex>
 
   // TODO: Check validity of plan
 
-  Concurrency::array_view<hcfftReal> idataR = idata->reinterpret_as<hcfftReal>();
-  Concurrency::array_view<hcfftReal> odataR = odata->reinterpret_as<hcfftReal>();
+  hcfftReal *idataR = (hcfftReal*)idata;
+  hcfftReal *odataR = (hcfftReal*)odata;
 
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
   if(status != HCFFT_SUCCEEDS) {
@@ -536,7 +566,7 @@ hcfftResult hcfftExecC2C(hcfftHandle plan, Concurrency::array_view<hcfftComplex>
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, (hcfftDirection)direction, &idataR, &odataR, NULL);
+  status = planObject.hcfftEnqueueTransform(plan, (hcfftDirection)direction, idataR, odataR, NULL);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }

@@ -33,29 +33,29 @@ IF(WIN32)
 ELSE(WIN32)
   # Choice to take compilation flags from source or package
   if(EXISTS ${MCWHCCBUILD})
-    execute_process(COMMAND ${CLAMP_CONFIG} --build --cxxflags
-                            OUTPUT_VARIABLE CLAMP_CXXFLAGS)
-    execute_process(COMMAND ${CLAMP_CONFIG} --build --ldflags --shared
-                            OUTPUT_VARIABLE CLAMP_LDFLAGS)
+    execute_process(COMMAND ${HCC_CONFIG} --build --cxxflags
+                            OUTPUT_VARIABLE HCC_CXXFLAGS)
+    execute_process(COMMAND ${HCC_CONFIG} --build --ldflags --shared
+                            OUTPUT_VARIABLE HCC_LDFLAGS)
   else(EXISTS ${MCWHCCBUILD})
-    execute_process(COMMAND ${CLAMP_CONFIG} --install --cxxflags
-                            OUTPUT_VARIABLE CLAMP_CXXFLAGS)
-    execute_process(COMMAND ${CLAMP_CONFIG} --install --ldflags --shared
-                            OUTPUT_VARIABLE CLAMP_LDFLAGS)
+    execute_process(COMMAND ${HCC_CONFIG} --cxxflags
+                            OUTPUT_VARIABLE HCC_CXXFLAGS)
+    execute_process(COMMAND ${HCC_CONFIG} --ldflags --shared
+                            OUTPUT_VARIABLE HCC_LDFLAGS)
   endif(EXISTS ${MCWHCCBUILD})
 
   
-  string(STRIP "${CLAMP_CXXFLAGS}" CLAMP_CXXFLAGS)
-  string(STRIP "${CLAMP_LDFLAGS}" CLAMP_LDFLAGS)
-  set (CLAMP_CXXFLAGS "${CLAMP_CXXFLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/../include")
-  set (CLAMP_LDFLAGS "${CLAMP_LDFLAGS}")
+  string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
+  string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
+  set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/../include")
+  set (HCC_LDFLAGS "${HCC_LDFLAGS}")
 
   FOREACH(src_file ${SRCS})
-    SET_PROPERTY(SOURCE ${src_file} APPEND_STRING PROPERTY COMPILE_FLAGS " ${CLAMP_CXXFLAGS}")
+    SET_PROPERTY(SOURCE ${src_file} APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS}")
   ENDFOREACH()
 
   ADD_EXECUTABLE("${PROJECT_NAME}.so" ${SRCS})
-  SET_PROPERTY(TARGET "${PROJECT_NAME}.so" APPEND_STRING PROPERTY LINK_FLAGS " ${CLAMP_LDFLAGS}")
+  SET_PROPERTY(TARGET "${PROJECT_NAME}.so" APPEND_STRING PROPERTY LINK_FLAGS " ${HCC_LDFLAGS} -lhc_am")
   INSTALL(TARGETS "${PROJECT_NAME}.so" DESTINATION "/usr/lib/")
   FILE(GLOB HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h)
   INSTALL(FILES ${HEADERS} DESTINATION include)

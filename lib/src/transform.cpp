@@ -1,6 +1,5 @@
 #include <dlfcn.h>
 #include "hcfftlib.h"
-#include <unistd.h>
 
 //  Static initialization of the repo lock variable
 lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
@@ -113,6 +112,7 @@ hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators g
 
   fflush(fp);
   fclose(fp);
+
   return  HCFFT_SUCCEEDS;
 }
 
@@ -161,7 +161,6 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
 
   if(!exist) {
     WriteKernel( plHandle, gen, fftParams, filename, writeFlag);
-
     // Check if the default compiler path exists
     std::string execCmd; 
     char fname[256] = "/opt/hcc/bin/clang++";
@@ -169,7 +168,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
       // compiler exists
       // install_mode = true;
       string Path = "/opt/hcc/bin/";
-      execCmd = Path + "/clang++ `" + Path + "/clamp-config --install --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
+      execCmd = Path + "/clang++ `" + Path + "/hcc-config --install --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
     } 
     else if ( access ( getenv ("MCWHCCBUILD"), F_OK ) != -1) {
       // TODO: This path shall be removed. User shall build from default path
@@ -178,7 +177,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
       // build_mode = true;
       char* compilerPath = getenv ("MCWHCCBUILD");
       std::string Path(compilerPath);
-      std::string execCmd = Path + "/compiler/bin/clang++ `" + Path + "/build/Release/bin/clamp-config --build --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
+      std::string execCmd = Path + "/compiler/bin/clang++ `" + Path + "/build/Release/bin/hcc-config --build --cxxflags --ldflags --shared` -lhc_am " + filename + " -o " + kernellib ;
     }
     else {
       // No compiler found
@@ -187,6 +186,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
     }
     system(execCmd.c_str());
   }
+
   // get a kernel object handle for a kernel with the given name
   if(buildFwdKernel) {
     std::string entryPoint;
@@ -335,7 +335,7 @@ hcfftStatus hcfftCreateDefaultPlanInternal (hcfftPlanHandle* plHandle, hcfftDim 
 
 // This external entry-point should not be called from within the library. Use clfftCreateDefaultPlanInternal instead.
 hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hcfftDim dim,
-    const size_t* clLengths, hcfftDirection dir) {
+    const size_t* clLengths, hcfftDirection dir, accelerator acc) {
   hcfftStatus ret = hcfftCreateDefaultPlanInternal(plHandle, dim, clLengths);
   originalLength.clear();
 
@@ -351,14 +351,15 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
     fftPlan->count = 0;
     fftPlan->plHandleOrigin = *plHandle;
     fftPlan->userPlan = true;
+    fftPlan->acc = acc;
     exist = checkIfsoExist(dir);
   }
 
   return ret;
 }
 
-hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, Concurrency::array_view<float>* clInputBuffers,
-    Concurrency::array_view<float>* clOutputBuffers, Concurrency::array_view<float>* clTmpBuffers) {
+hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, float* clInputBuffers,
+    float* clOutputBuffers, float* clTmpBuffers) {
   hcfftStatus status = HCFFT_SUCCEEDS;
   std::map<int, void*> vectArr;
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
@@ -380,36 +381,28 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
     dir = HCFFT_BACKWARD;
   }
 
+  float* localIntBuffer = hc::am_alloc(fftPlan->tmpBufSize, fftPlan->acc, 0);
   // we do not check the user provided buffer at this release
-  Concurrency::array_view<float>* localIntBuffer = clTmpBuffers;
+  hc::am_copy(localIntBuffer, clTmpBuffers, fftPlan->tmpBufSize);
 
   if( clTmpBuffers == NULL && fftPlan->tmpBufSize > 0 && fftPlan->intBuffer == NULL) {
     // create the intermediate buffers
     // The intermediate buffer is always interleave and packed
     // For outofplace operation, we have the choice not to create intermediate buffer
     // input ->(col+Transpose) output ->(col) output
-    float* init = (float*)calloc(fftPlan->tmpBufSize / sizeof(float), sizeof(float));
-    Concurrency::array<float> arr = Concurrency::array<float>(Concurrency::extent<1>(fftPlan->tmpBufSize / sizeof(float)), init);
-    fftPlan->intBuffer = new Concurrency::array_view<float>(arr);
-    free(init);
+    fftPlan->intBuffer = hc::am_alloc(fftPlan->tmpBufSize, fftPlan->acc , 0);
   }
 
   if( localIntBuffer == NULL && fftPlan->intBuffer != NULL ) {
-    localIntBuffer = fftPlan->intBuffer;
+    hc::am_copy(localIntBuffer, fftPlan->intBuffer, fftPlan->tmpBufSize);
   }
 
   if( fftPlan->intBufferRC == NULL && fftPlan->tmpBufSizeRC > 0 ) {
-    float* init = (float*)calloc(fftPlan->tmpBufSizeRC / sizeof(float), sizeof(float));
-    Concurrency::array<float> arr = Concurrency::array<float>(Concurrency::extent<1>(fftPlan->tmpBufSizeRC / sizeof(float)), init);
-    fftPlan->intBufferRC = new Concurrency::array_view<float>(arr);
-    free(init);
+    fftPlan->intBufferRC = hc::am_alloc(fftPlan->tmpBufSizeRC, fftPlan->acc , 0);
   }
 
   if( fftPlan->intBufferC2R == NULL && fftPlan->tmpBufSizeC2R > 0 ) {
-    float* init = (float*)calloc(fftPlan->tmpBufSizeC2R / sizeof(float), sizeof(float));
-    Concurrency::array<float> arr = Concurrency::array<float>(Concurrency::extent<1>(fftPlan->tmpBufSizeC2R / sizeof(float)), init);
-    fftPlan->intBufferC2R = new Concurrency::array_view<float>(arr);
-    free(init);
+    fftPlan->intBufferC2R = hc::am_alloc(fftPlan->tmpBufSizeC2R, fftPlan->acc , 0);
   }
 
   //  The largest vector we can transform in a single pass
@@ -431,73 +424,98 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             //First transpose
             // Input->tmp
             hcfftEnqueueTransform( fftPlan->planTX, dir, clInputBuffers, localIntBuffer, NULL);
-            Concurrency::array_view<float>* mybuffers;
 
-            if (fftPlan->location == HCFFT_INPLACE) {
-              mybuffers = clInputBuffers;
+	    if (fftPlan->location == HCFFT_INPLACE) {
+              //First Row
+              //tmp->output
+              hcfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, fftPlan->intBufferRC, NULL );
+              //Second Transpose
+              // output->tmp
+              hcfftEnqueueTransform( fftPlan->planTY, dir, fftPlan->intBufferRC, localIntBuffer, NULL );
+              //Second Row
+              //tmp->tmp, inplace
+              hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, fftPlan->intBufferRC, NULL );
+              //Third Transpose
+              // tmp->output
+              hcfftEnqueueTransform( fftPlan->planTZ, dir, fftPlan->intBufferRC, clInputBuffers, NULL );
             } else {
-              mybuffers = clOutputBuffers;
-            }
-
-            //First Row
-            //tmp->output
-            hcfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, fftPlan->intBufferRC, NULL );
-            //Second Transpose
-            // output->tmp
-            hcfftEnqueueTransform( fftPlan->planTY, dir, fftPlan->intBufferRC, localIntBuffer, NULL );
-            //Second Row
-            //tmp->tmp, inplace
-            hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, fftPlan->intBufferRC, NULL );
-            //Third Transpose
-            // tmp->output
-            hcfftEnqueueTransform( fftPlan->planTZ, dir, fftPlan->intBufferRC, mybuffers, NULL );
+              //First Row
+              //tmp->output
+              hcfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, fftPlan->intBufferRC, NULL );
+              //Second Transpose
+              // output->tmp
+              hcfftEnqueueTransform( fftPlan->planTY, dir, fftPlan->intBufferRC, localIntBuffer, NULL );
+              //Second Row
+              //tmp->tmp, inplace
+              hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, fftPlan->intBufferRC, NULL );
+              //Third Transpose
+              // tmp->output
+              hcfftEnqueueTransform( fftPlan->planTZ, dir, fftPlan->intBufferRC, clOutputBuffers, NULL );
+	    }
           } else if ( fftPlan->ipLayout == HCFFT_REAL ) {
             // First pass
             // column with twiddle first, OUTOFPLACE, + transpose
             hcfftEnqueueTransform( fftPlan->planX, HCFFT_FORWARD, clInputBuffers, fftPlan->intBufferRC, localIntBuffer);
             // another column FFT output, INPLACE
             hcfftEnqueueTransform( fftPlan->planY, HCFFT_FORWARD, fftPlan->intBufferRC, fftPlan->intBufferRC, localIntBuffer );
-            Concurrency::array_view<float>* out_local;
-            out_local = (fftPlan->location == HCFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
-            // copy from full complex to hermitian
-            hcfftEnqueueTransform( fftPlan->planRCcopy, HCFFT_FORWARD, fftPlan->intBufferRC, out_local, localIntBuffer );
+            if(fftPlan->location == HCFFT_INPLACE) {
+	      // copy from full complex to hermitian
+              hcfftEnqueueTransform( fftPlan->planRCcopy, HCFFT_FORWARD, fftPlan->intBufferRC, clInputBuffers, localIntBuffer );
+	    }
+	    else
+            {
+              hcfftEnqueueTransform( fftPlan->planRCcopy, HCFFT_FORWARD, fftPlan->intBufferRC, clOutputBuffers, localIntBuffer );
+	    }
           } else if( fftPlan->opLayout == HCFFT_REAL ) {
             // copy from hermitian to full complex
             hcfftEnqueueTransform( fftPlan->planRCcopy, HCFFT_BACKWARD, clInputBuffers, fftPlan->intBufferRC, localIntBuffer );
             // First pass
             // column with twiddle first, INPLACE,
             hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, fftPlan->intBufferRC, fftPlan->intBufferRC, localIntBuffer);
-            Concurrency::array_view<float>* out_local;
-            out_local = (fftPlan->location == HCFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
-            // another column FFT output, OUTOFPLACE + transpose
-            hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, fftPlan->intBufferRC, out_local, localIntBuffer );
+            if(fftPlan->location == HCFFT_INPLACE) {
+	      // another column FFT output, OUTOFPLACE + transpose
+              hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, fftPlan->intBufferRC, clInputBuffers, localIntBuffer );
+	    }
+	    else
+	    {
+              hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, fftPlan->intBufferRC, clOutputBuffers, localIntBuffer );
+	    }
             return  HCFFT_SUCCEEDS;
           } else {
             if (fftPlan->transflag) {
               //First transpose
               // Input->tmp
               hcfftEnqueueTransform( fftPlan->planTX, dir, clInputBuffers, localIntBuffer, NULL );
-              Concurrency::array_view<float>* mybuffers;
 
               if (fftPlan->location == HCFFT_INPLACE) {
-                mybuffers = clInputBuffers;
-              } else {
-                mybuffers = clOutputBuffers;
-              }
-
               //First Row
               //tmp->output
-              hcfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, mybuffers, NULL );
+              hcfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, clInputBuffers, NULL );
               //Second Transpose
               // output->tmp
-              hcfftEnqueueTransform( fftPlan->planTY, dir, mybuffers, localIntBuffer, NULL );
+              hcfftEnqueueTransform( fftPlan->planTY, dir, clInputBuffers, localIntBuffer, NULL );
               //Second Row
               //tmp->tmp, inplace
               hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
               //Third Transpose
               // tmp->output
-              hcfftEnqueueTransform( fftPlan->planTZ, dir, localIntBuffer, mybuffers, NULL );
+              hcfftEnqueueTransform( fftPlan->planTZ, dir, localIntBuffer, clInputBuffers, NULL );
               return  HCFFT_SUCCEEDS;
+              } else {
+               //First Row
+              //tmp->output
+              hcfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, clOutputBuffers, NULL );
+              //Second Transpose
+              // output->tmp
+              hcfftEnqueueTransform( fftPlan->planTY, dir, clOutputBuffers, localIntBuffer, NULL );
+              //Second Row
+              //tmp->tmp, inplace
+              hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
+              //Third Transpose
+              // tmp->output
+              hcfftEnqueueTransform( fftPlan->planTZ, dir, localIntBuffer, clOutputBuffers, NULL );
+              return  HCFFT_SUCCEEDS;
+              }
             } else {
               if (fftPlan->large1D == 0) {
                 if(fftPlan->planCopy) {
@@ -507,16 +525,15 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
                                          hcfftEnqueueTransform( fftPlan->planX, dir, localIntBuffer, NULL, NULL);
                   // FFT INPLACE
                   hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
-                  Concurrency::array_view<float>* mybuffers;
 
                   if (fftPlan->location == HCFFT_INPLACE) {
-                    mybuffers = clInputBuffers;
+                  // Copy kernel
+                  hcfftEnqueueTransform( fftPlan->planCopy, dir, localIntBuffer, clInputBuffers, NULL );
                   } else {
-                    mybuffers = clOutputBuffers;
+                  // Copy kernel
+                  hcfftEnqueueTransform( fftPlan->planCopy, dir, localIntBuffer, clOutputBuffers, NULL );
                   }
 
-                  // Copy kernel
-                  hcfftEnqueueTransform( fftPlan->planCopy, dir, localIntBuffer, mybuffers, NULL );
                 } else {
                   // First pass
                   // column with twiddle first, OUTOFPLACE, + transpose
@@ -564,44 +581,68 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             //first time set up transpose kernel for 2D
             //First row
             hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, NULL );
-            Concurrency::array_view<float>* mybuffers;
-
-            if (fftPlan->location == HCFFT_INPLACE) {
-              mybuffers = clInputBuffers;
-            } else {
-              mybuffers = clOutputBuffers;
-            }
 
             bool xyflag = (fftPlan->length[0] == fftPlan->length[1]) ? false : true;
 
-            if (xyflag) {
-              //First transpose
-              hcfftEnqueueTransform( fftPlan->planTX, dir, mybuffers, localIntBuffer, NULL );
+	    if(fftPlan->location == HCFFT_INPLACE)
+            {
+              if (xyflag) {
+                //First transpose
+                hcfftEnqueueTransform( fftPlan->planTX, dir, clInputBuffers, localIntBuffer, NULL );
 
-              if (fftPlan->transposeType == HCFFT_NOTRANSPOSE) {
-                //Second Row transform
-                hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
-                //Second transpose
-                hcfftEnqueueTransform( fftPlan->planTY, dir, localIntBuffer, mybuffers, NULL );
+                if (fftPlan->transposeType == HCFFT_NOTRANSPOSE) {
+                  //Second Row transform
+                  hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
+                  //Second transpose
+                  hcfftEnqueueTransform( fftPlan->planTY, dir, localIntBuffer, clInputBuffers, NULL );
+                } else {
+                  //Second Row transform
+                  hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clInputBuffers, NULL );
+                }
               } else {
-                //Second Row transform
-                hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, mybuffers, NULL );
-              }
-            } else {
-              // First Transpose
-              hcfftEnqueueTransform( fftPlan->planTX, dir, mybuffers, NULL, NULL );
+                // First Transpose
+                hcfftEnqueueTransform( fftPlan->planTX, dir, clInputBuffers, NULL, NULL );
 
-              if (fftPlan->transposeType == HCFFT_NOTRANSPOSE) {
-                //Second Row transform
-                hcfftEnqueueTransform( fftPlan->planY, dir, mybuffers, NULL, NULL );
-                //Second transpose
-                hcfftEnqueueTransform( fftPlan->planTY, dir, mybuffers, NULL, NULL );
+                if (fftPlan->transposeType == HCFFT_NOTRANSPOSE) {
+                  //Second Row transform
+                  hcfftEnqueueTransform( fftPlan->planY, dir, clInputBuffers, NULL, NULL );
+                  //Second transpose
+                  hcfftEnqueueTransform( fftPlan->planTY, dir, clInputBuffers, NULL, NULL );
+                } else {
+                  //Second Row transform
+                  hcfftEnqueueTransform( fftPlan->planY, dir, clInputBuffers, NULL, NULL );
+                }
+              }
+	    }
+            else
+	    {
+	      if (xyflag) {
+                //First transpose
+                hcfftEnqueueTransform( fftPlan->planTX, dir, clOutputBuffers, localIntBuffer, NULL );
+
+                if (fftPlan->transposeType == HCFFT_NOTRANSPOSE) {
+                  //Second Row transform
+                  hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
+                  //Second transpose
+                  hcfftEnqueueTransform( fftPlan->planTY, dir, localIntBuffer, clOutputBuffers, NULL );
+                } else {
+                  //Second Row transform
+                  hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, clOutputBuffers, NULL );
+                }
               } else {
-                //Second Row transform
-                hcfftEnqueueTransform( fftPlan->planY, dir, mybuffers, NULL, NULL );
+                // First Transpose
+                hcfftEnqueueTransform( fftPlan->planTX, dir, clOutputBuffers, NULL, NULL );
+                if (fftPlan->transposeType == HCFFT_NOTRANSPOSE) {
+                  //Second Row transform
+                  hcfftEnqueueTransform( fftPlan->planY, dir, clOutputBuffers, NULL, NULL );
+                  //Second transpose
+                  hcfftEnqueueTransform( fftPlan->planTY, dir, clOutputBuffers, NULL, NULL );
+                } else {
+                  //Second Row transform
+                  hcfftEnqueueTransform( fftPlan->planY, dir, clOutputBuffers, NULL, NULL );
+                }
               }
-            }
-
+	    }
             return HCFFT_SUCCEEDS;
           } else {
             if ( (fftPlan->large2D || fftPlan->length.size() > 2) &&
@@ -636,20 +677,22 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
                   if(fftPlan->planTX) {
                     //First row
                     hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, NULL );
-                    Concurrency::array_view<float>* mybuffers;
 
                     if (fftPlan->location == HCFFT_INPLACE) {
-                      mybuffers = clInputBuffers;
+                      //First transpose
+                      hcfftEnqueueTransform( fftPlan->planTX, dir, clInputBuffers, localIntBuffer, NULL );
+                      //Second Row transform
+                      hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
+                      //Second transpose
+                      hcfftEnqueueTransform( fftPlan->planTY, dir, localIntBuffer, clInputBuffers, NULL );
                     } else {
-                      mybuffers = clOutputBuffers;
+                      //First transpose
+                      hcfftEnqueueTransform( fftPlan->planTX, dir, clOutputBuffers, localIntBuffer, NULL );
+                      //Second Row transform
+                      hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
+                      //Second transpose
+                      hcfftEnqueueTransform( fftPlan->planTY, dir, localIntBuffer, clOutputBuffers, NULL );
                     }
-
-                    //First transpose
-                    hcfftEnqueueTransform( fftPlan->planTX, dir, mybuffers, localIntBuffer, NULL );
-                    //Second Row transform
-                    hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
-                    //Second transpose
-                    hcfftEnqueueTransform( fftPlan->planTY, dir, localIntBuffer, mybuffers, NULL );
                   } else {
                     if (fftPlan->location == HCFFT_INPLACE) {
                       // deal with row
@@ -665,51 +708,57 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
                   }
                 } else if(fftPlan->opLayout == HCFFT_REAL) {
                   if(fftPlan->planTY) {
-                    Concurrency::array_view<float>* mybuffers;
 
                     if ( (fftPlan->location == HCFFT_INPLACE) ||
                          ((fftPlan->location == HCFFT_OUTOFPLACE) && (fftPlan->length.size() > 2)) ) {
-                      mybuffers = clInputBuffers;
-                    } else {
-                      mybuffers = fftPlan->intBufferC2R;
-                    }
+		      //First transpose
+                      hcfftEnqueueTransform( fftPlan->planTY, dir, clInputBuffers, localIntBuffer, NULL );
+                      //First row
+                      hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
+                      //Second transpose
+                      hcfftEnqueueTransform( fftPlan->planTX, dir, localIntBuffer, clInputBuffers, NULL );
 
-                    //First transpose
-                    hcfftEnqueueTransform( fftPlan->planTY, dir, clInputBuffers, localIntBuffer, NULL );
-                    //First row
-                    hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
-                    //Second transpose
-                    hcfftEnqueueTransform( fftPlan->planTX, dir, localIntBuffer, mybuffers, NULL );
-
-                    //Second Row transform
-                    if(fftPlan->location == HCFFT_INPLACE) {
-                      hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, NULL, NULL );
-                    } else {
-                      hcfftEnqueueTransform( fftPlan->planX, dir, mybuffers, clOutputBuffers, NULL );
-                    }
-                  } else {
-                    Concurrency::array_view<float>* out_local, *int_local, *out_y;
-
-                    if(fftPlan->location == HCFFT_INPLACE) {
-                      out_local = NULL;
-                      int_local = NULL;
-                      out_y = clInputBuffers;
-                    } else {
-                      if(fftPlan->length.size() > 2) {
-                        out_local = clOutputBuffers;
-                        int_local = NULL;
-                        out_y = clInputBuffers;
+                      //Second Row transform
+                      if(fftPlan->location == HCFFT_INPLACE) {
+                        hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, NULL, NULL );
                       } else {
-                        out_local = clOutputBuffers;
-                        int_local = fftPlan->intBufferC2R;
-                        out_y = int_local;
+                        hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, NULL );
+                      }
+                    } else {
+                      //First transpose
+                      hcfftEnqueueTransform( fftPlan->planTY, dir, clInputBuffers, localIntBuffer, NULL );
+                      //First row
+                      hcfftEnqueueTransform( fftPlan->planY, dir, localIntBuffer, NULL, NULL );
+                      //Second transpose
+                      hcfftEnqueueTransform( fftPlan->planTX, dir, localIntBuffer, fftPlan->intBufferC2R, NULL );
+
+                      //Second Row transform
+                      if(fftPlan->location == HCFFT_INPLACE) {
+                        hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, NULL, NULL );
+                      } else {
+                        hcfftEnqueueTransform( fftPlan->planX, dir, fftPlan->intBufferC2R, clOutputBuffers, NULL );
                       }
                     }
+                  } else {
 
-                    // deal with column
-                    hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, clInputBuffers, int_local, localIntBuffer );
-                    // deal with row
-                    hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, out_y, out_local, localIntBuffer );
+                    if(fftPlan->location == HCFFT_INPLACE) {
+                      // deal with column
+                      hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, clInputBuffers, NULL, localIntBuffer );
+                      // deal with row
+                      hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, clInputBuffers, NULL, localIntBuffer );
+                    } else {
+                      if(fftPlan->length.size() > 2) {
+                        // deal with column
+                        hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, clInputBuffers, NULL, localIntBuffer );
+                        // deal with row
+                        hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, clInputBuffers, clOutputBuffers, localIntBuffer );
+                      } else {
+                        // deal with column
+                        hcfftEnqueueTransform( fftPlan->planY, HCFFT_BACKWARD, clInputBuffers, fftPlan->intBufferC2R, localIntBuffer );
+                        // deal with row
+                        hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, fftPlan->intBufferC2R, clOutputBuffers, localIntBuffer );
+                      }
+                    }
                   }
                 } else {
                   //deal with row first
@@ -739,88 +788,100 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 	    //First row
 	    hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, localIntBuffer);
 
-	    Concurrency::array_view<float>* mybuffers;
-
 	    if (fftPlan->location == HCFFT_INPLACE)
-	      mybuffers = clInputBuffers;
+            {
+	      //First transpose
+	      hcfftEnqueueTransform( fftPlan->planTX, dir, clInputBuffers, localIntBuffer, NULL );
+
+	      //Second Row transform
+	      hcfftEnqueueTransform( fftPlan->planZ, dir, localIntBuffer, NULL, NULL );
+
+	      //Second transpose
+	      hcfftEnqueueTransform( fftPlan->planTY, dir, localIntBuffer, clInputBuffers, NULL );
+            }
 	    else
-	      mybuffers = clOutputBuffers;
+            {
+	      //First transpose
+	      hcfftEnqueueTransform( fftPlan->planTX, dir, clOutputBuffers, localIntBuffer, NULL );
 
-	    //First transpose
-	    hcfftEnqueueTransform( fftPlan->planTX, dir, mybuffers, localIntBuffer, NULL );
+	      //Second Row transform
+	      hcfftEnqueueTransform( fftPlan->planZ, dir, localIntBuffer, NULL, NULL );
 
-	    //Second Row transform
-	    hcfftEnqueueTransform( fftPlan->planZ, dir, localIntBuffer, NULL, NULL );
-
-	    //Second transpose
-	    hcfftEnqueueTransform( fftPlan->planTY, dir, localIntBuffer, mybuffers, NULL );
+	      //Second transpose
+	      hcfftEnqueueTransform( fftPlan->planTY, dir, localIntBuffer, clOutputBuffers, NULL );
+            }
 	  }
 	  else
 	  {
-	    Concurrency::array_view<float> *tmp_local, *out_local;
+            if(fftPlan->location == HCFFT_INPLACE)
+            {
+	      //deal with 2D row first
+	      hcfftEnqueueTransform( fftPlan->planX, HCFFT_FORWARD, clInputBuffers, NULL, localIntBuffer );
 
-	    tmp_local = (fftPlan->location == HCFFT_INPLACE) ? NULL : clOutputBuffers;
-	    out_local = (fftPlan->location == HCFFT_INPLACE) ? clInputBuffers : clOutputBuffers;
+	      //deal with 1D Z column
+	      hcfftEnqueueTransform( fftPlan->planZ, HCFFT_FORWARD, clInputBuffers, NULL, localIntBuffer );
+            }
+            else
+            {
+	      //deal with 2D row first
+	      hcfftEnqueueTransform( fftPlan->planX, HCFFT_FORWARD, clInputBuffers, clOutputBuffers, localIntBuffer );
 
-	    //deal with 2D row first
-	    hcfftEnqueueTransform( fftPlan->planX, HCFFT_FORWARD, clInputBuffers, tmp_local, localIntBuffer );
-
-	    //deal with 1D Z column
-	    hcfftEnqueueTransform( fftPlan->planZ, HCFFT_FORWARD, out_local, NULL, localIntBuffer );
+	      //deal with 1D Z column
+	      hcfftEnqueueTransform( fftPlan->planZ, HCFFT_FORWARD, clOutputBuffers, NULL, localIntBuffer );
+            }
 	  }
 	}
 	else if(fftPlan->opLayout == HCFFT_REAL)
 	{
 	  if(fftPlan->planTZ)
 	  {
-	    Concurrency::array_view<float> *mybuffers;
-
-	    if (fftPlan->location == HCFFT_INPLACE)
-	      mybuffers = clInputBuffers;
-	    else
-	      mybuffers = fftPlan->intBufferC2R;
-
-	    //First transpose
-	    hcfftEnqueueTransform( fftPlan->planTZ, dir, clInputBuffers, localIntBuffer, NULL );
-
-	    //First row
-	    hcfftEnqueueTransform( fftPlan->planZ, dir, localIntBuffer, NULL, NULL );
-
-	    //Second transpose
-	    hcfftEnqueueTransform( fftPlan->planTX, dir, localIntBuffer, mybuffers, NULL );
-
-	    //Second Row transform
 	    if(fftPlan->location == HCFFT_INPLACE)
 	    {
+	      //First transpose
+	      hcfftEnqueueTransform( fftPlan->planTZ, dir, clInputBuffers, localIntBuffer, NULL );
+
+	      //First row
+	      hcfftEnqueueTransform( fftPlan->planZ, dir, localIntBuffer, NULL, NULL );
+
+	      //Second transpose
+	      hcfftEnqueueTransform( fftPlan->planTX, dir, localIntBuffer, clInputBuffers, NULL );
+
+	      //Second Row transform
 	      hcfftEnqueueTransform( fftPlan->planX, dir, clInputBuffers, NULL, NULL );
 	    }
 	    else
 	    {
-	      hcfftEnqueueTransform( fftPlan->planX, dir, mybuffers, clOutputBuffers, NULL );
+	      //First transpose
+	      hcfftEnqueueTransform( fftPlan->planTZ, dir, clInputBuffers, localIntBuffer, NULL );
+
+	      //First row
+	      hcfftEnqueueTransform( fftPlan->planZ, dir, localIntBuffer, NULL, NULL );
+
+	      //Second transpose
+	      hcfftEnqueueTransform( fftPlan->planTX, dir, localIntBuffer, fftPlan->intBufferC2R, NULL );
+
+	      //Second Row transform
+	      hcfftEnqueueTransform( fftPlan->planX, dir, fftPlan->intBufferC2R, clOutputBuffers, NULL );
 	    }
 	  }
 	  else
 	  {
-	    Concurrency::array_view<float> *out_local, *int_local, *out_z;
-
 	    if(fftPlan->location == HCFFT_INPLACE)
 	    {
-	      out_local = NULL;
-	      int_local = NULL;
-	      out_z = clInputBuffers;
+	    //deal with 1D Z column first
+	    hcfftEnqueueTransform( fftPlan->planZ, HCFFT_BACKWARD, clInputBuffers, NULL, localIntBuffer );
+
+	    //deal with 2D row
+	    hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, clInputBuffers, NULL, localIntBuffer );
 	    }
 	    else
 	    {
-	      out_local = clOutputBuffers;
-	      int_local = fftPlan->intBufferC2R;
-	      out_z = int_local;
-	    }
-
 	    //deal with 1D Z column first
-	    hcfftEnqueueTransform( fftPlan->planZ, HCFFT_BACKWARD, clInputBuffers, int_local, localIntBuffer );
+	    hcfftEnqueueTransform( fftPlan->planZ, HCFFT_BACKWARD, clInputBuffers, fftPlan->intBufferC2R, localIntBuffer );
 
 	    //deal with 2D row
-	    hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, out_z, out_local, localIntBuffer );
+	    hcfftEnqueueTransform( fftPlan->planX, HCFFT_BACKWARD, fftPlan->intBufferC2R, clOutputBuffers, localIntBuffer );
+	    }
 	  }
 	}
 	else
@@ -866,10 +927,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
         switch( fftPlan->opLayout ) {
           case HCFFT_COMPLEX_INTERLEAVED: {
               if( fftPlan->location == HCFFT_INPLACE ) {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -880,9 +941,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
                 //  Invalid to be an inplace transform, and go from 1 to 2 buffers
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -892,8 +953,8 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if( fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -903,9 +964,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if( fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -913,10 +974,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
           case HCFFT_REAL: {
               if( fftPlan->location == HCFFT_INPLACE ) {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -937,9 +998,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if( fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -947,13 +1008,13 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
           case HCFFT_COMPLEX_PLANAR: {
               if( fftPlan->location == HCFFT_INPLACE ) {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -963,9 +1024,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if( fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -975,10 +1036,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if( fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -988,9 +1049,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if(fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -1011,8 +1072,8 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if( fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -1022,9 +1083,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if( fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -1040,10 +1101,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
           case HCFFT_REAL: {
               if( fftPlan->location == HCFFT_INPLACE ) {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -1064,9 +1125,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if( fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -1076,10 +1137,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if( fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -1097,9 +1158,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if( fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[1])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -1118,10 +1179,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
         switch( fftPlan->opLayout ) {
           case HCFFT_COMPLEX_INTERLEAVED: {
               if( fftPlan->location == HCFFT_INPLACE ) {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -1131,9 +1192,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if( fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -1141,10 +1202,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
           case HCFFT_HERMITIAN_INTERLEAVED: {
               if( fftPlan->location == HCFFT_INPLACE ) {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -1154,9 +1215,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
               if( fftPlan->location == HCFFT_INPLACE ) {
                 return HCFFT_ERROR;
               } else {
-                vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
-                vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[1])));
+                vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
+                vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
               }
 
               break;
@@ -1167,8 +1228,8 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
                 if( fftPlan->location == HCFFT_INPLACE ) {
                   return HCFFT_ERROR;
                 } else {
-                  vectArr.insert(std::make_pair(uarg++, &(clInputBuffers[0])));
-                  vectArr.insert(std::make_pair(uarg++, &(clOutputBuffers[0])));
+                  vectArr.insert(std::make_pair(uarg++, clInputBuffers));
+                  vectArr.insert(std::make_pair(uarg++, clOutputBuffers));
                 }
               } else {
                 //  Don't recognize output layout
@@ -1196,8 +1257,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
   BUG_CHECK (gWorkSize.size() == lWorkSize.size());
   remove(filename.c_str());
+
   void* kernelHandle = NULL;
-  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr);
+  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, accelerator &acc);
   FUNC_FFTFwd* FFTcall = NULL;
   char cwd[1024];
 
@@ -1294,7 +1356,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
     }
   }
 
-  FFTcall(&vectArr);
+  FFTcall(&vectArr, fftPlan->acc);
   dlclose(kernelHandle);
   kernelHandle = NULL;
   return status;
@@ -1341,15 +1403,15 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
 
   // release buffers, as these will be created only in EnqueueTransform
   if( NULL != fftPlan->intBuffer ) {
-    delete fftPlan->intBuffer;
+    hc::am_free(fftPlan->intBuffer);
   }
 
   if( NULL != fftPlan->intBufferRC ) {
-    delete fftPlan->intBufferRC;
+    hc::am_free(fftPlan->intBufferRC);
   }
 
   if( NULL != fftPlan->intBufferC2R ) {
-    delete fftPlan->intBufferC2R;
+    hc::am_free(fftPlan->intBufferC2R);
   }
 
   if( fftPlan->userPlan ) { // confirm it is top-level plan (user plan)
@@ -4764,8 +4826,11 @@ hcfftStatus FFTPlan::AllocateWriteBuffers () {
   float ConstantBufferParams[HCFFT_CB_SIZE];
   memset (& ConstantBufferParams, 0, sizeof (ConstantBufferParams));
   ConstantBufferParams[1] = std::max<uint> (1, uint(batchSize));
-  Concurrency::array<float> arr = Concurrency::array<float>(Concurrency::extent<1>(HCFFT_CB_SIZE), ConstantBufferParams);
-  const_buffer = new Concurrency::array_view<float>(arr);
+  const_buffer = hc::am_alloc(sizeof(float) * HCFFT_CB_SIZE, acc, 0);
+
+  // Copy input contents to device from host
+  hc::am_copy(const_buffer, ConstantBufferParams, HCFFT_CB_SIZE * sizeof(float));
+
   return status;
 }
 
@@ -4773,19 +4838,19 @@ hcfftStatus FFTPlan::ReleaseBuffers () {
   hcfftStatus result = HCFFT_SUCCEEDS;
 
   if( NULL != const_buffer ) {
-    delete const_buffer;
+    hc::am_free(const_buffer);
   }
 
   if( NULL != intBuffer ) {
-    delete intBuffer;
+    hc::am_free(intBuffer);
   }
 
   if( NULL != intBufferRC ) {
-    delete intBufferRC;
+    hc::am_free(intBufferRC);
   }
 
   if( NULL != intBufferC2R ) {
-    delete intBufferC2R;
+    hc::am_free(intBufferC2R);
   }
 
   return result;
