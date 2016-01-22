@@ -3559,8 +3559,6 @@ class Kernel {
         str += ";\n\n";
       }
 
-      std::cout << "params.fft_N[0] "<<params.fft_N[0] << " params.fft_N[1] "<<params.fft_N[1]<<std::endl;
-
       // Calculate total transform count
       std::string totalBatch = "(";
       size_t i = 0;
