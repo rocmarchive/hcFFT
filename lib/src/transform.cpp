@@ -5876,19 +5876,19 @@ hcfftStatus FFTPlan::ReleaseBuffers () {
   }
 
   if( NULL != const_bufferD ) {
-    delete const_bufferD;
+    hc::am_free(const_bufferD);
   }
 
   if( NULL != intBufferD ) {
-    delete intBufferD;
+    hc::am_free(intBufferD);
   }
 
   if( NULL != intBufferRCD ) {
-    delete intBufferRCD;
+    hc::am_free(intBufferRCD);
   }
 
   if( NULL != intBufferC2RD ) {
-    delete intBufferC2RD;
+    hc::am_free(intBufferC2RD);
   }
 
   return result;
