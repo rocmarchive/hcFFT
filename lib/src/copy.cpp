@@ -176,105 +176,67 @@ class CopyKernel {
     }
 
     str += SztToStr(count);
-    str += "(std::map<int, void*> vectArr)";
+    str += "(std::map<int, void*> vectArr, accelerator &acc)";
     str += "{\n\t";
     int arg = 0;
 
     if(inIlvd) {
-      str += "const array_view<";
       str += r2Type;
-      str += "> *gbInP = (";
-      str += "const array_view<";
+      str += " *gbIn = static_cast<";
       str += r2Type;
-      str += "> *) vectArr[";
+      str += "*> (vectArr[";
       str += SztToStr(arg);
-      str += "];\n";
-      //Dereferencing the pointer
-      str += "const array_view<";
-      str += r2Type;
-      str += "> &gbIn = *gbInP;";
+      str += "]);\n";
       arg++;
     } else {
-      str += "const array_view<";
       str += rType;
-      str += "> *gbInReP = (";
-      str += "const array_view<";
+      str += " *gbInRe = static_cast<";
       str += rType;
-      str += "> *) vectArr[";
+      str += "*> (vectArr[";
       str += SztToStr(arg);
-      str += "];\n";
-      //Dereferencing the pointer
-      str += "const array_view<";
-      str += rType;
-      str += "> &gbInRe = *gbInReP;";
+      str += "]);\n";
       arg++;
-      str += "const array_view<";
       str += rType;
-      str += "> *gbInImP = (";
-      str += "const array_view<";
+      str += " *gbInIm = static_cast";
       str += rType;
-      str += "> *) vectArr[";
+      str += "*> (vectArr[";
       str += SztToStr(arg);
-      str += "];\n";
-      //Dereferencing the pointer
-      str += "const array_view<";
-      str += rType;
-      str += "> &gbInIm = *gbInImP;";
+      str += "]);\n";
       arg++;
     }
 
     if(outIlvd) {
-      str += "const array_view<";
       str += r2Type;
-      str += "> *gbOutP = (";
-      str += "const array_view<";
+      str += " *gbOut = static_cast<";
       str += r2Type;
-      str += "> *) vectArr[";
+      str += "*> (vectArr[";
       str += SztToStr(arg);
-      str += "];\n";
-      //Dereferencing the pointer
-      str += "const array_view<";
-      str += r2Type;
-      str += "> &gbOut = *gbOutP;";
+      str += "]);\n";
       arg++;
     } else {
-      str += "const array_view<";
       str += rType;
-      str += "> *gbInReP = (";
-      str += "const array_view<";
+      str += " *gbInRe = static_cast<";
       str += rType;
-      str += "> *) vectArr[";
+      str += "*> (vectArr[";
       str += SztToStr(arg);
-      str += "];\n";
-      //Dereferencing the pointer
-      str += "const array_view<";
-      str += rType;
-      str += "> &gbOutRe = *gbOutReP;";
+      str += "]);\n";
       arg++;
-      str += "const array_view<";
       str += rType;
-      str += "> *gbOutImP = (";
-      str += "const array_view<";
+      str += " *gbOutIm = static_cast<";
       str += rType;
-      str += "> *) vectArr[";
+      str += "*> (vectArr[";
       str += SztToStr(arg);
-      str += "];\n";
-      //Dereferencing the pointer
-      str += "const array_view<";
-      str += rType;
-      str += "> &gbOutIm = *gbOutImP;";
+      str += "]);\n";
       arg++;
     }
 
-    str += "\tConcurrency::extent<2> grdExt( ";
+    str += "\thc::extent<2> grdExt( ";
     str += SztToStr(gWorkSize[0]);
     str += ", 1 ); \n";
-    str += "\tConcurrency::tiled_extent< ";
+    str += "\thc::tiled_extent<2> t_ext = grdExt.tile( ";
     str += SztToStr(lWorkSize[0]);
-    str += ", 1> t_ext(grdExt);\n";
-    str += "\tConcurrency::parallel_for_each(t_ext, [=] (Concurrency::tiled_index<";
-    str += SztToStr(lWorkSize[0]);
-    str += ", 1> tidx) restrict(amp)\n\t { ";
+    str += ", 1);\n";
+    str += "\thc::parallel_for_each(t_ext, [=] (hc::tiled_index<2> tidx) [[hc]]\n\t {";
 
     // Initialize
     if(general) {
@@ -477,7 +439,7 @@ class CopyKernel {
       str += "}\n\n";
     }
 
-    str += " });\n}}\n\n";
+    str += " }).wait();\n}}\n\n";
   }
 };
 };
