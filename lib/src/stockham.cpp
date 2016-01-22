@@ -573,18 +573,20 @@ class Pass {
       passStr += RegBaseType<PR>(4);
       passStr += "> &buff4g = ";
       passStr += bufferRe;
-      passStr += ";\n\t"; // Assuming 'outOffset' is 0, so not adding it here
+      passStr += ".reinterpret_as<";
+      passStr += RegBaseType<PR>(4);
+      passStr += ">();\n\t";
 
       for(size_t r = 0; r < radix; r++) { // setting the radix loop outside to facilitate grouped writing
         butterflyIndex = numPrev;
 
         for(size_t i = 0; i < (numB / 2); i++) {
-          std::string regIndexA = "(*R";
-          std::string regIndexB = "(*R";
+          std::string regIndexA = "R";
+          std::string regIndexB = "R";
           RegBaseAndCountAndPos("", (2 * i + 0)*radix + r, regIndexA);
-          regIndexA += ")";
+          regIndexA += "[0]";
           RegBaseAndCountAndPos("", (2 * i + 1)*radix + r, regIndexB);
-          regIndexB += ")";
+          regIndexB += "[0]";
           passStr += "\n\t";
           passStr += "buff4g";
           passStr += "[ ";
@@ -595,9 +597,8 @@ class Pass {
           passStr += SztToStr(r * (algLS / 2));
           passStr += " ]";
           passStr += " = ";
-          passStr += "(";
           passStr += RegBaseType<PR>(4);
-          passStr += ")(";
+          passStr += "(";
           passStr += regIndexA;
           passStr += ".x, ";
           passStr += regIndexA;
