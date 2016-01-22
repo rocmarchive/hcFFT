@@ -4,17 +4,15 @@
 #include "hcfftlib.h"
 #include <dlfcn.h>
 #include <map>
-#include <amp.h>
-#include <amp_short_vectors.h>
+#include <hc.hpp>
 #include <cfloat>
 #include <stdio.h>
 #include <cmath>
 
 #define PRINT 0
 
-using namespace Concurrency::graphics;
+using namespace hc;
 using namespace std;
-using namespace Concurrency;
 
 int main(int argc, char* argv[]) {
   FFTPlan plan;
@@ -33,15 +31,48 @@ int main(int argc, char* argv[]) {
   int realsize, cmplexsize;
   realsize = length[0] * length[1];
   cmplexsize = length[1] * (1 + (length[0] / 2)) * 2;
-  float* input = (float*)calloc(realsize, sizeof(float));
-  float* inputz = (float*)calloc(realsize, sizeof(float));
-  float* output = (float*)calloc(cmplexsize, sizeof(float));
+
+  std::vector<accelerator> accs = accelerator::get_all();
+  std::wcout << "Size: " << accs.size() << std::endl;
+  if(accs.size() == 0) {
+    std::wcout << "There is no acclerator!\n";
+    // Since this case is to test on GPU device, skip if there is CPU only
+    return 0;
+  }
+  assert(accs.size() && "Number of Accelerators == 0!");
+  std::for_each(accs.begin(), accs.end(), [&] (accelerator acc)
+  {
+    std::wcout << "New accelerator: " << acc.get_description() << std::endl;
+    std::wcout << "device_path = " << acc.get_device_path() << std::endl;
+    std::wcout << "version = " << (acc.get_version() >> 16) << '.' << (acc.get_version() & 0xFFFF) << std::endl;
+    std::wcout << "dedicated_memory = " << acc.get_dedicated_memory() << " KB" << std::endl;
+    std::wcout << "doubles = " << ((acc.get_supports_double_precision()) ? "true" : "false") << std::endl;
+    std::wcout << "limited_doubles = " << ((acc.get_supports_limited_double_precision()) ? "true" : "false") << std::endl;
+    std::wcout << "has_display = " << ((acc.get_has_display()) ? "true" : "false") << std::endl;
+    std::wcout << "is_emulated = " << ((acc.get_is_emulated()) ? "true" : "false") << std::endl;
+    std::wcout << "is_debug = " << ((acc.get_is_debug()) ? "true" : "false") << std::endl;
+    std::cout << std::endl;
+  });
+
+  // Initialize host variables ----------------------------------------------
+  float* ipHost = (float*)calloc(realsize, sizeof(float));
+  float* ipzHost = (float*)calloc(realsize, sizeof(float));
+  float* opHost = (float*)calloc(cmplexsize, sizeof(float));
 
   for(int  i = 0; i < realsize ; i++) {
-    input[i] = i + 1;
+    ipHost[i] = i + 1;
   }
 
-  hcfftStatus status = plan.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir);
+  float* ipDev = (float*)am_alloc(realsize * sizeof(float), accs[1], 0);
+  float* ipzDev = (float*)am_alloc(realsize * sizeof(float), accs[1], 0);
+  float* opDev = (float*)am_alloc(cmplexsize * sizeof(float), accs[1], 0);
+
+  // Copy input contents to device from host
+  hc::am_copy(ipDev, ipHost, realsize * sizeof(float));
+  hc::am_copy(ipzDev, ipzHost, realsize * sizeof(float));
+  hc::am_copy(opDev, opHost, cmplexsize * sizeof(float));
+
+  hcfftStatus status = plan.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, accs[1]);
   status = plan.hcfftSetPlanPrecision(planhandle, precision);
 
   if(status != HCFFT_SUCCEEDS) {
@@ -60,9 +91,6 @@ int main(int argc, char* argv[]) {
     cout << " set result error " << endl;
   }
 
-  Concurrency::array_view<float> inpAr(realsize, input );
-  Concurrency::array_view<float> inpAr1(realsize, inputz );
-  Concurrency::array_view<float> opAr(cmplexsize, output );
   /*---------------------R2C--------------------------------------*/
   status = plan.hcfftSetLayout(planhandle, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
 
@@ -76,21 +104,25 @@ int main(int argc, char* argv[]) {
     cout << " bake plan error " << endl;
   }
 
-  plan.hcfftEnqueueTransform(planhandle, dir, &inpAr, &opAr, NULL);
-  opAr.synchronize();
+  plan.hcfftEnqueueTransform(planhandle, dir, ipDev, opDev, NULL);
+
+  // Copy Device output  contents back to host
+  hc::am_copy(opHost, opDev, cmplexsize * sizeof(float));
+
   status = plan.hcfftDestroyPlan(&planhandle);
 #if PRINT
 
   /* Print Output */
   for (int i = 0; i < cmplexsize; i++) {
-    std::cout << " opAr[" << i << "] " << opAr[i] << std::endl;
+    std::cout << " opHost[" << i << "] " << opHost[i] << std::endl;
   }
 
 #endif
   /*---------------------C2R---------------------------------------*/
+
   FFTPlan plan1;
   dir = HCFFT_BACKWARD;
-  status = plan1.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir);
+  status = plan1.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, accs[1]);
   status = plan1.hcfftSetPlanPrecision(planhandle, precision);
 
   if(status != HCFFT_SUCCEEDS) {
@@ -121,24 +153,34 @@ int main(int argc, char* argv[]) {
     cout << " bake plan error " << endl;
   }
 
-  plan1.hcfftEnqueueTransform(planhandle, dir, &opAr, &inpAr1, NULL);
-  inpAr1.synchronize();
+  plan1.hcfftEnqueueTransform(planhandle, dir, opDev, ipzDev, NULL);
+
+  // Copy Device output  contents back to host
+  hc::am_copy(ipzHost, ipzDev, realsize * sizeof(float));
 #if PRINT
 
   /* Print Output */
   for (int i = 0; i < realsize; i++) {
-    std::cout << " ipAr[" << i << "] " << inpAr1[i] << std::endl;
+    std::cout << " ipzHost[" << i << "] " << ipzHost[i] << std::endl;
   }
 
 #endif
 
   for(int  i = 0; i < realsize; i++)
-    if((round(inpAr1[i]) != input[i]) && isnan(inpAr1[i])) {
-      cout << " Mismatch at  " << i << " input " << input[i] << " amp " << round(inpAr1[i]) << endl;
+    if((round(ipzHost[i]) != ipHost[i]) && isnan(ipzHost[i])) {
+      cout << " Mismatch at  " << i << " input " << ipHost[i] << " amp " << round(ipzHost[i]) << endl;
       cout << " TEST FAILED " << std::endl;
       exit(0);
     }
 
   cout << " TEST PASSED " << std::endl;
   status = plan1.hcfftDestroyPlan(&planhandle);
+
+  hc::am_free(ipDev);
+  hc::am_free(ipzDev);
+  hc::am_free(opDev);
+
+  free(ipHost);
+  free(ipzHost);
+  free(opHost);
 }

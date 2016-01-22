@@ -19,11 +19,21 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
     input[i] = rand();
   }
   hcfftComplex *output = (hcfftComplex*)calloc(Csize, sizeof(hcfftComplex));
-  Concurrency::array_view<hcfftReal> idata(Rsize, input);
-  Concurrency::array_view<hcfftComplex> odata(Csize, output);
-  status = hcfftExecR2C(*plan, &idata, &odata);
-  odata.synchronize();
+
+  std::vector<accelerator> accs = accelerator::get_all();
+  assert(accs.size() && "Number of Accelerators == 0!");
+
+  hcfftReal *idata = hc::am_alloc(Rsize, accs[1], 0);
+  hc::am_copy(idata, input, sizeof(hcfftReal) * Rsize);
+
+  hcfftComplex *odata = hc::am_alloc(Csize, accs[1], 0);
+  hc::am_copy(odata,  output, sizeof(hcfftComplex) * Csize);
+
+  status = hcfftExecR2C(*plan, idata, odata);
   EXPECT_EQ(status, HCFFT_SUCCESS);
+
+  hc::am_copy(output, odata, sizeof(hcfftComplex) * Csize);
+
   status =  hcfftDestroy(*plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
 
@@ -50,7 +60,7 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   err = clGetPlatformIDs( 1, &platform, NULL );
   EXPECT_EQ(err, CL_SUCCESS);
 
-  err = clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL );
+  err = clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 1, &device, NULL );
   EXPECT_EQ(err, CL_SUCCESS);
  
   props[1] = (cl_context_properties)platform;
@@ -131,8 +141,8 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
 
   //Compare the results of clFFT and HCFFT with 0.01 precision
   for(int i = 0; i < Csize; i++) {
-    EXPECT_NEAR(odata[i].x, Y[2 * i], 0.01);
-    EXPECT_NEAR(odata[i].y, Y[2 * i + 1], 0.01);
+    EXPECT_NEAR(output[i].x, Y[2 * i], 0.01);
+    EXPECT_NEAR(output[i].y, Y[2 * i + 1], 0.01);
   }
 
   /* Release OpenCL memory objects. */
@@ -170,11 +180,21 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2R ) {
     input[i].y = rand();
   }
   hcfftReal *output = (hcfftReal*)calloc(Rsize, sizeof(hcfftReal));
-  Concurrency::array_view<hcfftComplex> idata(Csize, input);
-  Concurrency::array_view<hcfftReal> odata(Rsize, output);
-  status = hcfftExecC2R(*plan, &idata, &odata);
+
+  std::vector<accelerator> accs = accelerator::get_all();
+  assert(accs.size() && "Number of Accelerators == 0!");
+
+  hcfftComplex *idata = hc::am_alloc(Csize, accs[1], 0);
+  hc::am_copy(idata, input, sizeof(hcfftComplex) * Csize);
+
+  hcfftReal *odata = hc::am_alloc(Rsize, accs[1], 0);
+  hc::am_copy(odata,  output, sizeof(hcfftReal) * Rsize);
+
+  status = hcfftExecC2R(*plan, idata, odata);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  odata.synchronize();
+
+  hc::am_copy(output, odata, sizeof(hcfftReal) * Rsize);
+
   status =  hcfftDestroy(*plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
 
@@ -201,7 +221,7 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2R ) {
   err = clGetPlatformIDs( 1, &platform, NULL );
   EXPECT_EQ(err, CL_SUCCESS);
 
-  err = clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL );
+  err = clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 1, &device, NULL );
   EXPECT_EQ(err, CL_SUCCESS);
 
   props[1] = (cl_context_properties)platform;
@@ -283,7 +303,7 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2R ) {
 
   //Compare the results of clFFT and HCFFT with 0.01 precision
   for(int i = 0; i < Rsize; i++) {
-    EXPECT_NEAR(odata[i], X[i], 0.01);
+    EXPECT_NEAR(output[i], X[i], 0.01);
   }
 
   /* Release OpenCL memory objects. */
@@ -320,11 +340,21 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2C ) {
     input[i].x = rand();
     input[i].y = rand();
   }
-  Concurrency::array_view<hcfftComplex> idata(hSize, input);
-  Concurrency::array_view<hcfftComplex> odata(hSize, output);
-  status = hcfftExecC2C(*plan, &idata, &odata, HCFFT_FORWARD);
+
+  std::vector<accelerator> accs = accelerator::get_all();
+  assert(accs.size() && "Number of Accelerators == 0!");
+
+  hcfftComplex *idata = hc::am_alloc(hSize, accs[1], 0);
+  hc::am_copy(idata, input, sizeof(hcfftComplex) * hSize);
+
+  hcfftComplex *odata = hc::am_alloc(hSize, accs[1], 0);
+  hc::am_copy(odata,  output, sizeof(hcfftComplex) * hSize);
+
+  status = hcfftExecC2C(*plan, idata, odata, HCFFT_FORWARD);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  odata.synchronize();
+
+  hc::am_copy(output, odata, sizeof(hcfftComplex) * hSize);
+
   status =  hcfftDestroy(*plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
 
@@ -351,7 +381,7 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2C ) {
   err = clGetPlatformIDs( 1, &platform, NULL );
   EXPECT_EQ(err, CL_SUCCESS);
 
-  err = clGetDeviceIDs( platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL );
+  err = clGetDeviceIDs( platform, CL_DEVICE_TYPE_ALL, 1, &device, NULL );
   EXPECT_EQ(err, CL_SUCCESS);
 
   props[1] = (cl_context_properties)platform;
@@ -432,8 +462,8 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2C ) {
 
   //Compare the results of clFFT and HCFFT with 0.01 precision
   for(int i = 0; i < hSize; i++) {
-    EXPECT_NEAR(odata[i].x, Y[2 * i], 0.01);
-    EXPECT_NEAR(odata[i].y, Y[2 * i + 1], 0.01);
+    EXPECT_NEAR(output[i].x, Y[2 * i], 0.01);
+    EXPECT_NEAR(output[i].y, Y[2 * i + 1], 0.01);
   }
 
   /* Release OpenCL memory objects. */
