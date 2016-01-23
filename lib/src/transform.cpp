@@ -1359,6 +1359,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   FFTcall(&vectArr, fftPlan->acc);
   dlclose(kernelHandle);
   kernelHandle = NULL;
+  hc::am_free(localIntBuffer);
   return status;
 }
 
@@ -2364,6 +2365,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   dlclose(kernelHandle);
   kernelHandle = NULL;
   return status;
+  hc::am_free(localIntBuffer);
 }
 
 hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
@@ -2408,26 +2410,32 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
   // release buffers, as these will be created only in EnqueueTransform
   if( NULL != fftPlan->intBuffer ) {
     hc::am_free(fftPlan->intBuffer);
+    fftPlan->intBuffer = NULL;
   }
 
   if( NULL != fftPlan->intBufferRC ) {
     hc::am_free(fftPlan->intBufferRC);
+    fftPlan->intBufferRC = NULL;
   }
 
   if( NULL != fftPlan->intBufferC2R ) {
     hc::am_free(fftPlan->intBufferC2R);
+    fftPlan->intBufferC2R = NULL;
   }
 
   if( NULL != fftPlan->intBufferD ) {
     hc::am_free(fftPlan->intBufferD);
+    fftPlan->intBufferD = NULL;
   }
 
   if( NULL != fftPlan->intBufferRCD ) {
     hc::am_free(fftPlan->intBufferRCD);
+    fftPlan->intBufferRCD = NULL;
   }
 
   if( NULL != fftPlan->intBufferC2RD ) {
     hc::am_free(fftPlan->intBufferC2RD);
+    fftPlan->intBufferC2RD = NULL;
   }
 
   if( fftPlan->userPlan ) { // confirm it is top-level plan (user plan)
@@ -5873,34 +5881,42 @@ hcfftStatus FFTPlan::ReleaseBuffers () {
 
   if( NULL != const_buffer ) {
     hc::am_free(const_buffer);
+    const_buffer = NULL;
   }
 
   if( NULL != intBuffer ) {
     hc::am_free(intBuffer);
+    intBuffer = NULL;
   }
 
   if( NULL != intBufferRC ) {
     hc::am_free(intBufferRC);
+    intBufferRC = NULL;
   }
 
   if( NULL != intBufferC2R ) {
     hc::am_free(intBufferC2R);
+    intBufferC2R = NULL;
   }
 
   if( NULL != const_bufferD ) {
     hc::am_free(const_bufferD);
+    const_bufferD = NULL;
   }
 
   if( NULL != intBufferD ) {
     hc::am_free(intBufferD);
+    intBufferD = NULL;
   }
 
   if( NULL != intBufferRCD ) {
     hc::am_free(intBufferRCD);
+    intBufferRCD = NULL;
   }
 
   if( NULL != intBufferC2RD ) {
     hc::am_free(intBufferC2RD);
+    intBufferC2RD = NULL;
   }
 
   return result;
