@@ -5,14 +5,12 @@
 #include <stdio.h>
 #include <amp.h>
 #include <amp_math.h>
-#include <amp_short_vectors.h>
 #include <complex>
 #include <unistd.h>
 #include "lock.h"
 #include <dirent.h>
 
 using namespace Concurrency;
-using namespace Concurrency::graphics;
 
 #define HCFFT_CB_NY 0
 #define HCFFT_CB_NZ 1
