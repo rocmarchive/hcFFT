@@ -23,10 +23,10 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   std::vector<accelerator> accs = accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
-  hcfftReal *idata = hc::am_alloc(Rsize, accs[1], 0);
+  hcfftReal *idata = hc::am_alloc(Rsize * sizeof(hcfftReal), accs[1], 0);
   hc::am_copy(idata, input, sizeof(hcfftReal) * Rsize);
 
-  hcfftComplex *odata = hc::am_alloc(Csize, accs[1], 0);
+  hcfftComplex *odata = hc::am_alloc(Csize * sizeof(hcfftComplex), accs[1], 0);
   hc::am_copy(odata,  output, sizeof(hcfftComplex) * Csize);
 
   status = hcfftExecR2C(*plan, idata, odata);
@@ -184,10 +184,10 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2R ) {
   std::vector<accelerator> accs = accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
-  hcfftComplex *idata = hc::am_alloc(Csize, accs[1], 0);
+  hcfftComplex *idata = hc::am_alloc(Csize * sizeof(hcfftComplex), accs[1], 0);
   hc::am_copy(idata, input, sizeof(hcfftComplex) * Csize);
 
-  hcfftReal *odata = hc::am_alloc(Rsize, accs[1], 0);
+  hcfftReal *odata = hc::am_alloc(Rsize * sizeof(hcfftReal), accs[1], 0);
   hc::am_copy(odata,  output, sizeof(hcfftReal) * Rsize);
 
   status = hcfftExecC2R(*plan, idata, odata);
@@ -344,10 +344,10 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2C ) {
   std::vector<accelerator> accs = accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
-  hcfftComplex *idata = hc::am_alloc(hSize, accs[1], 0);
+  hcfftComplex *idata = hc::am_alloc(hSize * sizeof(hcfftComplex), accs[1], 0);
   hc::am_copy(idata, input, sizeof(hcfftComplex) * hSize);
 
-  hcfftComplex *odata = hc::am_alloc(hSize, accs[1], 0);
+  hcfftComplex *odata = hc::am_alloc(hSize * sizeof(hcfftComplex), accs[1], 0);
   hc::am_copy(odata,  output, sizeof(hcfftComplex) * hSize);
 
   status = hcfftExecC2C(*plan, idata, odata, HCFFT_FORWARD);
