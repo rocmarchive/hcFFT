@@ -458,6 +458,39 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata
   return HCFFT_SUCCESS;
 }
 
+hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal *idata, hcfftDoubleComplex *odata)
+{
+  // Nullity check
+  if( idata == NULL || odata == NULL) {
+    return HCFFT_INVALID_VALUE;
+  }
+
+  // TODO: Check validity of plan
+
+  hcfftDirection dir = HCFFT_FORWARD;
+  hcfftDoubleReal *odataR = (hcfftDoubleReal*)odata;
+
+  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
+  if(status != HCFFT_SUCCEEDS) {
+    std::cout << " set layout failed "<<std::endl;
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftBakePlan(plan);
+  if(status != HCFFT_SUCCEEDS) {
+    std::cout << " bake plan failed "<<std::endl;
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftEnqueueTransform(plan, dir, idata, odataR, NULL);
+  if (status != HCFFT_SUCCEEDS) {
+    std::cout << " enqueuetransform failed "<<std::endl;
+    return HCFFT_EXEC_FAILED;
+  }
+
+  return HCFFT_SUCCESS;
+}
+
 /* Functions hcfftExecC2R() and hcfftExecZ2D()
    Description:
      hcfftExecC2R() (hcfftExecZ2D()) executes a single-precision (double-precision) complex-to-real,
