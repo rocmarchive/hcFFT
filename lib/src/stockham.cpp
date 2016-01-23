@@ -3098,6 +3098,10 @@ class Kernel {
     }
 
     std::string sfx = FloatSuffix<PR>() + "\n";
+    // Vector type
+    str += "#define fvect2 ";
+    str += RegBaseType<PR>(2);
+    str += "\n\n";
 
     //constants
     str += "#define C8Q  0.70710678118654752440084436210485";
