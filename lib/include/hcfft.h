@@ -222,6 +222,7 @@ hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubl
 */  
 
 hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata);
+
 hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal *idata, hcfftDoubleComplex *odata);
 
 /* Functions hcfftExecC2R() and hcfftExecZ2D()
@@ -255,6 +256,7 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal *idata, hcfftDoubleCo
 */
 
 hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata);
-hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata);
+
+hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubleReal *odata);
 
 #endif
