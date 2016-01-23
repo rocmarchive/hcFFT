@@ -550,6 +550,36 @@ hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata
   return HCFFT_SUCCESS;
 }
 
+hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubleReal *odata)
+{
+  // Nullity check
+  if( idata == NULL || odata == NULL) {
+    return HCFFT_INVALID_VALUE;
+  }
+
+  // TODO: Check validity of plan
+
+  hcfftDirection dir = HCFFT_BACKWARD;
+  hcfftDoubleReal *idataR = (hcfftDoubleReal*)idata;
+
+  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftBakePlan(plan);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftEnqueueTransform(plan, dir, idataR, odata, NULL);
+  if (status != HCFFT_SUCCEEDS) {
+    return HCFFT_EXEC_FAILED;
+  }
+
+  return HCFFT_SUCCESS;
+}
+
 /* Functions hcfftExecC2C() and hcfftExecZ2Z()
    Description:
      hcfftExecC2C() (hcfftExecZ2Z()) executes a single-precision (double-precision) complex-to-complex transform
