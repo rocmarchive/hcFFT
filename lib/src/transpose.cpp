@@ -232,6 +232,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
     case HCFFT_DOUBLE:
       dtPlanar = "double";
       dtComplex = "double_2";
+      break;
 
     default:
       return HCFFT_INVALID;
@@ -642,7 +643,6 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 
     hcKernWrite( transKernel, 0 ) << "}).wait();\n}}\n" << std::endl;
     strKernel += transKernel.str( );
-    //std::cout << strKernel;
 
     if(!params.fft_3StepTwiddle) {
       break;
