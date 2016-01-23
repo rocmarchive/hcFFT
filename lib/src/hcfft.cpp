@@ -637,3 +637,33 @@ hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex *idata, hcfftComplex *od
   return HCFFT_SUCCESS;
 
 }
+
+hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubleComplex *odata, int direction)
+{
+  // Nullity check
+  if( idata == NULL || odata == NULL) {
+    return HCFFT_INVALID_VALUE;
+  }
+
+  // TODO: Check validity of plan
+
+  hcfftDoubleReal *idataR = (hcfftDoubleReal*)idata;
+  hcfftDoubleReal *odataR = (hcfftDoubleReal*)odata;
+
+  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftBakePlan(plan);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftEnqueueTransform(plan, (hcfftDirection)direction, idataR, odataR, NULL);
+  if (status != HCFFT_SUCCEEDS) {
+    return HCFFT_EXEC_FAILED;
+  }
+
+  return HCFFT_SUCCESS;
+}
