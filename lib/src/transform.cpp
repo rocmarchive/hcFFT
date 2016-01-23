@@ -1572,7 +1572,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   unsigned int uarg = 0;
 
   if (!fftPlan->transflag && !(fftPlan->gen == Copy)) {
-    vectArr.insert(std::make_pair(uarg++, fftPlan->const_buffer));
+    vectArr.insert(std::make_pair(uarg++, fftPlan->const_bufferD));
   }
 
   //  Decode the relevant properties from the plan paramter to figure out how many input/output buffers we have
@@ -2065,6 +2065,18 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
 
   if( NULL != fftPlan->intBufferC2R ) {
     delete fftPlan->intBufferC2R;
+  }
+
+  if( NULL != fftPlan->intBufferD ) {
+    delete fftPlan->intBufferD;
+  }
+
+  if( NULL != fftPlan->intBufferRCD ) {
+    delete fftPlan->intBufferRCD;
+  }
+
+  if( NULL != fftPlan->intBufferC2RD ) {
+    delete fftPlan->intBufferC2RD;
   }
 
   if( fftPlan->userPlan ) { // confirm it is top-level plan (user plan)
