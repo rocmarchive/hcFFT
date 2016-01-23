@@ -2418,6 +2418,18 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
     hc::am_free(fftPlan->intBufferC2R);
   }
 
+  if( NULL != fftPlan->intBufferD ) {
+    hc::am_free(fftPlan->intBufferD);
+  }
+
+  if( NULL != fftPlan->intBufferRCD ) {
+    hc::am_free(fftPlan->intBufferRCD);
+  }
+
+  if( NULL != fftPlan->intBufferC2RD ) {
+    hc::am_free(fftPlan->intBufferC2RD);
+  }
+
   if( fftPlan->userPlan ) { // confirm it is top-level plan (user plan)
     if(fftPlan->location == HCFFT_INPLACE) {
       if( (fftPlan->ipLayout == HCFFT_HERMITIAN_PLANAR) || (fftPlan->opLayout == HCFFT_HERMITIAN_PLANAR) ) {
@@ -5845,9 +5857,9 @@ hcfftStatus FFTPlan::AllocateWriteBuffers () {
       double ConstantBufferParams[HCFFT_CB_SIZE];
       memset (& ConstantBufferParams, 0, sizeof (ConstantBufferParams));
       ConstantBufferParams[1] = std::max<uint> (1, uint(batchSize));
-      const_buffer = hc::am_alloc(sizeof(double) * HCFFT_CB_SIZE, acc, 0);
+      const_bufferD = hc::am_alloc(sizeof(double) * HCFFT_CB_SIZE, acc, 0);
       // Copy input contents to device from host
-      hc::am_copy(const_buffer, ConstantBufferParams, HCFFT_CB_SIZE * sizeof(double));
+      hc::am_copy(const_bufferD, ConstantBufferParams, HCFFT_CB_SIZE * sizeof(double));
     }
     break;
     default:
