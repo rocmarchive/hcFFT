@@ -118,7 +118,7 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
   if(res != HCFFT_SUCCESS)
     return HCFFT_SETUP_FAILED;
 
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc);
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc, precision);
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
   }
@@ -231,7 +231,7 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
   if(res != HCFFT_SUCCESS)
     return HCFFT_SETUP_FAILED;
 
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc);
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc, precision);
 
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
@@ -347,7 +347,7 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
   if(res != HCFFT_SUCCESS)
     return HCFFT_SETUP_FAILED;
 
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc);
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc, precision);
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
   } 

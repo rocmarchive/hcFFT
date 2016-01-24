@@ -19,7 +19,7 @@ bool has_suffix(const string& s, const string& suffix) {
   return (s.size() >= suffix.size()) && equal(suffix.rbegin(), suffix.rend(), s.rbegin());
 }
 
-bool checkIfsoExist(hcfftDirection direction) {
+bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision) {
   DIR*           d;
   struct dirent* dir;
   d = opendir("/tmp/kernCache/");
@@ -41,9 +41,15 @@ bool checkIfsoExist(hcfftDirection direction) {
         }
 
         size_t firstocc = libFile.find_first_of("_");
-        string type = libFile.substr(9, firstocc - 9);
+        string type = libFile.substr(9, firstocc - 10);
 
-        if(!((direction == HCFFT_FORWARD && type == "Fwd") || (direction == HCFFT_BACKWARD && type == "Back"))) {
+        string datatype = libFile.substr(12, 1);
+
+        if(!((direction == HCFFT_FORWARD && type == "Frwd") || (direction == HCFFT_BACKWARD && type == "Back"))) {
+          continue;
+        }
+
+        if(!((datatype == "F" && precision == HCFFT_SINGLE)  || (datatype == "D" && precision == HCFFT_DOUBLE))) {
           continue;
         }
 
@@ -133,11 +139,20 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
   string type;
 
   if(buildFwdKernel) {
-    type = "Fwd_";
+    type = "Frwd";
   }
 
   if (buildBwdKernel) {
-    type = "Back_";
+    type = "Back";
+  }
+
+  if(fftParams.fft_precision == HCFFT_SINGLE)
+  {
+    type += "F_";
+  }
+  else
+  {
+    type += "D_";
   }
 
   if(beforeCompile != plHandleOrigin) {
@@ -335,7 +350,7 @@ hcfftStatus hcfftCreateDefaultPlanInternal (hcfftPlanHandle* plHandle, hcfftDim 
 
 // This external entry-point should not be called from within the library. Use clfftCreateDefaultPlanInternal instead.
 hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hcfftDim dim,
-    const size_t* clLengths, hcfftDirection dir, accelerator acc) {
+    const size_t* clLengths, hcfftDirection dir, accelerator acc, hcfftPrecision precision) {
   hcfftStatus ret = hcfftCreateDefaultPlanInternal(plHandle, dim, clLengths);
   originalLength.clear();
 
@@ -352,7 +367,7 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
     fftPlan->plHandleOrigin = *plHandle;
     fftPlan->userPlan = true;
     fftPlan->acc = acc;
-    exist = checkIfsoExist(dir);
+    exist = checkIfsoExist(dir, precision);
   }
 
   return ret;
