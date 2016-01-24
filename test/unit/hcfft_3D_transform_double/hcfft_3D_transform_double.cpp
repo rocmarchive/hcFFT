@@ -167,7 +167,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_D2Z ) {
 
   hc::am_free(idata);
   hc::am_free(odata);
-#endif
+
 }
 
 #if 0
