@@ -32,6 +32,7 @@ set +e
 mkdir $current_work_dir/build
 mkdir $current_work_dir/build/lib
 mkdir $current_work_dir/build/test
+mkdir -p $current_work_dir/build/lib/examples/bin
 set -e
 
 # SET BUILD DIR
