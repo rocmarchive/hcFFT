@@ -55,7 +55,7 @@ bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision) {
           continue;
         }
 
-        if(!((libtype == 1 && hcfftlibtype == R2CD2Z) || (libtype == 2 && hcfftlibtype == C2RZ2D) || (libtype == 3 && hcfftlibtype == C2CZ2Z))) {
+        if(!((libtype == "1" && hcfftlibtype == R2CD2Z) || (libtype == "2" && hcfftlibtype == C2RZ2D) || (libtype == "3" && hcfftlibtype == C2CZ2Z))) {
           continue;
         }
 
@@ -161,11 +161,11 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
     type += "D";
   }
 
-  if(libType == R2CD2Z)
+  if(hcfftlibtype == R2CD2Z)
   {
     type += "1_";
   }
-  else if (libType == C2RZ2D)
+  else if (hcfftlibtype == C2RZ2D)
   {
     type += "2_";
   }
