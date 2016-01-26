@@ -8,10 +8,11 @@ The following are the sub-routines that are implemented
 
 1. R2C : Transforms Real valued input in Time domain to Complex valued output in Frequency domain.
 2. C2R : Transforms Complex valued input in Frequency domain to Real valued output in Real domain.
-
+3. C2C : Transforms Complex valued input in Frequency domain to Complex valued output in Real domain or vice versa
 ## Key Features: ##
 
 * Support 1D, 2D and 3D Fast Fourier Transforms
+* Supports R2C, C2R, C2C, D2Z, Z2D and Z2Z Transforms
 * Support Out-Of-Place data storage
 * Ability to Choose desired target accelerator
 * Single and Double precision
