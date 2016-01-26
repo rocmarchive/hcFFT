@@ -146,3 +146,9 @@ b) Manual testing:
      * cd ~/hcfft/test/build/linux/bin/
      
      * choose the appropriate named binary
+
+### 3. Examples:
+
+     * cd ~/hcfft/build/lib/examples/bin/
+     
+     * choose the appropriate named binary
