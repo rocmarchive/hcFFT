@@ -367,11 +367,30 @@ hcfftStatus hcfftCreateDefaultPlanInternal (hcfftPlanHandle* plHandle, hcfftDim 
   return HCFFT_SUCCEEDS;
 }
 
+// Function to check if sizes are multiples of 2,3,5,7
+hcfftStatus FFTPlan::hcfftCheckSupportedSizes(const hcfftDim dim, const size_t *clLengths)
+{
+  for( int i = 0; i < dim; i++)
+  {
+    int len = clLengths[i];
+    if(!((len % 2 == 0) || (len % 3 == 0) || (len % 5 == 0) || (len % 7 == 0)))
+    {
+      return HCFFT_INVALID;
+    }
+  }
+  return HCFFT_SUCCEEDS;
+}
+
 // This external entry-point should not be called from within the library. Use clfftCreateDefaultPlanInternal instead.
 hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hcfftDim dim,
     const size_t* clLengths, hcfftDirection dir, accelerator acc, hcfftPrecision precision,
     hcfftLibType libType) {
-  hcfftStatus ret = hcfftCreateDefaultPlanInternal(plHandle, dim, clLengths);
+
+  hcfftStatus ret = hcfftCheckSupportedSizes(dim, clLengths);
+  if(ret != HCFFT_SUCCEEDS)
+    return ret;
+
+  ret = hcfftCreateDefaultPlanInternal(plHandle, dim, clLengths);
   originalLength.clear();
 
   for(int i = 0 ; i < dim ; i++) {

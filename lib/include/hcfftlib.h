@@ -470,6 +470,8 @@ class FFTPlan {
     blockCompute(false), blockComputeType(BCT_C2C) {
   };
 
+  hcfftStatus hcfftCheckSupportedSizes(const hcfftDim dim, const size_t *clLengths);
+
   hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, accelerator acc, hcfftPrecision precision, hcfftLibType libType);
 
   hcfftStatus hcfftBakePlan(hcfftPlanHandle plHandle);
