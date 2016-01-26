@@ -42,7 +42,7 @@ enum BlockComputeType {
   BCT_C2C         // Column to Column
 };
 
-enum hcfftLibType
+typedef enum hcfftLibType_
 {
   R2CD2Z = 1,
   C2RZ2D,
