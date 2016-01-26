@@ -44,9 +44,9 @@ enum BlockComputeType {
 
 typedef enum hcfftLibType_
 {
-  R2CD2Z = 1,
-  C2RZ2D,
-  C2CZ2Z
+  HCFFT_R2CD2Z = 1,
+  HCFFT_C2RZ2D,
+  HCFFT_C2CZ2Z
 }hcfftLibType;
 
 typedef size_t hcfftPlanHandle;
