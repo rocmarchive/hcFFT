@@ -22,6 +22,10 @@ fi
 # CURRENT_WORK_DIRECTORY
 current_work_dir=$PWD
 
+#Inputs converted to smallcase format
+input1=$1
+var1=${input1,,}
+
 # MAKE BUILD DIR
 mkdir $current_work_dir/build
 mkdir $current_work_dir/build/lib
@@ -40,12 +44,29 @@ sudo make install
 # Build Tests
 cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/ && make
 
+set +e
+mkdir $current_work_dir/build/test/src/bin/
+mkdir $current_work_dir/build/test/unit/gtest/bin/
+set -e
+
+make
+red=`tput setaf 1`
+green=`tput setaf 2`
+reset=`tput sgr0`
+
 # KERNEL CACHE DIR
 mkdir -p /tmp/kernCache
 
+#Test=OFF (Build library and tests)
+if ([ "$var1" = "test=off" ]); then
+   echo "${green}HCFFT Installation Completed!${reset}"
+#Test=ON (Build and test the library)
+elif ([ "$var1" = "test=on" ]); then
+   cd $current_work_dir/test/unit/
+# Invoke test script
+   ./test.sh
+fi
 # Simple test to confirm installation
 #$build_dir/test/src/fft 2 12
 
 # TODO: ADD More options to perform benchmark and testing
-
-

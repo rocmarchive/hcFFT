@@ -12,7 +12,7 @@ file(GLOB SRCS *.cpp)
 if(EXISTS ${MCWHCCBUILD})
   execute_process(COMMAND ${HCC_CONFIG} --build --cxxflags
                          OUTPUT_VARIABLE HCC_CXXFLAGS)
-  execute_process(COMMAND ${HCC_CONFIG} --build --ldflags --gtest
+  execute_process(COMMAND ${HCC_CONFIG} --build --ldflags --gtest 
                             OUTPUT_VARIABLE HCC_LDFLAGS)
 else(EXISTS ${MCWHCCBUILD})
   execute_process(COMMAND ${HCC_CONFIG} --install --cxxflags
@@ -27,11 +27,9 @@ string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
 set (HCC_CXXFLAGS "${HCC_CXXFLAGS}")
 set (HCC_LDFLAGS "${HCC_LDFLAGS}")
 
-SET_PROPERTY(SOURCE ${SRCS} APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS} -DGTEST_HAS_TR1_TUPLE=0 -I$ENV{OPENCL_INCLUDE_PATH} ")
-ADD_EXECUTABLE(test_3D_transform ${SRCS})
-SET_PROPERTY(TARGET test_3D_transform APPEND_STRING PROPERTY LINK_FLAGS " ${HCC_LDFLAGS} -L$ENV{CLFFT_LIBRARY_PATH} -lclFFT -L$ENV{OPENCL_LIBRARY_PATH} -lOpenCL -lhc_am")
+SET_PROPERTY(SOURCE ${SRCS} APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS} -DGTEST_HAS_TR1_TUPLE=0 -I$ENV{OPENCL_INCLUDE_PATH}")
+ADD_EXECUTABLE(bin/unittest ${SRCS})
+SET_PROPERTY(TARGET bin/unittest APPEND_STRING PROPERTY LINK_FLAGS " ${HCC_LDFLAGS} -L$ENV{CLFFT_LIBRARY_PATH} -lclFFT -L$ENV{OPENCL_LIBRARY_PATH} -lOpenCL -lhc_am")
 
-TARGET_LINK_LIBRARIES(test_3D_transform hcfft)
-
-add_test(NAME test3DTransform COMMAND test_3D_transform)
-
+TARGET_LINK_LIBRARIES(bin/unittest hcfft)
+add_test(NAME unittest COMMAND ./bin/unittest)
