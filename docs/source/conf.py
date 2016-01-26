@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# HCBLAS documentation build configuration file, created by
+# HCFFT documentation build configuration file, created by
 # sphinx-quickstart on Tue Oct 13 13:50:45 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -48,7 +48,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'HCBLAS'
+project = u'HCFFT'
 copyright = u'2015, MulticoreWare'
 author = u'MulticoreWare'
 
@@ -202,7 +202,7 @@ html_static_path = ['nstatic']
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'HCBLASdoc'
+htmlhelp_basename = 'HCFFTdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -224,7 +224,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'HCBLAS.tex', u'HCBLAS Documentation',
+  (master_doc, 'HCFFT.tex', u'HCFFT Documentation',
    u'Aparna Suresh', 'manual'),
 ]
 
@@ -254,7 +254,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'hcblas', u'HCBLAS Documentation',
+    (master_doc, 'hcblas', u'HCFFT Documentation',
      [author], 1)
 ]
 
@@ -268,8 +268,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'HCBLAS', u'HCBLAS Documentation',
-   author, 'HCBLAS', 'One line description of project.',
+  (master_doc, 'HCFFT', u'HCFFT Documentation',
+   author, 'HCFFT', 'One line description of project.',
    'Miscellaneous'),
 ]
 

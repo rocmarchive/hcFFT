@@ -170,8 +170,8 @@ To uninstall the library, invoke the following series of commands
 5. Unit testing
 ************************
 
-5.1. Install OpenCL based FFT library
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+5.1. Install OpenCL based FFT library:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 a)  Clone and Build clFFT repository:
 
