@@ -2,83 +2,139 @@
 
 ##Introduction: ##
 
-This repository hosts the HCC implementation of FFT routines. The following are the sub-routines that are implemented
+This repository hosts the HCC based FFT Library, that targets GPU acceleration of FFT routines on AMD devices. To know what HCC compiler features, refer [here](https://bitbucket.org/multicoreware/hcc/wiki/Home).
+
+The following are the sub-routines that are implemented
 
 1. R2C : Transforms Real valued input in Time domain to Complex valued output in Frequency domain.
 2. C2R : Transforms Complex valued input in Frequency domain to Real valued output in Real domain.
 
+## Key Features: ##
 
-##Repository Structure: ##
+* Support 1D, 2D and 3D Fast Fourier Transforms
+* Support Out-Of-Place data storage
+* Ability to Choose desired target accelerator
+* Single and Double precision
 
 ##Prerequisites: ##
-* **dGPU**:  AMD FirePro W9100 (FireGL V)
-* **OS** : Ubuntu 14.04 LTS
-* **Ubuntu Pack**: libc6-dev-i386
-* **AMD APP SDK** : Ver 2.9.1 launched on 18/8/2014 from [here](http://developer.amd.com/tools-and-sdks/opencl-zone/amd-accelerated-parallel-processing-app-sdk/)
-* **AMD Driver installer**: amd-driver-installer-15.20
-* ** FFTW CPU library for testing purpose
+
+**A. Hardware Requirements:**
+
+* CPU: mainstream brand, Better if with >=4 Cores Intel Haswell based CPU 
+* System Memory >= 4GB (Better if >10GB for NN application over multiple GPUs)
+* Hard Drive > 200GB (Better if SSD or NVMe driver  for NN application over multiple GPUs)
+* Minimum GPU Memory (Global) > 2GB
+
+**B. GPU SDK and driver Requirements:**
+
+* AMD R9 Fury X, R9 Fur, R9 Nano
+* AMD APU Kaveri or Carrizo
+
+**C. System software requirements:**
+
+* Ubuntu 14.04 trusty
+* GCC 4.6 and later
+* CPP 4.6 and later (come with GCC package)
+* python 2.7 and later
 
 
-## Installation Steps:
+**D. Tools and Misc Requirements:**
+
+* git 1.9 and later
+* cmake 2.6 and later (2.6 and 2.8 are tested)
+* firewall off
+* root privilege or user account in sudo group
+
+
+**E. Ubuntu Packages requirements:**
+
+* libc6-dev-i386
+* liblapack-dev
+* graphicsmagick
+
+
+## Tested Environment so far: 
+
+**A. Driver versions tested**  
+
+* Boltzmann Early Release Driver 
+* HSA driver
+
+**B. GPU Cards tested:**
+
+* Radeon R9 Nano
+* Radeon R9 FuryX 
+* Radeon R9 Fury 
+* Kaveri and Carizo APU
+
+**C. Desktop System Tested**
+
+* Supermicro SYS-7048GR-TR  Tower 4 W9100 GPU
+* ASUS X99-E WS motherboard with 4 AMD FirePro W9100
+* Gigabyte GA-X79S 2 AMD FirePro W9100 GPU’s
+
+**D. Server System Tested**
+
+* Supermicro SYS 2028GR-THT  6 R9 NANO
+* Supermicro SYS-1028GQ-TRT 4 R9 NANO
+* Supermicro SYS-7048GR-TR Tower 4 R9 NANO
+
+
+## Installation Steps:   
 
 ### A. HCC Compiler Installation: 
 
-**Install HCC compiler debian package:**
+a) Download the compiler debian.
 
-  Download the debian package from the link given below,
-  
-  [Compiler-Debians](https://bitbucket.org/multicoreware/hcc/downloads)
-  
-  Install the package hcc-0.9.16041-0be508d-ff03947-5a1009a-Linux.deb
-  
-  using the command,
-  
-    sudo dpkg -i <package_name>
-      e.g. sudo dpkg -i  hcc-0.8.1544-a9f4d2f-ddba18d-Linux.deb 
+* Click [here](https://bitbucket.org/multicoreware/hcc/downloads/hcc-0.9.16041-0be508d-ff03947-5a1009a-Linux.deb)
+
+   (or)
+
+* via terminal: 
+
+               wget https://bitbucket.org/multicoreware/hcc/downloads/hcc-0.9.16041-0be508d-ff03947-5a1009a-Linux.deb 
+
+
+b) Install the compiler
+ 
+      sudo dpkg -i hcc-0.9.16041-0be508d-ff03947-5a1009a-Linux.deb
       
-  Note: 
-      Ignore clamp-bolt, Bolt is not required for hcFFT.
-    
-
-### B. HCFFT Installation
-
-(i) Clone MCW HCFFT source codes
-
-      * cd ~/
+### B. HCFFT Installation 
    
-      * git clone https://bitbucket.org/multicoreware/hcfft.git 
+       * git clone https://bitbucket.org/multicoreware/hcfft.git 
 
-      * cd ~/hcfft
+       * cd ~/hcfft
 
-(ii) Platform-specific build
+       * ./install.sh test=OFF
+         Where
+           test=OFF    - Build library and tests
+           test=ON     - Build library, tests and run test.sh
 
-(a) For Linux:
-
-       * sh install.sh
-    
-
-(b)  For Windows: (Prerequisite: Visual Studio 12 version )
-
-1. For 32 Bit:
-
-     * cd ~/hcfft/Build/vc11-x86
-
-     * make-solutions.bat (This creates a Visual studio solution for hcfft Library) 
-
- 2. For 64-bit:
-
-     * cd ~/hcfft/Build/vc11-x86_64
-
-     * make-solutions.bat (This creates a Visual Studio solution for hcfft Library)
-
-
+       
 ### C. Unit testing
 
-Installation steps for FFTW CPU based FFT library
+### 1. Install clFFT library
 
-1. wget http://www.fftw.org/fftw-3.3.4.tar.gz
-2. tar -xvf fftw-3.3.4.tar.gz
-3. cd fftw-3.3.4/
-4. ./configure
-5. make
-6. sudo make install
+     * git clone https://github.com/clMathLibraries/clFFT.git
+
+     * cd clFFT
+
+     * mkdir build && cd build
+
+     * cmake ../src
+
+     * make && make install
+
+### 2. Testing:
+    
+a) Automated testing:
+
+     * cd ~/hcfft/test/unit/
+     
+     * ./test.sh
+     
+b) Manual testing:
+
+     * cd ~/hcfft/test/build/linux/bin/
+     
+     * choose the appropriate named binary 
