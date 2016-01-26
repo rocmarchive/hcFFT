@@ -1,0 +1,262 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>HCFFT TYPES &mdash; HCBLAS  documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="HCBLAS  documentation" href="index.html" />
+    <link rel="next" title="HCFFT Helper functions" href="Helper_functions.html" />
+    <link rel="prev" title="hcFFT Documentaton" href="index.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="Helper_functions.html" title="HCFFT Helper functions"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="hcFFT Documentaton"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HCBLAS  documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="hcfft-types">
+<h1>HCFFT TYPES<a class="headerlink" href="#hcfft-types" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="enumerations">
+<h2>Enumerations<a class="headerlink" href="#enumerations" title="Permalink to this headline">¶</a></h2>
+<div class="line-block">
+<div class="line">enum hcfftResult_t {</div>
+<div class="line">HCFFT_SUCCESS        = 0,</div>
+<div class="line">HCFFT_INVALID_PLAN   = 1,</div>
+<div class="line">HCFFT_ALLOC_FAILED   = 2,</div>
+<div class="line">HCFFT_INVALID_TYPE   = 3,</div>
+<div class="line">HCFFT_INVALID_VALUE  = 4,</div>
+<div class="line">HCFFT_INTERNAL_ERROR = 5,</div>
+<div class="line">HCFFT_EXEC_FAILED    = 6,</div>
+<div class="line">HCFFT_SETUP_FAILED   = 7,</div>
+<div class="line">HCFFT_INVALID_SIZE   = 8,</div>
+<div class="line">HCFFT_UNALIGNED_DATA = 9,</div>
+<div class="line">HCFFT_INCOMPLETE_PARAMETER_LIST = 10,</div>
+<div class="line">HCFFT_INVALID_DEVICE = 11,</div>
+<div class="line">HCFFT_PARSE_ERROR    = 12,</div>
+<div class="line">HCFFT_NO_WORKSPACE   = 13</div>
+<div class="line">}</div>
+<div class="line">enum hcfftType_t {</div>
+<div class="line">HCFFT_R2C = 0x2a,</div>
+<div class="line">HCFFT_C2R = 0x2c,</div>
+<div class="line">HCFFT_C2C = 0x29,</div>
+<div class="line">HCFFT_D2Z = 0x6a,</div>
+<div class="line">HCFFT_Z2D = 0x6c,</div>
+<div class="line">HCFFT_Z2Z = 0x69</div>
+<div class="line">}</div>
+</div>
+<div class="line-block">
+<div class="line">typedef float hcfftReal;</div>
+<div class="line">typedef float_2 hcfftComplex;</div>
+<div class="line">typedef double hcfftDoubleReal;</div>
+<div class="line">typedef double_2 hcfftDoubleComplex;</div>
+</div>
+</div>
+<div class="section" id="detailed-description">
+<h2>Detailed Description<a class="headerlink" href="#detailed-description" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="hcfft-result-hcfftresult-t">
+<h3>HCFFT RESULT (hcfftResult_t)<a class="headerlink" href="#hcfft-result-hcfftresult-t" title="Permalink to this headline">¶</a></h3>
+<div class="line-block">
+<div class="line">This enumeration is the set of HCFFT error codes.</div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="28%" />
+<col width="72%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head" colspan="2">Enumerator</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>HCFFT_SUCCESS</td>
+<td>The hcFFT operation was successful.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INVALID_PLAN</td>
+<td>hcFFT was passed an invalid plan handle.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_ALLOC_FAILED</td>
+<td>hcFFT failed to allocate GPU or CPU memory.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INVALID_TYPE</td>
+<td>unsupported numerical value was passed to function.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_INVALID_VALUE</td>
+<td>User specified an invalid pointer or parameter.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INTERNAL_ERROR</td>
+<td>Driver or internal hcFFT library error.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_EXEC_FAILED</td>
+<td>Failed to execute an FFT on the GPU.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_SETUP_FAILED</td>
+<td>The hcFFT library failed to initialize.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_INVALID_SIZE</td>
+<td>User specified an invalid transform size.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_UNALIGNED_DATA</td>
+<td>No longer used.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_INCOMPLETE_PARAMETER_LIST</td>
+<td>Missing parameters in call.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INVALID_DEVICE</td>
+<td>Execution of a plan was on different GPU than plan creation.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_PARSE_ERROR</td>
+<td>Internal plan database error.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_NO_WORKSPACE</td>
+<td>No workspace has been provided prior to plan execution.</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="hcfft-type-hcffttype-t">
+<h3>HCFFT TYPE (hcfftType_t)<a class="headerlink" href="#hcfft-type-hcffttype-t" title="Permalink to this headline">¶</a></h3>
+<div class="line-block">
+<div class="line">types of transform data supported by hcFFT</div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="14%" />
+<col width="86%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head" colspan="2">Enumerator</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>HCFFT_R2C</td>
+<td>Real to complex (interleaved).</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_C2R</td>
+<td>Complex (interleaved) to real.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_C2C</td>
+<td>Complex to complex (interleaved).</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_D2Z</td>
+<td>Double to double-complex (interleaved).</td>
+</tr>
+<tr class="row-even"><td>HCFFT_Z2D</td>
+<td>Double-complex (interleaved) to double.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_Z2Z</td>
+<td>Double-complex to double-complex (interleaved).</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">HCFFT TYPES</a><ul>
+<li><a class="reference internal" href="#enumerations">Enumerations</a></li>
+<li><a class="reference internal" href="#detailed-description">Detailed Description</a><ul>
+<li><a class="reference internal" href="#hcfft-result-hcfftresult-t">HCFFT RESULT (hcfftResult_t)</a></li>
+<li><a class="reference internal" href="#hcfft-type-hcffttype-t">HCFFT TYPE (hcfftType_t)</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">hcFFT Documentaton</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Helper_functions.html"
+                        title="next chapter">HCFFT Helper functions</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/HCFFT_TYPES.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="Helper_functions.html" title="HCFFT Helper functions"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="hcFFT Documentaton"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HCBLAS  documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2015, MulticoreWare.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.5.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>HCFFT Helper functions &mdash; HCBLAS  documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="HCBLAS  documentation" href="index.html" />
+    <link rel="next" title="Modules" href="Modules.html" />
+    <link rel="prev" title="HCFFT TYPES" href="HCFFT_TYPES.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="Modules.html" title="Modules"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="HCFFT_TYPES.html" title="HCFFT TYPES"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HCBLAS  documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="hcfft-helper-functions">
+<h1>HCFFT Helper functions<a class="headerlink" href="#hcfft-helper-functions" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="hcfftcreate">
+<h2>1. hcfftCreate()<a class="headerlink" href="#hcfftcreate" title="Permalink to this headline">¶</a></h2>
+<p><cite>hcfftResult hcfftCreate(hcfftHandle *&amp;plan)</cite></p>
+<div class="line-block">
+<div class="line">This function Creates only an opaque handle, and allocates small data structures on the host.</div>
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="hcfftdestory">
+<h2>2. hcfftDestory()<a class="headerlink" href="#hcfftdestory" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="HCFFT_TYPES.html">hcfftResult</a> <strong>hcfftDestroy</strong> (hcfftHandle plan)</p>
+<div class="line-block">
+<div class="line">This function frees all GPU resources associated with a hcFFT plan and destroys the internal plan data structure.</div>
+<div class="line">This function should be called once a plan is no longer needed, to avoid wasting GPU memory.</div>
+<div class="line"><br /></div>
+<div class="line">Return Values,</div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="40%" />
+<col width="60%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">STATUS</th>
+<th class="head">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>HCFFT_SUCCESS</td>
+<td>hcFFT successfully destroyed the FFT plan.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INVALID_PLAN</td>
+<td>The plan parameter is not a valid handle.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="hcfftplan1d">
+<h2>3. hcfftPlan1d()<a class="headerlink" href="#hcfftplan1d" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="HCFFT_TYPES.html">hcfftResult</a> <strong>hcfftPlan1d</strong> (hcfftHandle <a href="#id2"><span class="problematic" id="id3">*</span></a>&amp;plan, int nx, hcfftType type)</p>
+<div class="line-block">
+<div class="line">This function Creates a 1D FFT plan configuration for a specified signal size and data type.</div>
+<div class="line">The batch input parameter tells hcFFT how many 1D transforms to configure.</div>
+<div class="line"><br /></div>
+<div class="line">Return Values,</div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="31%" />
+<col width="69%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">STATUS</th>
+<th class="head">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>HCFFT_SUCCESS</td>
+<td>hcFFT successfully created the FFT plan.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_ALLOC_FAILED</td>
+<td>The allocation of GPU resources for the plan failed.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_INVALID_VALUE</td>
+<td>One or more invalid parameters were passed to the API.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INTERNAL_ERROR</td>
+<td>An internal driver error was detected.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_SETUP_FAILED</td>
+<td>The hcFFT library failed to initialize.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INVALID_SIZE</td>
+<td>Either or both of the nx or ny parameters is not a supported sizek.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="hcfftplan2d">
+<h2>4. hcfftPlan2d()<a class="headerlink" href="#hcfftplan2d" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="HCFFT_TYPES.html">hcfftResult</a> <strong>hcfftPlan2d</strong> (hcfftHandle <a href="#id5"><span class="problematic" id="id6">*</span></a>&amp;plan, int nx, int ny, hcfftType type)</p>
+<div class="line-block">
+<div class="line">This function Creates a 2D FFT plan configuration according to specified signal sizes and data type.</div>
+<div class="line"><br /></div>
+<div class="line">Return Values,</div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="31%" />
+<col width="69%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">STATUS</th>
+<th class="head">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>HCFFT_SUCCESS</td>
+<td>hcFFT successfully created the FFT plan.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_ALLOC_FAILED</td>
+<td>The allocation of GPU resources for the plan failed.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_INVALID_VALUE</td>
+<td>One or more invalid parameters were passed to the API.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INTERNAL_ERROR</td>
+<td>An internal driver error was detected.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_SETUP_FAILED</td>
+<td>The hcFFT library failed to initialize.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INVALID_SIZE</td>
+<td>Either or both of the nx or ny parameters is not a supported sizek.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="hcfftplan3d">
+<h2>5. hcfftPlan3d()<a class="headerlink" href="#hcfftplan3d" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="HCFFT_TYPES.html">hcfftResult</a> <strong>hcfftPlan3d</strong> (hcfftHandle <a href="#id8"><span class="problematic" id="id9">*</span></a>&amp;plan, int nx, int ny, int nz, hcfftType type)</p>
+<div class="line-block">
+<div class="line">This function Creates a 3D FFT plan configuration according to specified signal sizes and data type.</div>
+<div class="line">This function is the same as hcfftPlan2d() except that it takes a third size parameter nz.</div>
+<div class="line"><br /></div>
+<div class="line">Return Values,</div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="31%" />
+<col width="69%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">STATUS</th>
+<th class="head">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>HCFFT_SUCCESS</td>
+<td>hcFFT successfully created the FFT plan.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_ALLOC_FAILED</td>
+<td>The allocation of GPU resources for the plan failed.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_INVALID_VALUE</td>
+<td>One or more invalid parameters were passed to the API.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INTERNAL_ERROR</td>
+<td>An internal driver error was detected.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_SETUP_FAILED</td>
+<td>The hcFFT library failed to initialize.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INVALID_SIZE</td>
+<td>Either or both of the nx or ny parameters is not a supported sizek.</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="hcfftxtsetgpus">
+<h2>6. hcfftXtSetGPUs()<a class="headerlink" href="#hcfftxtsetgpus" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="HCFFT_TYPES.html">hcfftResult</a> <strong>hcfftXtSetGPUs</strong> (accelerator &amp;acc)</p>
+<div class="line-block">
+<div class="line">This function returns GPUs to be used with the plan</div>
+<div class="line"><br /></div>
+<div class="line">Return Values,</div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="31%" />
+<col width="69%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">STATUS</th>
+<th class="head">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>HCFFT_SUCCESS</td>
+<td>hcFFT successfully created the FFT plan.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_ALLOC_FAILED</td>
+<td>The allocation of GPU resources for the plan failed.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_INVALID_VALUE</td>
+<td>One or more invalid parameters were passed to the API.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INTERNAL_ERROR</td>
+<td>An internal driver error was detected.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_SETUP_FAILED</td>
+<td>The hcFFT library failed to initialize.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INVALID_SIZE</td>
+<td>Either or both of the nx or ny parameters is not a supported sizek.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">HCFFT Helper functions</a><ul>
+<li><a class="reference internal" href="#hcfftcreate">1. hcfftCreate()</a></li>
+<li><a class="reference internal" href="#hcfftdestory">2. hcfftDestory()</a></li>
+<li><a class="reference internal" href="#hcfftplan1d">3. hcfftPlan1d()</a></li>
+<li><a class="reference internal" href="#hcfftplan2d">4. hcfftPlan2d()</a></li>
+<li><a class="reference internal" href="#hcfftplan3d">5. hcfftPlan3d()</a></li>
+<li><a class="reference internal" href="#hcfftxtsetgpus">6. hcfftXtSetGPUs()</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="HCFFT_TYPES.html"
+                        title="previous chapter">HCFFT TYPES</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Modules.html"
+                        title="next chapter">Modules</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/Helper_functions.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="Modules.html" title="Modules"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="HCFFT_TYPES.html" title="HCFFT TYPES"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HCBLAS  documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2015, MulticoreWare.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.5.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>hcFFT Documentaton &mdash; HCBLAS  documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="HCBLAS  documentation" href="#" />
+    <link rel="next" title="HCFFT TYPES" href="HCFFT_TYPES.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="HCFFT_TYPES.html" title="HCFFT TYPES"
+             accesskey="N">next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">HCBLAS  documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="hcfft-documentaton">
+<h1>hcFFT Documentaton<a class="headerlink" href="#hcfft-documentaton" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>1. Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<hr class="docutils" />
+<p>The hcFFT library is an implementation of FFT (Fast Fourier Transform) targetting the AMD heterogenous hardware via HCC compiler runtime. The computational resources of underlying AMD heterogenous compute gets exposed and exploited through the HCC C++ frontend. Refer <a class="reference external" href="https://bitbucket.org/multicoreware/hcc/wiki/Home">here</a> for more details on HCC compiler.</p>
+<p>To use the hcFFT API, the application must allocate the required input buffers in the GPU memory space, fill them with data, call the sequence of desired hcFFT functions, and then upload the results from the GPU memory space back to the host. The hcFFT API also provides helper functions for writing and retrieving data from the GPU.</p>
+<p>The following list enumerates the current set of FFT sub-routines that are supported so far.</p>
+<ul class="simple">
+<li>R2C  : Single Precision real to complex valued Fast Fourier Transform</li>
+<li>C2R  : Single Precision complex to real valued Fast Fourier Transform</li>
+<li>C2C  : Single Precision complex to complex valued Fast Fourier Transform</li>
+<li>D2Z  : Double Precision real to complex valued Fast Fourier Transform</li>
+<li>Z2D  : Double Precision complex to real valued Fast Fourier Transform</li>
+<li>Z2Z  : Double Precision complex to complex valued Fast Fourier Transform</li>
+</ul>
+</div>
+<div class="section" id="prerequisites">
+<h2>2. Prerequisites<a class="headerlink" href="#prerequisites" title="Permalink to this headline">¶</a></h2>
+<hr class="docutils" />
+<p>This section lists the known set of hardware and software requirements to build this library</p>
+<div class="section" id="hardware">
+<h3>2.1. Hardware<a class="headerlink" href="#hardware" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>CPU: mainstream brand, Better if with &gt;=4 Cores Intel Haswell based CPU</li>
+<li>System Memory &gt;= 4GB (Better if &gt;10GB for NN application over multiple GPUs)</li>
+<li>Hard Drive &gt; 200GB (Better if SSD or NVMe driver  for NN application over multiple GPUs)</li>
+<li>Minimum GPU Memory (Global) &gt; 2GB</li>
+</ul>
+</div>
+<div class="section" id="gpu-sdk-and-driver">
+<h3>2.2. GPU SDK and driver<a class="headerlink" href="#gpu-sdk-and-driver" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>AMD R9 Fury X, R9 Fur, R9 Nano</li>
+<li>AMD APU Kaveri or Carrizo</li>
+</ul>
+</div>
+<div class="section" id="system-software">
+<h3>2.3. System software<a class="headerlink" href="#system-software" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Ubuntu 14.04 trusty</li>
+<li>GCC 4.6 and later</li>
+<li>CPP 4.6 and later (come with GCC package)</li>
+<li>python 2.7 and later</li>
+<li>HCC 0.9 from <a class="reference external" href="https://bitbucket.org/multicoreware/hcc/downloads/hcc-0.9.16041-0be508d-ff03947-5a1009a-Linux.deb">here</a></li>
+</ul>
+</div>
+<div class="section" id="tools-and-misc">
+<h3>2.4. Tools and Misc<a class="headerlink" href="#tools-and-misc" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>git 1.9 and later</li>
+<li>cmake 2.6 and later (2.6 and 2.8 are tested)</li>
+<li>firewall off</li>
+<li>root privilege or user account in sudo group</li>
+</ul>
+</div>
+<div class="section" id="ubuntu-packages">
+<h3>2.5. Ubuntu Packages<a class="headerlink" href="#ubuntu-packages" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>libc6-dev-i386</li>
+<li>liblapack-dev</li>
+<li>graphicsmagick</li>
+</ul>
+</div>
+</div>
+<div class="section" id="tested-environments">
+<h2>3. Tested Environments<a class="headerlink" href="#tested-environments" title="Permalink to this headline">¶</a></h2>
+<hr class="docutils" />
+<p>This sections enumerates the list of tested combinations of Hardware and system softwares.</p>
+<div class="section" id="driver-versions">
+<h3>3.1. Driver versions<a class="headerlink" href="#driver-versions" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Boltzmann Early Release Driver</li>
+<li>HSA driver</li>
+</ul>
+</div>
+<div class="section" id="gpu-cards">
+<h3>3.2. GPU Cards<a class="headerlink" href="#gpu-cards" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Radeon R9 Nano</li>
+<li>Radeon R9 FuryX</li>
+<li>Radeon R9 Fury</li>
+<li>Kaveri and Carizo APU</li>
+</ul>
+</div>
+<div class="section" id="desktop-system">
+<h3>3.3. Desktop System<a class="headerlink" href="#desktop-system" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Supermicro SYS-7048GR-TR  Tower 4 W9100 GPU</li>
+<li>ASUS X99-E WS motherboard with 4 AMD FirePro W9100</li>
+<li>Gigabyte GA-X79S 2 AMD FirePro W9100 GPU’s</li>
+</ul>
+</div>
+<div class="section" id="server-system">
+<h3>3.4. Server System<a class="headerlink" href="#server-system" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li>Supermicro SYS 2028GR-THT  6 R9 NANO</li>
+<li>Supermicro SYS-1028GQ-TRT 4 R9 NANO</li>
+<li>Supermicro SYS-7048GR-TR Tower 4 R9 NANO</li>
+</ul>
+</div>
+</div>
+<div class="section" id="installation-steps">
+<h2>4. Installation steps<a class="headerlink" href="#installation-steps" title="Permalink to this headline">¶</a></h2>
+<hr class="docutils" />
+<p>The following are the steps to install the library</p>
+<blockquote>
+<div><ul class="simple">
+<li>Compiler installation.</li>
+<li>Library installation.</li>
+</ul>
+</div></blockquote>
+<div class="section" id="compiler-installation">
+<h3>4.1 Compiler Installation<a class="headerlink" href="#compiler-installation" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><ol class="loweralpha">
+<li><p class="first">Install pre-dependency packages</p>
+<p><code class="docutils literal"><span class="pre">sudo</span> <span class="pre">apt-get</span> <span class="pre">install</span> <span class="pre">cmake</span> <span class="pre">git</span> <span class="pre">subversion</span> <span class="pre">g++</span> <span class="pre">libstdc++-4.8-dev</span> <span class="pre">libdwarf-dev</span> <span class="pre">libelf-dev</span> <span class="pre">libtinfo-dev</span> <span class="pre">libc6-dev-i386</span> <span class="pre">gcc-multilib</span> <span class="pre">llvm</span> <span class="pre">llvm-dev</span> <span class="pre">llvm-runtime</span> <span class="pre">libc++1</span> <span class="pre">libc++-dev</span> <span class="pre">libc++abi1</span> <span class="pre">libc++abi-dev</span> <span class="pre">re2c</span> <span class="pre">libncurses5-dev</span></code></p>
+</li>
+<li><p class="first">Download Compiler</p>
+<p>Click <a class="reference external" href="https://bitbucket.org/multicoreware/hcc/downloads/hcc-0.9.16041-0be508d-ff03947-5a1009a-Linux.deb">here</a></p>
+<blockquote>
+<div><p>(or)</p>
+</div></blockquote>
+<p>wget <a class="reference external" href="https://bitbucket.org/multicoreware/hcc/downloads/hcc-0.9.16041-0be508d-ff03947-5a1009a-Linux.deb">https://bitbucket.org/multicoreware/hcc/downloads/hcc-0.9.16041-0be508d-ff03947-5a1009a-Linux.deb</a></p>
+</li>
+<li><p class="first">Install the compiler</p>
+<blockquote>
+<div><p><code class="docutils literal"><span class="pre">sudo</span> <span class="pre">dpkg</span> <span class="pre">-i</span> <span class="pre">hcc-0.9.16041-0be508d-ff03947-5a1009a-Linux.deb</span></code></p>
+</div></blockquote>
+</li>
+</ol>
+</div></blockquote>
+<p>Once done with the above steps the compiler headers, binaries and libraries gets installed under /opt system path as <code class="docutils literal"><span class="pre">/opt/hcc</span></code> .</p>
+</div>
+<div class="section" id="library-installation">
+<h3>4.2 Library Installation<a class="headerlink" href="#library-installation" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><ol class="loweralpha">
+<li><p class="first">Clone the repo</p>
+<blockquote>
+<div><p><code class="docutils literal"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://bitbucket.org/multicoreware/hcfft.git</span> <span class="pre">&amp;&amp;</span> <span class="pre">cd</span> <span class="pre">hcfft</span></code></p>
+</div></blockquote>
+</li>
+<li><p class="first">Modify scripts mode to binary</p>
+<blockquote>
+<div><p><code class="docutils literal"><span class="pre">chmod</span> <span class="pre">+x</span> <span class="pre">install.sh</span></code></p>
+</div></blockquote>
+</li>
+<li><p class="first">Install library</p>
+<blockquote>
+<div><p><code class="docutils literal"><span class="pre">./install.sh</span></code></p>
+</div></blockquote>
+</li>
+<li><p class="first">Additionally to run the unit test along with installation invoke the following command</p>
+<blockquote>
+<div><p><code class="docutils literal"><span class="pre">./install.sh</span> <span class="pre">test=ON</span></code></p>
+</div></blockquote>
+</li>
+</ol>
+</div></blockquote>
+<p>Once done with the above steps the libhcfft.so and associated headers gets installed under system path.</p>
+<p>To uninstall the library, invoke the following series of commands</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="docutils literal"><span class="pre">chmod</span> <span class="pre">+x</span> <span class="pre">uninstall.sh</span></code></li>
+<li><code class="docutils literal"><span class="pre">./uninstall.sh</span></code></li>
+</ul>
+</div></blockquote>
+</div>
+</div>
+<div class="section" id="unit-testing">
+<h2>5. Unit testing<a class="headerlink" href="#unit-testing" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="install-opencl-based-fft-library">
+<h3>5.1. Install OpenCL based FFT library<a class="headerlink" href="#install-opencl-based-fft-library" title="Permalink to this headline">¶</a></h3>
+<ol class="loweralpha simple">
+<li>Clone and Build clFFT repository:</li>
+</ol>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">git</span> <span class="pre">clone</span> <span class="pre">https://github.com/clMathLibraries/clFFT.git</span></code></li>
+<li><code class="docutils literal"><span class="pre">cd</span> <span class="pre">clFFT</span></code></li>
+<li><code class="docutils literal"><span class="pre">mkdir</span> <span class="pre">build</span> <span class="pre">&amp;&amp;</span> <span class="pre">cd</span> <span class="pre">build</span></code></li>
+<li><code class="docutils literal"><span class="pre">cmake</span> <span class="pre">../src</span></code></li>
+<li><code class="docutils literal"><span class="pre">make</span> <span class="pre">&amp;&amp;</span> <span class="pre">make</span> <span class="pre">install</span></code></li>
+</ul>
+<ol class="loweralpha simple" start="2">
+<li>Enable OpenCL environment variables:</li>
+</ol>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">export</span> <span class="pre">OPENCL_INCLUDE_PATH=/opt/AMDAPPSDK-x.y.z/include</span></code></li>
+<li><code class="docutils literal"><span class="pre">export</span> <span class="pre">OPENCL_LIBRARY_PATH=/opt/AMDAPPSDK-x.y.z/lib/x86_64</span></code></li>
+<li><code class="docutils literal"><span class="pre">export</span> <span class="pre">CLFFT_LIBRARY_PATH=/home/user/clFFT/build/library</span></code></li>
+<li><code class="docutils literal"><span class="pre">export</span> <span class="pre">LD_LIBRARY_PATH=$CLFFT_LIBRARY_PATH:$OPENCL_LIBRARY_PATH:$LD_LIBRARY_PATH</span></code></li>
+</ul>
+</div>
+<div class="section" id="testing-hcfft-against-clfft">
+<h3>5.2. Testing hcFFT against clFFT:<a class="headerlink" href="#testing-hcfft-against-clfft" title="Permalink to this headline">¶</a></h3>
+<ol class="loweralpha simple">
+<li>Automated testing:</li>
+</ol>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">cd</span> <span class="pre">~/hcfft/test/unit/</span></code></li>
+<li><code class="docutils literal"><span class="pre">./test.sh</span></code></li>
+</ul>
+<ol class="loweralpha simple" start="2">
+<li>Manual testing:</li>
+</ol>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">cd</span> <span class="pre">~/hcfft/test/build/linux/bin/</span></code></li>
+<li>choose the appropriate named binary</li>
+</ul>
+</div>
+</div>
+<div class="section" id="hcfft-api-reference">
+<h2>6. hcFFT API Reference<a class="headerlink" href="#hcfft-api-reference" title="Permalink to this headline">¶</a></h2>
+<hr class="docutils" />
+<p>This section provides a brief description of APIs and helper routines hosted by the library</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="HCFFT_TYPES.html">HCFFT TYPES</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="HCFFT_TYPES.html#enumerations">Enumerations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="HCFFT_TYPES.html#detailed-description">Detailed Description</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Helper_functions.html">HCFFT Helper functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="Helper_functions.html#hcfftcreate">1. hcfftCreate()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Helper_functions.html#hcfftdestory">2. hcfftDestory()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Helper_functions.html#hcfftplan1d">3. hcfftPlan1d()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Helper_functions.html#hcfftplan2d">4. hcfftPlan2d()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Helper_functions.html#hcfftplan3d">5. hcfftPlan3d()</a></li>
+<li class="toctree-l2"><a class="reference internal" href="Helper_functions.html#hcfftxtsetgpus">6. hcfftXtSetGPUs()</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="Modules.html">Modules</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="r2c.html">R2C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c2r.html">C2R</a></li>
+<li class="toctree-l2"><a class="reference internal" href="c2c.html">C2C</a></li>
+<li class="toctree-l2"><a class="reference internal" href="d2z.html">D2Z</a></li>
+<li class="toctree-l2"><a class="reference internal" href="z2d.html">Z2D</a></li>
+<li class="toctree-l2"><a class="reference internal" href="z2z.html">Z2Z</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<span class="target" id="index-0"></span></div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">hcFFT Documentaton</a><ul>
+<li><a class="reference internal" href="#introduction">1. Introduction</a></li>
+<li><a class="reference internal" href="#prerequisites">2. Prerequisites</a><ul>
+<li><a class="reference internal" href="#hardware">2.1. Hardware</a></li>
+<li><a class="reference internal" href="#gpu-sdk-and-driver">2.2. GPU SDK and driver</a></li>
+<li><a class="reference internal" href="#system-software">2.3. System software</a></li>
+<li><a class="reference internal" href="#tools-and-misc">2.4. Tools and Misc</a></li>
+<li><a class="reference internal" href="#ubuntu-packages">2.5. Ubuntu Packages</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#tested-environments">3. Tested Environments</a><ul>
+<li><a class="reference internal" href="#driver-versions">3.1. Driver versions</a></li>
+<li><a class="reference internal" href="#gpu-cards">3.2. GPU Cards</a></li>
+<li><a class="reference internal" href="#desktop-system">3.3. Desktop System</a></li>
+<li><a class="reference internal" href="#server-system">3.4. Server System</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#installation-steps">4. Installation steps</a><ul>
+<li><a class="reference internal" href="#compiler-installation">4.1 Compiler Installation</a></li>
+<li><a class="reference internal" href="#library-installation">4.2 Library Installation</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#unit-testing">5. Unit testing</a><ul>
+<li><a class="reference internal" href="#install-opencl-based-fft-library">5.1. Install OpenCL based FFT library</a></li>
+<li><a class="reference internal" href="#testing-hcfft-against-clfft">5.2. Testing hcFFT against clFFT:</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#hcfft-api-reference">6. hcFFT API Reference</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Next topic</h4>
+  <p class="topless"><a href="HCFFT_TYPES.html"
+                        title="next chapter">HCFFT TYPES</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/index.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="HCFFT_TYPES.html" title="HCFFT TYPES"
+             >next</a> |</li>
+        <li class="nav-item nav-item-0"><a href="#">HCBLAS  documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2015, MulticoreWare.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.5.
+    </div>
+  </body>
+</html>

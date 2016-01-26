@@ -1,0 +1,227 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>C2R &mdash; HCBLAS  documentation</title>
+    
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="HCBLAS  documentation" href="index.html" />
+    <link rel="up" title="Modules" href="Modules.html" />
+    <link rel="next" title="C2C" href="c2c.html" />
+    <link rel="prev" title="R2C" href="r2c.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="c2c.html" title="C2C"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="r2c.html" title="R2C"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HCBLAS  documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="Modules.html" accesskey="U">Modules</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="c2r">
+<h1>C2R<a class="headerlink" href="#c2r" title="Permalink to this headline">¶</a></h1>
+<div class="line-block">
+<div class="line">Single precision complex to real valued transform.</div>
+<div class="line"><br /></div>
+<div class="line"><br /></div>
+<div class="line-block">
+<div class="line">hcfftExecC2R() executes a single-precision complex-to-real, implicitly inverse, hcFFT transform plan.</div>
+</div>
+<div class="line">hcFFT uses as input data the GPU memory pointed to by the idata parameter. The input array holds only the</div>
+<div class="line">nonredundant complex Fourier coefficients. This function stores the real output values in the odata array.</div>
+<div class="line">and pointers are both required to be aligned to hcfftComplex data type in single-precision transforms and</div>
+<div class="line">hcfftDoubleComplex type in double-precision transforms. It does an out-of-place data transform.</div>
+<div class="line"><br /></div>
+</div>
+<div class="section" id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="function-prototype">
+<h3>Function Prototype:<a class="headerlink" href="#function-prototype" title="Permalink to this headline">¶</a></h3>
+<blockquote>
+<div><div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last"><strong>Inputs and Outputs are HCC device pointers.</strong></p>
+</div>
+</div></blockquote>
+<p><a class="reference external" href="HCFFT_TYPES.html">hcfftResult</a> <strong>hcfftExecC2R</strong> (hcfftHandle plan, hcfftComplex <a href="#id1"><span class="problematic" id="id2">*</span></a>idata, hcfftReal <a href="#id3"><span class="problematic" id="id4">*</span></a>odata)</p>
+</div>
+</div>
+<div class="section" id="detailed-description">
+<h2>Detailed Description<a class="headerlink" href="#detailed-description" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="function-documentation">
+<h2>Function Documentation<a class="headerlink" href="#function-documentation" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-python"><div class="highlight"><pre>hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata)
+</pre></div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="13%" />
+<col width="18%" />
+<col width="69%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">In/out</th>
+<th class="head">Parameters</th>
+<th class="head">Description</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>[in]</td>
+<td>plan</td>
+<td>hcfftHandle returned by hcfftCreate.</td>
+</tr>
+<tr class="row-odd"><td>[in]</td>
+<td>idata</td>
+<td>Pointer to the single-precision complex input data
+(in GPU memory) to transform</td>
+</tr>
+<tr class="row-even"><td>[out]</td>
+<td>odata</td>
+<td>Pointer to the single-precision real output data
+(in GPU memory).</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line">Returns,</div>
+</div>
+<table border="1" class="docutils">
+<colgroup>
+<col width="33%" />
+<col width="67%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">STATUS</th>
+<th class="head">DESCRIPTION</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>HCFFT_SUCCESS</td>
+<td>hcFFT successfully executed the FFT plan.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INVALID_PLAN</td>
+<td>The plan parameter is not a valid handle.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_INVALID_VALUE</td>
+<td>At least one of the parameters idata and odata is not valid.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_INTERNAL_ERROR</td>
+<td>An internal driver error was detected.</td>
+</tr>
+<tr class="row-even"><td>HCFFT_EXEC_FAILED</td>
+<td>hcFFT failed to execute the transform on the GPU.</td>
+</tr>
+<tr class="row-odd"><td>HCFFT_SETUP_FAILED</td>
+<td>The hcFFT library failed to initialize.</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">C2R</a><ul>
+<li><a class="reference internal" href="#functions">Functions</a><ul>
+<li><a class="reference internal" href="#function-prototype">Function Prototype:</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#detailed-description">Detailed Description</a></li>
+<li><a class="reference internal" href="#function-documentation">Function Documentation</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="r2c.html"
+                        title="previous chapter">R2C</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="c2c.html"
+                        title="next chapter">C2C</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/c2r.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="c2c.html" title="C2C"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="r2c.html" title="R2C"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">HCBLAS  documentation</a> &raquo;</li>
+          <li class="nav-item nav-item-1"><a href="Modules.html" >Modules</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &copy; Copyright 2015, MulticoreWare.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.5.
+    </div>
+  </body>
+</html>
