@@ -72,7 +72,13 @@ int main(int argc, char* argv[]) {
   hc::am_copy(ipzDev, ipzHost, realsize * sizeof(float));
   hc::am_copy(opDev, opHost, cmplexsize * sizeof(float));
 
-  hcfftStatus status = plan.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, accs[1]);
+  hcfftLibType libtype = HCFFT_R2CD2Z;
+
+  hcfftStatus status = plan.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, accs[1], precision, libtype);
+  if(status != HCFFT_SUCCEEDS) {
+    cout << " Create plan error " << endl;
+  }
+
   status = plan.hcfftSetPlanPrecision(planhandle, precision);
 
   if(status != HCFFT_SUCCEEDS) {
@@ -104,12 +110,19 @@ int main(int argc, char* argv[]) {
     cout << " bake plan error " << endl;
   }
 
-  plan.hcfftEnqueueTransform(planhandle, dir, ipDev, opDev, NULL);
+  status = plan.hcfftEnqueueTransform(planhandle, dir, ipDev, opDev, NULL);
+  if(status != HCFFT_SUCCEEDS) {
+    cout << " Transform error " << endl;
+  }
 
   // Copy Device output  contents back to host
   hc::am_copy(opHost, opDev, cmplexsize * sizeof(float));
 
   status = plan.hcfftDestroyPlan(&planhandle);
+  if(status != HCFFT_SUCCEEDS) {
+    cout << " destroy plan error " << endl;
+  }
+
 #if PRINT
 
   /* Print Output */
@@ -121,8 +134,13 @@ int main(int argc, char* argv[]) {
   /*---------------------C2R---------------------------------------*/
 
   FFTPlan plan1;
+  libtype = HCFFT_C2RZ2D;
   dir = HCFFT_BACKWARD;
-  status = plan1.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, accs[1]);
+  status = plan1.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, accs[1], precision, libtype);
+  if(status != HCFFT_SUCCEEDS) {
+    cout << " Create plan error " << endl;
+  }
+
   status = plan1.hcfftSetPlanPrecision(planhandle, precision);
 
   if(status != HCFFT_SUCCEEDS) {
@@ -153,7 +171,11 @@ int main(int argc, char* argv[]) {
     cout << " bake plan error " << endl;
   }
 
-  plan1.hcfftEnqueueTransform(planhandle, dir, opDev, ipzDev, NULL);
+  status = plan1.hcfftEnqueueTransform(planhandle, dir, opDev, ipzDev, NULL);
+  if(status != HCFFT_SUCCEEDS) {
+    cout << " Transform error " << endl;
+  }
+
 
   // Copy Device output  contents back to host
   hc::am_copy(ipzHost, ipzDev, realsize * sizeof(float));
@@ -175,6 +197,9 @@ int main(int argc, char* argv[]) {
 
   cout << " TEST PASSED " << std::endl;
   status = plan1.hcfftDestroyPlan(&planhandle);
+  if(status != HCFFT_SUCCEEDS) {
+    cout << " destroy plan error " << endl;
+  }
 
   hc::am_free(ipDev);
   hc::am_free(ipzDev);
