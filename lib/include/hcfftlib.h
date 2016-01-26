@@ -42,6 +42,12 @@ enum BlockComputeType {
   BCT_C2C         // Column to Column
 };
 
+enum hcfftLibType
+{
+  R2CD2Z = 1,
+  C2RZ2D,
+  C2CZ2Z
+}hcfftLibType;
 
 typedef size_t hcfftPlanHandle;
 
@@ -464,7 +470,7 @@ class FFTPlan {
     blockCompute(false), blockComputeType(BCT_C2C) {
   };
 
-  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, accelerator acc, hcfftPrecision precision);
+  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, accelerator acc, hcfftPrecision precision, hcfftLibType libType);
 
   hcfftStatus hcfftBakePlan(hcfftPlanHandle plHandle);
 
