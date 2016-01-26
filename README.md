@@ -105,6 +105,14 @@ b) Install the compiler
 
        * cd ~/hcfft
 
+       * export OPENCL_INCLUDE_PATH=/opt/AMDAPPSDK-x.y.z/include
+
+       * export OPENCL_LIBRARY_PATH=/opt/AMDAPPSDK-x.y.z/lib/x86_64
+
+       * export CLFFT_LIBRARY_PATH=/home/user/clFFT/build/library
+
+       * export LD_LIBRARY_PATH=$CLFFT_LIBRARY_PATH:$OPENCL_LIBRARY_PATH:$LD_LIBRARY_PATH
+
        * ./install.sh test=OFF
          Where
            test=OFF    - Build library and tests
@@ -137,4 +145,4 @@ b) Manual testing:
 
      * cd ~/hcfft/test/build/linux/bin/
      
-     * choose the appropriate named binary 
+     * choose the appropriate named binary
