@@ -26,23 +26,25 @@ current_work_dir=$PWD
 input1=$1
 var1=${input1,,}
 
+set +e
 # MAKE BUILD DIR
 mkdir $current_work_dir/build
 mkdir $current_work_dir/build/lib
 mkdir $current_work_dir/build/test
+set -e
 
 # SET BUILD DIR
 build_dir=$current_work_dir/build
 
 #change to library build
-chdir $build_dir/lib
+cd $build_dir
 
 # Cmake and make libhcfft: Install hcFFT
 cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
 sudo make install
 
 # Build Tests
-cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/ && make
+cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
 
 set +e
 mkdir $current_work_dir/build/test/src/bin/
@@ -62,6 +64,7 @@ if ([ "$var1" = "test=off" ]); then
    echo "${green}HCFFT Installation Completed!${reset}"
 #Test=ON (Build and test the library)
 elif ([ "$var1" = "test=on" ]); then
+   chmod +x $current_work_dir/test/unit/test.sh
    cd $current_work_dir/test/unit/
 # Invoke test script
    ./test.sh
