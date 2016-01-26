@@ -25,6 +25,7 @@ current_work_dir=$PWD
 #Inputs converted to smallcase format
 input1=$1
 var1=${input1,,}
+var1="test=off"
 
 set +e
 # MAKE BUILD DIR
@@ -47,6 +48,7 @@ sudo make install
 cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
 
 set +e
+mkdir $current_work_dir/build/lib/examples/bin/
 mkdir $current_work_dir/build/test/src/bin/
 mkdir $current_work_dir/build/test/unit/gtest/bin/
 set -e
