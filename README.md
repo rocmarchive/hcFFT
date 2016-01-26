@@ -27,9 +27,9 @@ This repository hosts the HCC implementation of FFT routines. The following are 
 
   Download the debian package from the link given below,
   
-  [Compiler-Debians](https://multicorewareinc.egnyte.com/dl/TD5IwsNEx3)
+  [Compiler-Debians](https://bitbucket.org/multicoreware/hcc/downloads)
   
-  Install the package hcc-0.8.1544-a9f4d2f-ddba18d-Linux.deb 
+  Install the package hcc-0.9.16041-0be508d-ff03947-5a1009a-Linux.deb
   
   using the command,
   
