@@ -161,6 +161,12 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_D2Z ) {
   /* Release OpenCL working objects. */
   clReleaseCommandQueue( queue );
   clReleaseContext( ctx );
+
+  free(input);
+  free(output);
+
+  hc::am_free(idata);
+  hc::am_free(odata);
 }
 
 TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2D ) {
@@ -322,6 +328,12 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2D ) {
   /* Release OpenCL working objects. */
   clReleaseCommandQueue( queue );
   clReleaseContext( ctx );
+
+  free(input);
+  free(output);
+
+  hc::am_free(idata);
+  hc::am_free(odata);
 }
 
 TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
@@ -482,4 +494,10 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
   /* Release OpenCL working objects. */
   clReleaseCommandQueue( queue );
   clReleaseContext( ctx );
+
+  free(input);
+  free(output);
+
+  hc::am_free(idata);
+  hc::am_free(odata);
 }

@@ -162,6 +162,11 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_R2C ) {
   clReleaseCommandQueue( queue );
   clReleaseContext( ctx );
 
+  free(input);
+  free(output);
+
+  hc::am_free(idata);
+  hc::am_free(odata);
 }
 
 TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2R ) {
@@ -293,12 +298,12 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2R ) {
   err = clfftEnqueueTransform(planHandle, CLFFT_BACKWARD, 1, &queue, 0, NULL, NULL, &bufY, &bufX, NULL);
   EXPECT_EQ(err, CL_SUCCESS);
 
-  /* Fetch results of calculations. */
-  err = clEnqueueReadBuffer( queue, bufX, CL_TRUE, 0, realSize * sizeof( *X ), X, 0, NULL, NULL );
-  EXPECT_EQ(err, CL_SUCCESS);
-
   /* Wait for calculations to be finished. */
   err = clFinish(queue);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  /* Fetch results of calculations. */
+  err = clEnqueueReadBuffer( queue, bufX, CL_TRUE, 0, realSize * sizeof( *X ), X, 0, NULL, NULL );
   EXPECT_EQ(err, CL_SUCCESS);
 
   //Compare the results of clFFT and HCFFT with 0.01 precision
@@ -323,6 +328,12 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2R ) {
   /* Release OpenCL working objects. */
   clReleaseCommandQueue( queue );
   clReleaseContext( ctx );
+
+  free(input);
+  free(output);
+
+  hc::am_free(idata);
+  hc::am_free(odata);
 }
 
 TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
@@ -452,12 +463,12 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   err = clfftEnqueueTransform(planHandle, CLFFT_FORWARD, 1, &queue, 0, NULL, NULL, &bufX, &bufY, NULL);
   EXPECT_EQ(err, CL_SUCCESS);
 
-  /* Fetch results of calculations. */
-  err = clEnqueueReadBuffer( queue, bufY, CL_TRUE, 0, size * sizeof( *Y ), Y, 0, NULL, NULL );
-  EXPECT_EQ(err, CL_SUCCESS);
-
   /* Wait for calculations to be finished. */
   err = clFinish(queue);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  /* Fetch results of calculations. */
+  err = clEnqueueReadBuffer( queue, bufY, CL_TRUE, 0, size * sizeof( *Y ), Y, 0, NULL, NULL );
   EXPECT_EQ(err, CL_SUCCESS);
 
   //Compare the results of clFFT and HCFFT with 0.01 precision
@@ -483,4 +494,10 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   /* Release OpenCL working objects. */
   clReleaseCommandQueue( queue );
   clReleaseContext( ctx );
+
+  free(input);
+  free(output);
+
+  hc::am_free(idata);
+  hc::am_free(odata);
 }

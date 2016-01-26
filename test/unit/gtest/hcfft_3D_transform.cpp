@@ -2,7 +2,7 @@
 #include "gtest/gtest.h"
 #include "clFFT.h"
 
-#define VECTOR_SIZE 16
+#define VECTOR_SIZE 2
 
 TEST(hcfft_3D_transform_test, func_correct_3D_transform_R2C ) {
   hcfftHandle *plan = NULL;
@@ -162,6 +162,11 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_R2C ) {
   clReleaseCommandQueue( queue );
   clReleaseContext( ctx );
 
+  free(input);
+  free(output);
+
+  hc::am_free(idata);
+  hc::am_free(odata);
 }
 
 TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2R ) {
@@ -323,6 +328,12 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2R ) {
   /* Release OpenCL working objects. */
   clReleaseCommandQueue( queue );
   clReleaseContext( ctx );
+
+  free(input);
+  free(output);
+
+  hc::am_free(idata);
+  hc::am_free(odata);
 }
 
 TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2C ) {
@@ -483,4 +494,10 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2C ) {
   /* Release OpenCL working objects. */
   clReleaseCommandQueue( queue );
   clReleaseContext( ctx );
+
+  free(input);
+  free(output);
+
+  hc::am_free(idata);
+  hc::am_free(odata);
 }

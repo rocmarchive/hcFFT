@@ -2,7 +2,7 @@
 #include "gtest/gtest.h"
 #include "clFFT.h"
 
-#define VECTOR_SIZE 4
+#define VECTOR_SIZE 2
 
 TEST(hcfft_3D_transform_test, func_correct_3D_transform_D2Z ) {
   hcfftHandle *plan = NULL;
@@ -170,7 +170,6 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_D2Z ) {
 
 }
 
-#if 0
 TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2D ) {
   hcfftHandle *plan = NULL;
   hcfftResult status  = hcfftPlan3d(plan, VECTOR_SIZE, VECTOR_SIZE, VECTOR_SIZE, HCFFT_D2Z);
@@ -505,4 +504,3 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2Z ) {
   hc::am_free(odata);
 
 }
-#endif
