@@ -1,5 +1,5 @@
 #!/bin/bash
-#This script is invoked to test all generators of the hcblas library 
+#This script is invoked to test all generators of the hcfft library
 #Preliminary version
 
 # CURRENT_WORK_DIRECTORY

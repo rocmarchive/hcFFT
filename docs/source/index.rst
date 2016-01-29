@@ -230,7 +230,7 @@ Once done with the above steps the compiler headers, binaries and libraries gets
 
        ``./install.sh test=ON``
 
-Once done with the above steps the libhcblas.so and associated headers gets installed under system path.
+Once done with the above steps the libhcfft.so and associated headers gets installed under system path.
 
 To uninstall the library, invoke the following series of commands
 
