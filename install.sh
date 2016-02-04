@@ -32,7 +32,6 @@ set +e
 mkdir $current_work_dir/build
 mkdir $current_work_dir/build/lib
 mkdir $current_work_dir/build/test
-mkdir -p $current_work_dir/build/lib/examples/bin
 set -e
 
 # SET BUILD DIR
@@ -49,7 +48,7 @@ sudo make install
 cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
 
 set +e
-mkdir $current_work_dir/build/lib/examples/bin/
+mkdir $current_work_dir/build/test/examples/bin/
 mkdir $current_work_dir/build/test/src/bin/
 mkdir $current_work_dir/build/test/unit/gtest/bin/
 set -e
