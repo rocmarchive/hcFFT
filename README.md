@@ -95,3 +95,10 @@ int main(int argc, char *argv[])
   hc::am_free(idata);
   hc::am_free(odata);
 }
+
+```
+* Compiling the example code:
+   
+     Assuming the library and compiler installation is followed as in [here](http://hcfft-documentation.readthedocs.org/en/latest/#installation-steps)
+
+          /opt/hcc/bin/clang++ `/opt/hcc/bin/hcc-config --cxxflags --ldflags` -lhc_am -lhcfft hcfft_1D_R2C.cpp
