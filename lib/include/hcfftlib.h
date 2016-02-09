@@ -29,6 +29,7 @@ using namespace hc::short_vector;
 #define HCFFT_CB_OSW 12
 #define HCFFT_CB_OS5 13
 #define HCFFT_CB_SIZE 32
+#define THREADS 16
 
 #define BUG_CHECK(_proposition) \
   { bool btmp = (_proposition); assert (btmp); if (! btmp)  return HCFFT_ERROR; }
@@ -376,6 +377,7 @@ class FFTPlan {
   hcfftPrecision precision;
   void* input;
   void* output;
+  std::vector< size_t > unpaddedLength;
   std::vector< size_t > length;
   std::vector< size_t > inStride, outStride;
   size_t batchSize;
@@ -386,6 +388,7 @@ class FFTPlan {
   bool  twiddleFront;
   static size_t count;
 
+  bool isPadded;
   bool baked;
   hcfftGenerators gen;
 
@@ -460,7 +463,7 @@ class FFTPlan {
     opLayout (HCFFT_COMPLEX_INTERLEAVED), direction(HCFFT_FORWARD), location (HCFFT_INPLACE),
     transposeType (HCFFT_NOTRANSPOSE), precision (HCFFT_SINGLE),
     batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0),
-    twiddleFront(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
+    twiddleFront(false), isPadded(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
     planTX(0), planTY(0), planTZ(0), planRCcopy(0), planCopy(0), plHandle(0), plHandleOrigin(0),
     bLdsComplex(false), uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
     intBuffer( NULL ), intBufferD(NULL), tmpBufSizeRC(0), intBufferRC(NULL), intBufferRCD(NULL),
@@ -470,9 +473,17 @@ class FFTPlan {
     blockCompute(false), blockComputeType(BCT_C2C) {
   };
 
-  hcfftStatus hcfftCheckSupportedSizes(const hcfftDim dim, const size_t *clLengths);
-
   hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, accelerator acc, hcfftPrecision precision, hcfftLibType libType);
+
+  hcfftStatus hcfftpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
+
+  hcfftStatus hcfftpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
+                           size_t z_size, size_t z_pad_size);
+
+  hcfftStatus hcfftUnpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
+
+  hcfftStatus hcfftUnpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
+                             size_t z_size, size_t z_pad_size);
 
   hcfftStatus hcfftBakePlan(hcfftPlanHandle plHandle);
 
@@ -483,6 +494,9 @@ class FFTPlan {
 
   hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, double* inputBuffers,
                                     double* outputBuffers, double* tmpBuffer);
+
+  hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, float* inputBuffers,
+                                            float* outputBuffers, float* tmpBuffer);
 
   hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 
