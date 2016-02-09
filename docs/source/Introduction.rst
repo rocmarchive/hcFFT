@@ -1,9 +1,6 @@
-====================
-hcFFT Documentation
-====================
-***************
-1. Introduction
-***************
+******************
+1.1. Introduction
+******************
 --------------------------------------------------------------------------------------------------------------------------------------------
 
 The hcFFT library is an implementation of FFT (Fast Fourier Transform) targetting the AMD heterogenous hardware via HCC compiler runtime. The computational resources of underlying AMD heterogenous compute gets exposed and exploited through the HCC C++ frontend. Refer `here <https://bitbucket.org/multicoreware/hcc/wiki/Home>`_ for more details on HCC compiler.
@@ -18,26 +15,3 @@ The following list enumerates the current set of FFT sub-routines that are suppo
 * D2Z  : Double Precision real to complex valued Fast Fourier Transform
 * Z2D  : Double Precision complex to real valued Fast Fourier Transform
 * Z2Z  : Double Precision complex to complex valued Fast Fourier Transform
-
-.. _user-docs:
-
-.. toctree::
-   :maxdepth: 2
-
-   Getting_Started
-
-.. _api-ref:
-
-.. toctree::
-   :maxdepth: 2
-
-   API_reference
-
-.. Index::
-   R2C
-   C2R
-   C2C
-   D2Z
-   Z2D
-   Z2Z
-   HCFFT_TYPES
