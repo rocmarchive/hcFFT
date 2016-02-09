@@ -2271,11 +2271,7 @@ class Pass {
 
     passStr += "\n";
 
-    if( (position != 0) && (!linearRegs) && (nextPass != NULL) ) {
-      passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
-    }
-
-    passStr += "\n";
+    passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n\n\n";
 
     // 3-step twiddle multiplies
     if(fft_3StepTwiddle && !tw3Done) {
@@ -2872,16 +2868,10 @@ class Kernel {
                 (params.fft_inputLayout  == HCFFT_COMPLEX_PLANAR) ) ? true : false;
     }
 
-    rcFull = false;
     rcSimple = params.fft_RCsimple;
-    // Set half lds only for power-of-2 problem sizes & interleaved data
-    halfLds = ( (params.fft_inputLayout == HCFFT_COMPLEX_INTERLEAVED) &&
-                (params.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED) ) ? true : false;
-    halfLds = halfLds ? ((length & (length - 1)) ? false : true) : false;
-    //halfLds = false;
-    // Set half lds for real transforms
-    halfLds = r2c2r ? true : halfLds;
-    linearRegs = halfLds;
+    halfLds = true;
+    linearRegs = true;
+
     realSpecial = params.fft_realSpecial;
     blockCompute = params.blockCompute;
     blockComputeType = params.blockComputeType;
@@ -3961,6 +3951,8 @@ class Kernel {
             }
 
             str += ",tidx);\n";
+            if(!halfLds) { str += exTab; str += "\ttidx.barrier.wait_with_tile_static_memory_fence();\n"; }
+
           } else { // intermediate pass
             str += ldsOff;
             str += ", ";
