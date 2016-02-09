@@ -569,6 +569,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hc::am_copy(paddedInputBuffers, clInputBuffers, origrealsize * sizeof(float));
             hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hc::am_copy(clOutputBuffers, paddedOutputBuffers, origcomplexsize * sizeof(float));
+            free(temp);
           }
           break;
           case HCFFT_2D:
@@ -578,6 +579,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hc::am_copy(paddedOutputBuffers, temp,  complexsize * sizeof(float));
             hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, ((fftPlan->unpaddedLength[0] / 2) + 1) * 2, ((fftPlan->length[0] / 2) + 1) * 2, fftPlan->unpaddedLength[1], fftPlan->length[1]);
+            free(temp);
           }
           break;
           case HCFFT_3D:
@@ -616,6 +618,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hc::am_copy(paddedInputBuffers, clInputBuffers, origcomplexsize * sizeof(float));
             hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hc::am_copy(clOutputBuffers, paddedOutputBuffers, origrealsize * sizeof(float));
+            free(temp);
           }
           break;
           case HCFFT_2D:
@@ -625,6 +628,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hc::am_copy(paddedOutputBuffers, temp,  realsize * sizeof(float));
             hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, fftPlan->unpaddedLength[0], fftPlan->length[0], fftPlan->unpaddedLength[1], fftPlan->length[1]);
+            free(temp);
           }
           break;
           case HCFFT_3D:
@@ -658,6 +662,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hc::am_copy(paddedInputBuffers, clInputBuffers, origcomplexsize * sizeof(float));
             hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hc::am_copy(clOutputBuffers, paddedOutputBuffers, origcomplexsize * sizeof(float));
+            free(temp);
           }
           break;
           case HCFFT_2D:
@@ -667,6 +672,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hc::am_copy(paddedOutputBuffers, temp,  complexsize * sizeof(float));
             hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, fftPlan->unpaddedLength[0] * 2, fftPlan->length[0] * 2, fftPlan->unpaddedLength[1], fftPlan->length[1]);
+            free(temp);
           }
           break;
           case HCFFT_3D:
