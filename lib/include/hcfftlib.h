@@ -485,6 +485,16 @@ class FFTPlan {
   hcfftStatus hcfftUnpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
                              size_t z_size, size_t z_pad_size);
 
+  hcfftStatus hcfftpadding(double *input, double *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
+
+  hcfftStatus hcfftpadding(double *input, double *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
+                           size_t z_size, size_t z_pad_size);
+
+  hcfftStatus hcfftUnpadding(double *input, double *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
+
+  hcfftStatus hcfftUnpadding(double *input, double *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
+                             size_t z_size, size_t z_pad_size);
+
   hcfftStatus hcfftBakePlan(hcfftPlanHandle plHandle);
 
   hcfftStatus hcfftDestroyPlan(hcfftPlanHandle* plHandle);
@@ -497,6 +507,9 @@ class FFTPlan {
 
   hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, float* inputBuffers,
                                             float* outputBuffers, float* tmpBuffer);
+
+  hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, double* inputBuffers,
+                                            double* outputBuffers, double* tmpBuffer);
 
   hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 
