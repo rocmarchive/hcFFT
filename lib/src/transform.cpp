@@ -8,7 +8,6 @@ lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
 size_t FFTPlan::count = 0;
 size_t FFTRepo::planCount = 1;
 static size_t beforeCompile = 99999999;
-static size_t beforeTransform = 99999999;
 static std::string kernellib;
 static std::string filename;
 static bool exist = false;
@@ -538,6 +537,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
+  countKernel = 0;
 
   if(fftPlan->isPadded)
   {
@@ -1618,13 +1618,6 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
     return HCFFT_ERROR;
   }
 
-  if(beforeTransform != fftPlan->plHandleOrigin) {
-    countKernel = 0;
-    beforeTransform = fftPlan->plHandleOrigin;
-  } else {
-    countKernel++;
-  }
-
   if(fftPlan->gen == Copy) {
     bool h2c = ((fftPlan->ipLayout == HCFFT_HERMITIAN_PLANAR) ||
                 (fftPlan->ipLayout == HCFFT_HERMITIAN_INTERLEAVED) ) ? true : false;
@@ -1699,6 +1692,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   }
 
   FFTcall(&vectArr, fftPlan->acc);
+  countKernel++;
   dlclose(kernelHandle);
   kernelHandle = NULL;
   hc::am_free(localIntBuffer);
@@ -1799,6 +1793,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
+  countKernel = 0;
 
   if(fftPlan->isPadded)
   {
@@ -2874,13 +2869,6 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
     return HCFFT_ERROR;
   }
 
-  if(beforeTransform != fftPlan->plHandleOrigin) {
-    countKernel = 0;
-    beforeTransform = fftPlan->plHandleOrigin;
-  } else {
-    countKernel++;
-  }
-
   if(fftPlan->gen == Copy) {
     bool h2c = ((fftPlan->ipLayout == HCFFT_HERMITIAN_PLANAR) ||
                 (fftPlan->ipLayout == HCFFT_HERMITIAN_INTERLEAVED) ) ? true : false;
@@ -2955,6 +2943,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   }
 
   FFTcall(&vectArr, fftPlan->acc);
+  countKernel++;
   dlclose(kernelHandle);
   kernelHandle = NULL;
   return status;
