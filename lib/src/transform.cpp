@@ -42,10 +42,10 @@ bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision) {
         }
 
         size_t firstocc = libFile.find_first_of("_");
-        string type = libFile.substr(9, firstocc - 10);
+        string type = libFile.substr(9, 4);
 
-        string datatype = libFile.substr(12, 1);
-        string libtype = libFile.substr(13,1);
+        string datatype = libFile.substr(13, 1);
+        string libtype = libFile.substr(14,1);
 
         if(!((direction == HCFFT_FORWARD && type == "Frwd") || (direction == HCFFT_BACKWARD && type == "Back"))) {
           continue;
