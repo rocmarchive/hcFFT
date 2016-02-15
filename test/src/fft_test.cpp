@@ -189,7 +189,7 @@ int main(int argc, char* argv[]) {
 #endif
 
   for(int  i = 0; i < realsize; i++)
-    if((round(ipzHost[i]) != ipHost[i]) && isnan(ipzHost[i])) {
+    if((round(ipzHost[i]) != ipHost[i]) || isnan(ipzHost[i])) {
       cout << " Mismatch at  " << i << " input " << ipHost[i] << " amp " << round(ipzHost[i]) << endl;
       cout << " TEST FAILED " << std::endl;
       exit(0);
