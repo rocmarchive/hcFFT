@@ -11,7 +11,7 @@ sudo xargs rm < $current_work_dir/build/install_manifest.txt
 sudo rm -rf $current_work_dir/build
 
 # Remove temporarly cached kernel shared objects and binaries
-sudo rm -rf /tmp/kernCache
+sudo rm -rf $current_work_dir/kernCache
 
 # TODO: ADD More options
 

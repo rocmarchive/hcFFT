@@ -178,6 +178,18 @@ static size_t width(hcfftPrecision precision) {
   }
 }
 
+inline std::string getCurrentDir()
+{
+  char cwd[1024];
+
+  if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    std::cout << "getcwd() error" << std::endl;
+  }
+
+  std::string pwd(cwd);
+  return pwd;
+}
+
 namespace ARBITRARY {
 // TODO:  These arbitrary parameters should be tuned for the type of GPU
 //  being used.  These values are probably OK for Radeon 58xx and 68xx.

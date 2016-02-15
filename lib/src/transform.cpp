@@ -22,7 +22,11 @@ bool has_suffix(const string& s, const string& suffix) {
 bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision) {
   DIR*           d;
   struct dirent* dir;
-  d = opendir("/tmp/kernCache/");
+  std::string pwd = getCurrentDir();
+
+  pwd += "/kernCache/";
+
+  d = opendir(pwd.c_str());
 
   if (d) {
     while ((dir = readdir(d)) != NULL) {
@@ -174,8 +178,10 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
   }
 
   if(beforeCompile != plHandleOrigin) {
-    filename = "/tmp/kernCache/kernel";
-    kernellib = "/tmp/kernCache/libkernel";
+    filename = getCurrentDir();
+    kernellib = filename;
+    filename += "/kernCache/kernel";
+    kernellib += "/kernCache/libkernel";
     filename += type;
     kernellib += type;
 
@@ -1603,13 +1609,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   void* kernelHandle = NULL;
   typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, accelerator &acc);
   FUNC_FFTFwd* FFTcall = NULL;
-  char cwd[1024];
 
-  if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    std::cout << "getcwd() error" << std::endl;
-  }
+  std::string pwd = getCurrentDir();
 
-  std::string pwd(cwd);
   char* err = (char*) calloc(128, 2);
   kernelHandle = dlopen(kernellib.c_str(), RTLD_NOW);
 
@@ -2854,13 +2856,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   void* kernelHandle = NULL;
   typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, accelerator &acc);
   FUNC_FFTFwd* FFTcall = NULL;
-  char cwd[1024];
 
-  if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    std::cout << "getcwd() error" << std::endl;
-  }
+  std::string pwd = getCurrentDir();
 
-  std::string pwd(cwd);
   char* err = (char*) calloc(128, 2);
   kernelHandle = dlopen(kernellib.c_str(), RTLD_NOW);
 
