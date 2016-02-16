@@ -59,7 +59,7 @@ green=`tput setaf 2`
 reset=`tput sgr0`
 
 # KERNEL CACHE DIR
-mkdir -p $current_work_dir/kernCache
+mkdir -p $HOME/kernCache
 
 #Test=OFF (Build library and tests)
 if ([ "$var1" = "test=off" ]); then

@@ -178,15 +178,11 @@ static size_t width(hcfftPrecision precision) {
   }
 }
 
-inline std::string getCurrentDir()
+inline std::string getHomeDir()
 {
-  char cwd[1024];
+  char *homedir = getenv("HOME");
 
-  if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    std::cout << "getcwd() error" << std::endl;
-  }
-
-  std::string pwd(cwd);
+  std::string pwd(homedir);
   return pwd;
 }
 
