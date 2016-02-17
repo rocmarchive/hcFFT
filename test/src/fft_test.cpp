@@ -110,11 +110,12 @@ int main(int argc, char* argv[]) {
     cout << " bake plan error " << endl;
   }
 
+  std::cout << " Starting R2C " << std::endl;
   status = plan.hcfftEnqueueTransform(planhandle, dir, ipDev, opDev, NULL);
   if(status != HCFFT_SUCCEEDS) {
     cout << " Transform error " << endl;
   }
-
+  std::cout << " R2C done " << std::endl;
   // Copy Device output  contents back to host
   hc::am_copy(opHost, opDev, cmplexsize * sizeof(float));
 
@@ -171,11 +172,12 @@ int main(int argc, char* argv[]) {
     cout << " bake plan error " << endl;
   }
 
+  std::cout << " Starting C2R " << std::endl;
   status = plan1.hcfftEnqueueTransform(planhandle, dir, opDev, ipzDev, NULL);
   if(status != HCFFT_SUCCEEDS) {
     cout << " Transform error " << endl;
   }
-
+  std::cout << " C2R done " << std::endl;
 
   // Copy Device output  contents back to host
   hc::am_copy(ipzHost, ipzDev, realsize * sizeof(float));
@@ -188,6 +190,7 @@ int main(int argc, char* argv[]) {
 
 #endif
 
+  std::cout <<  " Comparing results " << std::endl;
   for(int  i = 0; i < realsize; i++)
     if((round(ipzHost[i]) != ipHost[i]) || isnan(ipzHost[i])) {
       cout << " Mismatch at  " << i << " input " << ipHost[i] << " amp " << round(ipzHost[i]) << endl;
