@@ -10,6 +10,7 @@
 #include <hc.hpp>
 #include <hc_short_vector.hpp>
 #include "hc_am.hpp"
+#include <sys/stat.h>
 
 using namespace hc;
 using namespace hc::short_vector;

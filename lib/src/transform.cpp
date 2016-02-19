@@ -102,6 +102,15 @@ hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators g
   fftRepo.getProgramCode( gen, plHandle, fftParams, kernel);
   FILE* fp;
 
+  std::string pwd = getHomeDir();
+
+  pwd += "/kernCache/";
+  struct stat st = {0};
+
+  if (stat(pwd.c_str(), &st) == -1) {
+    mkdir(pwd.c_str(), 0777);
+  }
+
   if(writeFlag) {
     fp = fopen (filename.c_str(), "w");
 
