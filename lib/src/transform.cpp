@@ -738,9 +738,8 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
     dir = HCFFT_BACKWARD;
   }
 
-  float* localIntBuffer = hc::am_alloc(fftPlan->tmpBufSize * sizeof(float), fftPlan->acc, 0);
+  float* localIntBuffer = clTmpBuffers;
   // we do not check the user provided buffer at this release
-  hc::am_copy(localIntBuffer, clTmpBuffers, fftPlan->tmpBufSize * sizeof(float));
 
   if( clTmpBuffers == NULL && fftPlan->tmpBufSize > 0 && fftPlan->intBuffer == NULL) {
     // create the intermediate buffers
@@ -751,6 +750,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   }
 
   if( localIntBuffer == NULL && fftPlan->intBuffer != NULL ) {
+    localIntBuffer = hc::am_alloc(fftPlan->tmpBufSize * sizeof(float), fftPlan->acc, 0);
     hc::am_copy(localIntBuffer, fftPlan->intBuffer, fftPlan->tmpBufSize * sizeof(float));
   }
 
