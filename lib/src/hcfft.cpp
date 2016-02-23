@@ -100,6 +100,8 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
   
   // length array to bookkeep dimension info
   size_t* length = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
 
   if ( nx < 0 ) {
      // invalid size
@@ -107,6 +109,13 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
   } else {
     length[0] = nx;
   }
+
+  ipStrides[0] = 1;
+
+  opStrides[0] = 1;
+
+  size_t ipDistance = length[0];
+  size_t opDistance = 1 + length[0]/2;
 
   // Allocate Rawplan
   hcfftResult res = hcfftCreate(plan);
@@ -132,19 +141,34 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
   // Set Precision
   status = planObject.hcfftSetPlanPrecision(*plan, precision);
   if ( status != HCFFT_SUCCEEDS ) {
-    return HCFFT_SETUP_FAILED; 
+    return HCFFT_SETUP_FAILED;
   }
 
   // Set Transpose type
   status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
   if ( status != HCFFT_SUCCEEDS ) {
-    return HCFFT_SETUP_FAILED; 
+    return HCFFT_SETUP_FAILED;
   }
   
   // Set Result location data layout
   status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
   if ( status != HCFFT_SUCCEEDS ) {
-    return HCFFT_SETUP_FAILED; 
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetPlanInStride(*plan, dimension, ipStrides);
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetPlanOutStride(*plan, dimension, opStrides);
+  if( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetPlanDistance(*plan, ipDistance, opDistance);
+  if( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED;
   }
 
   return HCFFT_SUCCESS;
@@ -216,6 +240,8 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
   
   // length array to bookkeep dimension info
   size_t* length = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
 
   if (nx < 0 || ny < 0) {
      // invalid size
@@ -224,6 +250,15 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
     length[0] = nx;
     length[1] = ny;
   }
+
+  ipStrides[0] = 1;
+  ipStrides[1] = length[1];
+
+  opStrides[0] = 1;
+  opStrides[1] = 1 + length[1]/2;
+
+  size_t ipDistance = length[1] * length[0];
+  size_t opDistance = length[0] * (1 + length[1]/2);
 
   // Allocate Rawplan
   hcfftResult res = hcfftCreate(plan);
@@ -250,19 +285,34 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
   // Set Precision
   status = planObject.hcfftSetPlanPrecision(*plan, precision);
   if ( status != HCFFT_SUCCEEDS ) {
-    return HCFFT_SETUP_FAILED; 
+    return HCFFT_SETUP_FAILED;
   }
 
   // Set Transpose type
   status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
   if ( status != HCFFT_SUCCEEDS ) {
-    return HCFFT_SETUP_FAILED; 
+    return HCFFT_SETUP_FAILED;
   }
   
   // Set Result location data layout
   status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
   if ( status != HCFFT_SUCCEEDS ) {
-    return HCFFT_SETUP_FAILED; 
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetPlanInStride(*plan, dimension, ipStrides);
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetPlanOutStride(*plan, dimension, opStrides);
+  if( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetPlanDistance(*plan, ipDistance, opDistance);
+  if( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED;
   }
 
   return HCFFT_SUCCESS;
@@ -335,6 +385,8 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
   
   // length array to bookkeep dimension info
   size_t* length = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
 
   if (nx < 0 || ny < 0 || nz < 0) {
      // invalid size
@@ -344,6 +396,17 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
     length[1] = ny;
     length[2] = nz;
   }
+
+  ipStrides[0] = 1;
+  ipStrides[1] = length[1];
+  ipStrides[2] = length[1] * length[2];
+
+  opStrides[0] = 1;
+  opStrides[1] = 1 + length[1]/2;
+  opStrides[2] = 1 + length[1]/2 + length[2]/2;
+
+  size_t ipDistance = length[0] * length[1] * length[2];
+  size_t opDistance = length[0] * length[1] * (1 + length[2]/2);
 
   // Allocate Rawplan
   hcfftResult res = hcfftCreate(plan);
@@ -369,19 +432,34 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
   // Set Precision
   status = planObject.hcfftSetPlanPrecision(*plan, precision);
   if ( status != HCFFT_SUCCEEDS ) {
-    return HCFFT_SETUP_FAILED; 
+    return HCFFT_SETUP_FAILED;
   }
 
   // Set Transpose type
   status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
   if ( status != HCFFT_SUCCEEDS ) {
-    return HCFFT_SETUP_FAILED; 
+    return HCFFT_SETUP_FAILED;
   }
   
   // Set Result location data layout
   status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
   if ( status != HCFFT_SUCCEEDS ) {
-    return HCFFT_SETUP_FAILED; 
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetPlanInStride(*plan, dimension, ipStrides);
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetPlanOutStride(*plan, dimension, opStrides);
+  if( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetPlanDistance(*plan, ipDistance, opDistance);
+  if( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED;
   }
 
   return HCFFT_SUCCESS;
