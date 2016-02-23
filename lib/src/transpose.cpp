@@ -278,7 +278,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
     hcKernWrite( transKernel, 3 ) << "\thc::extent<2> grdExt( ";
     hcKernWrite( transKernel, 3 ) <<  SztToStr(gWorkSize[0]) << ", " << SztToStr(gWorkSize[1]) << "); \n" << "\thc::tiled_extent<2> t_ext = grdExt.tile(";
     hcKernWrite( transKernel, 3 ) <<  SztToStr(lwSize.x) << ", " << SztToStr(lwSize.y) << ");\n";
-    hcKernWrite( transKernel, 3 ) << "\thc::parallel_for_each(t_ext, [=] (hc::tiled_index<2> &tidx) [[hc]]\n\t { ";
+    hcKernWrite( transKernel, 3 ) << "\thc::parallel_for_each(t_ext, [=] (hc::tiled_index<2> tidx) [[hc]]\n\t { ";
     hcKernWrite( transKernel, 3 ) << "const uint_2 localIndex( tidx.local[0] , tidx.local[1]); " << std::endl;
     hcKernWrite( transKernel, 3 ) << "const uint_2 localExtent( tidx.tile_dim[0], tidx.tile_dim[1]); " << std::endl;
     hcKernWrite( transKernel, 3 ) << "const uint_2 groupIndex(tidx.tile[0] , tidx.tile[1]);" << std::endl;
