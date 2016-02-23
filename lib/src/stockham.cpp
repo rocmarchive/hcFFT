@@ -570,7 +570,7 @@ class Pass {
       assert(bufferRe.compare(bufferIm) == 0); // Make sure Real & Imag buffer strings are same for interleaved data
       passStr += "\n\t";
       passStr += RegBaseType<PR>(4);
-      passStr += "*buff4g = (";
+      passStr += " *buff4g = (";
       passStr += RegBaseType<PR>(4);
       passStr += "*)";
       passStr += bufferRe;
@@ -1746,29 +1746,36 @@ class Pass {
           passStr += " *";
           passStr += bufferInRe;
           passStr += ", ";
-          passStr += "unsigned int iOffset,";
 
           if(!rcSimple) {
-            passStr += "unsigned int iOffset2,";
+            passStr += regB2Type;
+            passStr += " *";
+            passStr += bufferInRe2;
+            passStr += ", ";
           }
         } else if(inReal) {
           passStr += regB1Type;
           passStr += " *";
           passStr += bufferInRe;
           passStr += ", ";
-          passStr += "unsigned int iOffset,";
 
           if(!rcSimple) {
-            passStr += "unsigned int iOffset2,";
+            passStr += regB1Type;
+            passStr += " *";
+            passStr += bufferInRe2;
+            passStr += ", ";
           }
         } else {
           passStr += regB1Type;
           passStr += " *";
           passStr += bufferInRe;
           passStr += ", ";
-          passStr += "unsigned int iOffset,";
 
           if(!rcSimple) {
+            passStr += regB1Type;
+            passStr += " *";
+            passStr += bufferInRe2;
+            passStr += ", ";
             passStr += "unsigned int iOffset2,";
           }
 
@@ -1776,6 +1783,14 @@ class Pass {
           passStr += " *";
           passStr += bufferInIm;
           passStr += ", ";
+
+            if(!rcSimple) {
+              passStr += regB1Type;
+              passStr += " *";
+              passStr += bufferInIm2;
+              passStr += ", ";
+            }
+
         }
       } else {
         passStr += regB1Type;
@@ -1793,38 +1808,47 @@ class Pass {
           passStr += regB2Type;
           passStr += " *";
           passStr += bufferOutRe;
-          passStr += ", ";
-          passStr += "unsigned int oOffset";
 
           if(!rcSimple) {
             passStr += ", ";
-            passStr += "unsigned int oOffset2";
+            passStr += regB2Type;
+            passStr += " *";
+            passStr += bufferOutRe2;
           }
         } else if(outReal) {
           passStr += regB1Type;
           passStr += " *";
           passStr += bufferOutRe;
-          passStr += ", ";
-          passStr += "unsigned int oOffset";
 
           if(!rcSimple) {
             passStr += ", ";
-            passStr += "unsigned int oOffset2";
+            passStr += regB1Type;
+            passStr += " *";
+            passStr += bufferOutRe2;
           }
         } else {
           passStr += regB1Type;
           passStr += " *";
           passStr += bufferOutRe;
           passStr += ", ";
-          passStr += "unsigned int oOffset,";
 
           if(!rcSimple) {
-            passStr += "unsigned int oOffset2,";
+            passStr += regB1Type;
+            passStr += " *";
+            passStr += bufferOutRe2;
+            passStr += ", ";
           }
 
           passStr += regB1Type;
           passStr += " *";
           passStr += bufferOutIm;
+
+          if(!rcSimple) {
+            passStr += ", ";
+            passStr += regB1Type;
+            passStr += " *";
+            passStr += bufferOutIm2;
+          }
         }
       } else {
         passStr += regB1Type;
@@ -1842,13 +1866,11 @@ class Pass {
           passStr += " *";
           passStr += bufferInRe;
           passStr += ", ";
-          passStr += "unsigned int iOffset,";
         } else {
           passStr += regB1Type;
           passStr += " *";
           passStr += bufferInRe;
           passStr += ", ";
-          passStr += "unsigned int iOffset,";
           passStr += regB1Type;
           passStr += " *";
           passStr += bufferInIm;
@@ -1877,14 +1899,11 @@ class Pass {
           passStr += regB2Type;
           passStr += " *";
           passStr += bufferOutRe;
-          passStr += ", ";
-          passStr += " unsigned int oOffset";
         } else {
           passStr += regB1Type;
           passStr += " *";
           passStr += bufferOutRe;
           passStr += ", ";
-          passStr += "unsigned int oOffset,";
           passStr += regB1Type;
           passStr += " *";
           passStr += bufferOutIm;
@@ -1973,41 +1992,24 @@ class Pass {
       if(position == 0) {
         passStr += "\n\tif(rw)\n\t{";
 
-        if(gIn) {
-          SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr);
-        } else {
-          SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
-        }
+        SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
 
         passStr += "\n\t}\n";
 
         if(rcSimple) {
           passStr += "\n";
 
-          if(gIn) {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe, bufferInIm, "inOffset + iOffset2", passStr);
-          } else {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInIm2, "inOffset", passStr);
-          }
+          SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInIm2, "inOffset", passStr);
 
           passStr += "\n";
         } else {
           passStr += "\n\tif(rw > 1)\n\t{";
-
-          if(gIn) {
-            SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset2", 1, numB1, 0, passStr);
-          } else {
-            SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe2, bufferInIm2, "inOffset", 1, numB1, 0, passStr);
-          }
+          SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe2, bufferInIm2, "inOffset", 1, numB1, 0, passStr);
 
           passStr += "\n\t}\n";
           passStr += "\telse\n\t{";
 
-          if(gIn) {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe, bufferInIm, "inOffset + iOffset2", passStr);
-          } else {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInIm2, "inOffset", passStr);
-          }
+          SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInIm2, "inOffset", passStr);
 
           passStr += "\n\t}\n";
         }
@@ -2032,13 +2034,8 @@ class Pass {
         passStr += processBufOffset;
         passStr += "] = ";
 
-        if(gIn) {
-          passStr += bufferInRe;
-          passStr += "[inOffset + iOffset]";
-        } else {
-          passStr += bufferInRe;
-          passStr += "[inOffset]";
-        }
+        passStr += bufferInRe;
+        passStr += "[inOffset]";
 
         if(inInterleaved) {
           passStr += ".x;\n\t}";
@@ -2049,48 +2046,28 @@ class Pass {
         if(length > 1) {
           passStr += "\n\n\tif(rw)\n\t{";
 
-          if(gIn) {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInRe, "inOffset + iOffset", passStr);
-          } else {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInRe, "inOffset", passStr);
-          }
+          SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInRe, "inOffset", passStr);
 
           passStr += "\n\t}\n";
           passStr += "\n\tif(rw > 1)\n\t{";
 
-          if(gIn) {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, false, bufferInIm, bufferInIm, "inOffset + iOffset2", passStr);
-          } else {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, false, bufferInIm2, bufferInIm2, "inOffset", passStr);
-          }
+          SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, false, bufferInIm2, bufferInIm2, "inOffset", passStr);
 
           passStr += "\n\t}\n\telse\n\t{";
 
-          if(gIn) {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, true, true, false, bufferInIm, bufferInIm, "inOffset + iOffset2", passStr);
-          } else {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, true, true, false, bufferInIm2, bufferInIm2, "inOffset", passStr);
-          }
+          SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, true, true, false, bufferInIm2, bufferInIm2, "inOffset", passStr);
 
           passStr += "\n\t}\n";
 
           if(oddp) {
             passStr += "\n\tif(rw && (me%2))\n\t{";
 
-            if(gIn) {
-              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInRe, "inOffset + iOffset", passStr);
-            } else {
-              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInRe, "inOffset", passStr);
-            }
+            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInRe, "inOffset", passStr);
 
             passStr += "\n\t}";
             passStr += "\n\tif((rw > 1) && (me%2))\n\t{";
 
-            if(gIn) {
-              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, true, bufferInIm, bufferInIm, "inOffset + iOffset2", passStr);
-            } else {
-              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, true, bufferInIm2, bufferInIm2, "inOffset", passStr);
-            }
+            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, true, bufferInIm2, bufferInIm2, "inOffset", passStr);
 
             passStr += "\n\t}\n";
           }
@@ -2121,13 +2098,8 @@ class Pass {
         passStr += processBufOffset;
         passStr += "] = ";
 
-        if(gIn) {
-          passStr += bufferInRe;
-          passStr += "[inOffset + iOffset2]";
-        } else {
-          passStr += bufferInRe2;
-          passStr += "[inOffset]";
-        }
+        passStr += bufferInRe2;
+        passStr += "[inOffset]";
 
         if(inInterleaved) {
           passStr += ".x;\n\t}";
@@ -2144,48 +2116,28 @@ class Pass {
         if(length > 1) {
           passStr += "\n\n\tif(rw)\n\t{";
 
-          if (gIn) {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInIm, bufferInIm, "inOffset + iOffset", passStr);
-          } else {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInIm, bufferInIm, "inOffset", passStr);
-          }
+          SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInIm, bufferInIm, "inOffset", passStr);
 
           passStr += "\n\t}\n";
           passStr += "\n\tif(rw > 1)\n\t{";
 
-          if(gIn) {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, false, bufferInRe, bufferInRe, "inOffset + iOffset2", passStr);
-          } else {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, false, bufferInRe2, bufferInRe2, "inOffset", passStr);
-          }
+          SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, false, bufferInRe2, bufferInRe2, "inOffset", passStr);
 
           passStr += "\n\t}\n\telse\n\t{";
 
-          if(gIn) {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe, bufferInRe, "inOffset + iOffset2", passStr);
-          } else {
-            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInRe2, "inOffset", passStr);
-          }
+          SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInRe2, "inOffset", passStr);
 
           passStr += "\n\t}\n";
 
           if(oddp) {
             passStr += "\n\tif(rw && (me%2))\n\t{";
 
-            if(gIn) {
-              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInIm, bufferInIm, "inOffset + iOffset", passStr);
-            } else {
-              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInIm, bufferInIm, "inOffset", passStr);
-            }
+            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInIm, bufferInIm, "inOffset", passStr);
 
             passStr += "\n\t}";
             passStr += "\n\tif((rw > 1) && (me%2))\n\t{";
 
-            if(gIn) {
-              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, true, bufferInRe, bufferInRe, "inOffset + iOffset2", passStr);
-            } else {
-              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, true, bufferInRe2, bufferInRe2, "inOffset", passStr);
-            }
+            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, true, bufferInRe2, bufferInRe2, "inOffset", passStr);
 
             passStr += "\n\t}\n";
           }
@@ -2215,15 +2167,9 @@ class Pass {
       if( (!halfLds) || (halfLds && (position == 0)) ) {
         passStr += "\n\tif(rw)\n\t{";
 
-        if(gIn) {
-          SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr);
-          SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset", 2, numB2, numB1, passStr);
-          SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset", 4, numB4, 2 * numB2 + numB1, passStr);
-        } else {
-          SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
-          SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 2, numB2, numB1, passStr);
-          SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 4, numB4, 2 * numB2 + numB1, passStr);
-        }
+        SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
+        SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 2, numB2, numB1, passStr);
+        SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 4, numB4, 2 * numB2 + numB1, passStr);
 
         passStr += "\n\t}\n";
       }
@@ -2293,28 +2239,16 @@ class Pass {
       if(nextPass == NULL) { // last pass
         if(r2c && !rcSimple) {
           if(!singlePass) {
-            if(gIn) {
-              SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr);
-            } else {
-              SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
-            }
+            SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
 
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 
-            if(gIn) {
-              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset + iOffset", passStr);
-            } else {
-              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset", passStr);
-            }
+            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset", passStr);
 
             if(oddp) {
               passStr += "\n\tif(me%2)\n\t{";
 
-              if(gIn) {
-                SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInIm, "inOffset + iOffset", passStr);
-              } else {
-                SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInIm, "inOffset", passStr);
-              }
+              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInIm, "inOffset", passStr);
 
               passStr += "\n\t}\n";
             }
@@ -2322,21 +2256,11 @@ class Pass {
             passStr += "\n\n\n\tif(rw && !me)\n\t{\n\t";
 
             if(outInterleaved) {
-              if(gOut) {
-                passStr += bufferOutRe;
-                passStr += "[outOffset + oOffset].x = ";
-              } else {
-                passStr += bufferOutRe;
-                passStr += "[outOffset].x = ";
-              }
+              passStr += bufferOutRe;
+              passStr += "[outOffset].x = ";
 
-              if(gIn) {
-                passStr += bufferInRe;
-                passStr += "[inOffset + iOffset]";
-              } else {
-                passStr += bufferInRe;
-                passStr += "[inOffset]";
-              }
+              passStr += bufferInRe;
+              passStr += "[inOffset]";
 
               if(scale != 1.0) {
                 passStr += " * ";
@@ -2346,75 +2270,41 @@ class Pass {
 
               passStr += ";\n\t";
 
-              if(gOut) {
-                passStr += bufferOutIm;
-                passStr += "[outOffset + oOffset].y = ";
-                passStr += "0;\n\t}";
-              } else {
-                passStr += bufferOutIm;
-                passStr += "[outOffset].y = ";
-                passStr += "0;\n\t}";
-              }
+              passStr += bufferOutIm;
+              passStr += "[outOffset].y = ";
+              passStr += "0;\n\t}";
             } else {
-              if(gOut) {
-                passStr += bufferOutRe;
-                passStr += "[outOffset + oOffset] = ";
-              } else {
                 passStr += bufferOutRe;
                 passStr += "[outOffset] = ";
-              }
 
-              if(gIn) {
-                passStr += bufferInRe;
-                passStr += "[inOffset + iOffset]";
-              } else {
                 passStr += bufferInRe;
                 passStr += "[inOffset]";
-              }
 
-              if(scale != 1.0) {
-                passStr += " * ";
-                passStr += FloatToStr(scale);
-                passStr += FloatSuffix<PR>();
-              }
+                if(scale != 1.0) {
+                  passStr += " * ";
+                  passStr += FloatToStr(scale);
+                  passStr += FloatSuffix<PR>();
+                }
 
-              passStr += ";\n\t";
+                passStr += ";\n\t";
 
-              if(gOut) {
-                passStr += bufferOutIm;
-                passStr += "[outOffset + oOffset] = ";
-                passStr += "0;\n\t}";
-              } else {
                 passStr += bufferOutIm;
                 passStr += "[outOffset] = ";
                 passStr += "0;\n\t}";
-              }
             }
 
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 
-            if(gIn) {
-              SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset + iOffset", 1, numB1, 0, passStr);
-            } else {
-              SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
-            }
+            SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
 
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 
-            if(gIn) {
-              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset + iOffset", passStr);
-            } else {
-              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset", passStr);
-            }
+            SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset", passStr);
 
             if(oddp) {
               passStr += "\n\tif(me%2)\n\t{";
 
-              if(gIn) {
-                SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInRe, bufferInIm, "inOffset + iOffset", passStr);
-              } else {
-                SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInRe, bufferInIm, "inOffset", passStr);
-              }
+              SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInRe, bufferInIm, "inOffset", passStr);
 
               passStr += "\n\t}\n";
             }
@@ -2422,21 +2312,11 @@ class Pass {
             passStr += "\n\tif((rw > 1) && !me)\n\t{\n\t";
 
             if(outInterleaved) {
-              if(gOut) {
-                passStr += bufferOutRe;
-                passStr += "[outOffset + oOffset2].x = ";
-              } else {
-                passStr += bufferOutRe2;
-                passStr += "[outOffset].x = ";
-              }
+              passStr += bufferOutRe2;
+              passStr += "[outOffset].x = ";
 
-              if(gIn) {
-                passStr += bufferInIm;
-                passStr += "[inOffset + iOffset]";
-              } else {
-                passStr += bufferInIm;
-                passStr += "[inOffset]";
-              }
+              passStr += bufferInIm;
+              passStr += "[inOffset]";
 
               if(scale != 1.0) {
                 passStr += " * ";
@@ -2446,31 +2326,15 @@ class Pass {
 
               passStr += ";\n\t";
 
-              if(gOut) {
-                passStr += bufferOutIm;
-                passStr += "[outOffset + oOffset2].y = ";
-                passStr += "0;\n\t}";
-              } else {
-                passStr += bufferOutIm2;
-                passStr += "[outOffset].y = ";
-                passStr += "0;\n\t}";
-              }
+              passStr += bufferOutIm2;
+              passStr += "[outOffset].y = ";
+              passStr += "0;\n\t}";
             } else {
-              if(gOut) {
-                passStr += bufferOutRe;
-                passStr += "[outOffset + oOffset2] = ";
-              } else {
                 passStr += bufferOutRe2;
                 passStr += "[outOffset] = ";
-              }
 
-              if(gIn) {
-                passStr += bufferInIm;
-                passStr += "[inOffset + iOffset]";
-              } else {
                 passStr += bufferInIm;
                 passStr += "[inOffset]";
-              }
 
               if(scale != 1.0) {
                 passStr += " * ";
@@ -2480,15 +2344,9 @@ class Pass {
 
               passStr += ";\n\t";
 
-              if(gOut) {
-                passStr += bufferOutIm;
-                passStr += "[outOffset + oOffset2] = ";
-                passStr += "0;\n\t}";
-              } else {
-                passStr += bufferOutIm2;
-                passStr += "[outOffset] = ";
-                passStr += "0;\n\t}";
-              }
+              passStr += bufferOutIm2;
+              passStr += "[outOffset] = ";
+              passStr += "0;\n\t}";
             }
 
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
@@ -2496,11 +2354,7 @@ class Pass {
 
           passStr += "\n\n\tif(rw)\n\t{";
 
-          if(gOut) {
-            SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", passStr);
-          } else {
-            SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, false, bufferOutRe, bufferOutIm, "outOffset", passStr);
-          }
+          SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, false, bufferOutRe, bufferOutIm, "outOffset", passStr);
 
           passStr += "\n\t}\n";
 
@@ -2508,22 +2362,14 @@ class Pass {
             passStr += "\n\n\tbrv = ((rw != 0) & (me%2 == 1));\n\t";
             passStr += "if(brv)\n\t{";
 
-            if(gOut) {
-              SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, true, bufferOutRe, bufferOutIm, "outOffset + oOffset", passStr);
-            } else {
-              SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, true, bufferOutRe, bufferOutIm, "outOffset", passStr);
-            }
+            SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, true, bufferOutRe, bufferOutIm, "outOffset", passStr);
 
             passStr += "\n\t}\n";
           }
 
           passStr += "\n\n\tif(rw > 1)\n\t{";
 
-          if(gOut) {
-            SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, false, bufferOutRe, bufferOutIm, "outOffset + oOffset2", passStr);
-          } else {
-            SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, false, bufferOutRe2, bufferOutIm2, "outOffset", passStr);
-          }
+          SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, false, bufferOutRe2, bufferOutIm2, "outOffset", passStr);
 
           passStr += "\n\t}\n";
 
@@ -2531,85 +2377,53 @@ class Pass {
             passStr += "\n\n\tbrv = ((rw > 1) & (me%2 == 1));\n\t";
             passStr += "if(brv)\n\t{";
 
-            if(gOut) {
-              SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, true, bufferOutRe, bufferOutIm, "outOffset + oOffset2", passStr);
-            } else {
-              SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, true, bufferOutRe2, bufferOutIm2, "outOffset", passStr);
-            }
+            SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, true, bufferOutRe2, bufferOutIm2, "outOffset", passStr);
 
             passStr += "\n\t}\n";
           }
         } else if(c2r) {
           passStr += "\n\tif(rw)\n\t{";
 
-          if(gOut) {
-            SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr);
-          } else {
-            SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
-          }
+          SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
 
           passStr += "\n\t}\n";
 
           if(!rcSimple) {
             passStr += "\n\tif(rw > 1)\n\t{";
 
-            if(gOut) {
-              SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset2", 1, numB1, 0, passStr);
-            } else {
-              SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe2, bufferOutIm2, "outOffset", 1, numB1, 0, passStr);
-            }
+            SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe2, bufferOutIm2, "outOffset", 1, numB1, 0, passStr);
 
             passStr += "\n\t}\n";
           }
         } else {
           passStr += "\n\tif(rw)\n\t{";
 
-          if(gOut) {
-            SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr);
-          } else {
-            SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
-          }
+          SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
 
           passStr += "\n\t}\n";
         }
       } else {
         passStr += "\n\tif(rw)\n\t{";
 
-        if(gOut) {
-          SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr);
-        } else {
-          SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
-        }
+        SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
 
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif(rw)\n\t{";
 
-        if(gOut) {
-          nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, nextPass->GetNumB1(), 0, passStr);
-        } else {
-          nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
-        }
+        nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
 
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif(rw)\n\t{";
 
-        if(gOut) {
-          SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr);
-        } else {
-          SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
-        }
+        SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
 
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif(rw)\n\t{";
 
-        if(gOut) {
-          nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, nextPass->GetNumB1(), 0, passStr);
-        } else {
-          nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
-        }
+        nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
 
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
@@ -2617,15 +2431,9 @@ class Pass {
     } else {
       passStr += "\n\tif(rw)\n\t{";
 
-      if(gOut) {
-        SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 1, numB1, 0, passStr);
-        SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 2, numB2, numB1, passStr);
-        SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset + oOffset", 4, numB4, 2 * numB2 + numB1, passStr);
-      } else {
-        SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
-        SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 2, numB2, numB1, passStr);
-        SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 4, numB4, 2 * numB2 + numB1, passStr);
-      }
+      SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+      SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 2, numB2, numB1, passStr);
+      SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 4, numB4, 2 * numB2 + numB1, passStr);
 
       passStr += "\n\t}\n";
     }
@@ -3535,14 +3343,84 @@ class Kernel {
           str += "unsigned int iOffset2;\n\t";
           str += "unsigned int oOffset2;\n\n\t";
         }
-      } else {
-        if(params.fft_placeness == HCFFT_INPLACE) {
-          str += "unsigned int iOffset;\n\t";
-        } else {
-          str += "unsigned int iOffset;\n\t";
-          str += "unsigned int oOffset;\n\t";
-        }
+
+	      if(inInterleaved)
+	      {
+	        if(!rcSimple)	{	str += r2Type; str += " *lwbIn2;\n\t"; }
+	        str += r2Type; str += " *lwbIn;\n\t";
+	      }
+	      else if(inReal)
+	      {
+	        if(!rcSimple)	{	str += rType; str += " *lwbIn2;\n\t"; }
+	        str += rType; str += " *lwbIn;\n\t";
+	      }
+	      else
+	      {
+	        if(!rcSimple)	{	str += rType; str += " *lwbInRe2;\n\t"; }
+	        if(!rcSimple)	{	str += rType; str += " *lwbInIm2;\n\t"; }
+	        str += rType; str += " *lwbInRe;\n\t";
+	        str += rType; str += " *lwbInIm;\n\t";
+	      }
+
+	      if(outInterleaved)
+	      {
+          if(!rcSimple) {	str += r2Type; str += " *lwbOut2;\n\t"; }
+	        str += r2Type; str += " *lwbOut;\n";
+	      }
+	      else if(outReal)
+	      {
+	        if(!rcSimple) {	str += rType; str += " *lwbOut2;\n\t"; }
+	        str += rType; str += " *lwbOut;\n";
+	      }
+	      else
+	      {
+	        if(!rcSimple) {	str += rType; str += " *lwbOutRe2;\n\t"; }
+	        if(!rcSimple) {	str += rType; str += " *lwbOutIm2;\n\t"; }
+	        str += rType; str += " *lwbOutRe;\n\t";
+	        str += rType; str += " *lwbOutIm;\n";
+	      }
+	      str += "\n";
       }
+     else {
+      if(params.fft_placeness == HCFFT_INPLACE) {
+        str += "unsigned int ioOffset;\n\t";
+
+      if(inInterleaved)
+	    {
+	      str += r2Type; str += " *lwb;\n";
+	    }
+	    else
+	    {
+	      str += rType; str += " *lwbRe;\n\t";
+	      str += rType; str += " *lwbIm;\n";
+	    }
+    }
+    else {
+      str += "unsigned int iOffset;\n\t";
+      str += "unsigned int oOffset;\n\t";
+
+	    if(inInterleaved)
+	    {
+	      str += r2Type; str += " *lwbIn;\n\t";
+	    }
+	    else
+	    {
+	      str += rType; str += " *lwbInRe;\n\t";
+	      str += rType; str += " *lwbInIm;\n\t";
+	    }
+
+	    if(outInterleaved)
+	    {
+	      str += r2Type; str += " *lwbOut;\n";
+	    }
+	    else
+	    {
+	      str += rType; str += " *lwbOutRe;\n\t";
+	      str += rType; str += " *lwbOutIm;\n";
+	    }
+	  }
+	  str += "\n";
+   }
 
       // Setup registers if needed
       if(linearRegs) {
@@ -3626,17 +3504,74 @@ class Kernel {
           str += OffsetCalc("oOffset2", false, true);
         }
 
-        str += "\n\t";
-      } else {
+	      if(params.fft_placeness == HCFFT_INPLACE)
+	      {
+		      if(inInterleaved)
+		      {
+			      if(!rcSimple) {	str += "lwbIn2 = ( "; str += r2Type; str += " *)gb + iOffset2;\n\t"; }
+			      str += "lwbIn  = ( "; str += r2Type; str += " *)gb + iOffset;\n\t";
+		      }
+		      else
+		      {
+			      if(!rcSimple) {	str += "lwbIn2 = ( "; str += rType; str += " *)gb + iOffset2;\n\t"; }
+			      str += "lwbIn  = ( "; str += rType; str += " *)gb + iOffset;\n\t";
+
+		      }
+		      if(!rcSimple) {	str += "lwbOut2 = gb + oOffset2;\n\t"; }
+		      str += "lwbOut = gb + oOffset;\n";
+		      str += "\n";
+	      }
+	      else
+	      {
+          if(inInterleaved || inReal)
+			    {
+				    if(!rcSimple) {	str += "lwbIn2 = gbIn + iOffset2;\n\t"; }
+				    str += "lwbIn = gbIn + iOffset;\n\t";
+			    }
+			    else
+		      {
+			      if(!rcSimple) {	str += "lwbInRe2 = gbInRe + iOffset2;\n\t"; }
+			      if(!rcSimple) {	str += "lwbInIm2 = gbInIm + iOffset2;\n\t"; }
+					  str += "lwbInRe = gbInRe + iOffset;\n\t";
+					  str += "lwbInIm = gbInIm + iOffset;\n\t";
+		      }
+        }
+
+	      if(outInterleaved || outReal)
+	      {
+	        if(!rcSimple) {	str += "lwbOut2 = gbOut + oOffset2;\n\t"; }
+	        str += "lwbOut = gbOut + oOffset;\n";
+	      }
+	      else
+	      {
+		      if(!rcSimple) {	str += "lwbOutRe2 = gbOutRe + oOffset2;\n\t"; }
+		      if(!rcSimple) {	str += "lwbOutIm2 = gbOutIm + oOffset2;\n\t"; }
+						      str += "lwbOutRe = gbOutRe + oOffset;\n\t";
+							      str += "lwbOutIm = gbOutIm + oOffset;\n";
+	      }
+        str += "\n";
+	    } else {
         if(params.fft_placeness == HCFFT_INPLACE) {
           if(blockCompute) {
-            str += OffsetCalcBlock("iOffset", true);
+            str += OffsetCalcBlock("ioOffset", true);
           } else {
-            str += OffsetCalc("iOffset", true);
+            str += OffsetCalc("ioOffset", true);
           }
 
           str += "\t";
-        } else {
+
+					if(inInterleaved)
+					{
+						str += "lwb = gb + ioOffset;\n";
+					}
+					else
+					{
+						str += "lwbRe = gbRe + ioOffset;\n\t";
+						str += "lwbIm = gbIm + ioOffset;\n";
+					}
+				str += "\n";
+				}
+        else {
           if(blockCompute) {
             str += OffsetCalcBlock("iOffset", true);
             str += OffsetCalcBlock("oOffset", false);
@@ -3646,8 +3581,42 @@ class Kernel {
           }
 
           str += "\t";
+
+					if(inInterleaved)
+					{
+						str += "lwbIn = gbIn + iOffset;\n\t";
+					}
+					else
+					{
+						str += "lwbInRe = gbInRe + iOffset;\n\t";
+						str += "lwbInIm = gbInIm + iOffset;\n\t";
+					}
+
+				  if(outInterleaved)
+				  {
+						  str += "lwbOut = gbOut + oOffset;\n";
+				  }
+				  else
+				  {
+					  str += "lwbOutRe = gbOutRe + oOffset;\n\t";
+					  str += "lwbOutIm = gbOutIm + oOffset;\n";
+				  }
+				  str += "\n";
         }
       }
+
+			std::string inOffset;
+			std::string outOffset;
+			if (params.fft_placeness == HCFFT_INPLACE && !r2c2r)
+			{
+				inOffset += "ioOffset";
+				outOffset += "ioOffset";
+			}
+			else
+			{
+				inOffset += "iOffset";
+				outOffset += "oOffset";
+			}
 
       // Read data into LDS for blocked access
       if(blockCompute) {
@@ -3658,14 +3627,14 @@ class Kernel {
 
         for(size_t c = 0; c < 2; c++) {
           std::string comp = "";
-          std::string readBuf = (params.fft_placeness == HCFFT_INPLACE) ? "gb" : "gbIn";
+          std::string readBuf = (params.fft_placeness == HCFFT_INPLACE) ? "lwb" : "lwbIn";
 
           if(!inInterleaved) {
             comp = c ? ".y" : ".x";
           }
 
           if(!inInterleaved) {
-            readBuf = (params.fft_placeness == HCFFT_INPLACE) ? (c ? "gbInIm" : "gbInRe") : (c ? "gbInIm" : "gbInRe");
+            readBuf = (params.fft_placeness == HCFFT_INPLACE) ? (c ? "lwbIm" : "lwbImRe") : (c ? "lwbIm" : "lwbImRe");
           }
 
           if(blockComputeType == BCT_C2R) {
@@ -3746,49 +3715,49 @@ class Kernel {
       if(r2c2r) {
         if(rcSimple) {
           if(inInterleaved || inReal) {
-            inBuf  = "gbIn, iOffset, ";
+            inBuf  = "lwbIn, ";
           } else {
-            inBuf  = "gbInRe, iOffset, gbInIm,";
+            inBuf  = "lwbInRe, lwbInIm,";
           }
 
           if(outInterleaved || outReal) {
-            outBuf = "gbOut, oOffset";
+            outBuf = "lwbOut";
           } else {
-            outBuf = "gbOutRe, oOffset, gbOutIm";
+            outBuf = "lwbOutRe, lwbOutIm";
           }
         } else {
           if(inInterleaved || inReal) {
-            inBuf  = "gbIn, iOffset, iOffset2,";
+            inBuf  = "lwbIn, lwbIn2, ";
           } else {
-            inBuf  = "gbInRe, iOffset , iOffset2, gbInIm ";
+            inBuf  = "lwbInRe, lwbInRe2, lwbInIm, lwbInIm2, ";
           }
 
           if(outInterleaved || outReal) {
-            outBuf = "gbOut, oOffset, oOffset2";
+            outBuf = "lwbOut, lwbOut2";
           } else {
-            outBuf = "gbOutRe, oOffset, oOffset2, gbOutIm";
+            outBuf = "lwbOutRe, lwbOutRe2, lwbOutIm, lwbOutIm2";
           }
         }
       } else {
         if(params.fft_placeness == HCFFT_INPLACE) {
           if(inInterleaved) {
-            inBuf = "gb, iOffset, ";
-            outBuf = "gb, iOffset";
+            inBuf = "lwb, ";
+            outBuf = "lwb";
           } else        {
-            inBuf = "gbRe, iOffset, gbIm, ";
-            outBuf = "gbRe, oOffset, gbIm, ";
+            inBuf = "lwbRe, lwbIm,";
+            outBuf = "lwbRe, lwbIm";
           }
         } else {
           if(inInterleaved) {
-            inBuf  = "gbIn, iOffset, ";
+            inBuf  = "lwbIn, ";
           } else {
-            inBuf  = "gbInRe,iOffset, gbInIm, ";
+            inBuf  = "lwbInRe, lwbInIm, ";
           }
 
           if(outInterleaved) {
-            outBuf = "gbOut, oOffset";
+            outBuf = "lwbOut";
           } else {
-            outBuf = "gbOutRe, oOffset, gbOutIm";
+            outBuf = "lwbOutRe, lwbOutIm";
           }
         }
       }
