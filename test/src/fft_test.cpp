@@ -33,17 +33,17 @@ int main(int argc, char* argv[]) {
   length[1] = N2;
 
   ipStrides[0] = 1;
-  ipStrides[1] = length[1];
+  ipStrides[1] = length[0];
 
   opStrides[0] = 1;
-  opStrides[1] = 1 + length[1]/2;
+  opStrides[1] = 1 + length[0]/2;
 
   size_t ipDistance = length[1] * length[0];
-  size_t opDistance = length[0] * (1 + length[1]/2);
+  size_t opDistance = length[1] * (1 + length[0]/2);
 
   int realsize, cmplexsize;
   realsize = length[0] * length[1];
-  cmplexsize = length[0] * (1 + (length[1] / 2)) * 2;
+  cmplexsize = length[1] * (1 + (length[0] / 2)) * 2;
 
   std::vector<accelerator> accs = accelerator::get_all();
 
@@ -74,9 +74,9 @@ int main(int argc, char* argv[]) {
   float* opHost = (float*)calloc(cmplexsize, sizeof(float));
 
     printf("ip\n");
-    for(int  i = 0; i < N1 ; i++) {
-      for(int  j = 0; j < N2 ; j++) {
-        ipHost[i * N2 + j] = i * N2 + j + 1;
+    for(int  i = 0; i < N2 ; i++) {
+      for(int  j = 0; j < N1 ; j++) {
+        ipHost[i * N1 + j] = i * N1 + j + 1;
       }
     }
 
@@ -158,14 +158,14 @@ int main(int argc, char* argv[]) {
   if(status != HCFFT_SUCCEEDS) {
     cout << " destroy plan error " << endl;
   }
-
-#if PRINT
   printf("r2c\n");
 
+#if PRINT
+
   /* Print Output */
-    for(int  i = 0; i < N1 ; i++) {
-      for(int  j = 0; j < (N2 / 2 + 1) * 2; j++) {
-        printf("%lf\n", opHost[i * (N2 / 2 + 1) * 2 + j]);
+    for(int  i = 0; i < N2 ; i++) {
+      for(int  j = 0; j < (N1 / 2 + 1) * 2; j++) {
+        printf("%lf\n", opHost[i * (N1 / 2 + 1) * 2 + j]);
       }
     }
 
@@ -177,12 +177,12 @@ int main(int argc, char* argv[]) {
   dir = HCFFT_BACKWARD;
 
   ipStrides[0] = 1;
-  ipStrides[1] = 1 + length[1]/2;
+  ipStrides[1] = 1 + length[0]/2;
 
   opStrides[0] = 1;
-  opStrides[1] = length[1];
+  opStrides[1] = length[0];
 
-  ipDistance = length[0] * (1 + length[1]/2);
+  ipDistance = length[1] * (1 + length[0]/2);
   opDistance = length[0] * length[1];
 
   status = plan1.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, accs[1], precision, libtype);
@@ -251,19 +251,19 @@ int main(int argc, char* argv[]) {
 #if PRINT
 
   /* Print Output */
-  for(int  i = 0; i < N1 ; i++) {
-    for(int  j = 0; j < N2 ; j++) {
-      std::cout << " ipzHost[" << i * N2 + j << "] " << ipzHost[i * N2 + j] << std::endl;
+  for(int  i = 0; i < N2 ; i++) {
+    for(int  j = 0; j < N1 ; j++) {
+      std::cout << " ipzHost[" << i * N1 + j << "] " << ipzHost[i * N1 + j] << std::endl;
     }
   }
 
 #endif
 
   std::cout <<  " Comparing results " << std::endl;
-  for(int  i = 0; i < N1 ; i++) {
-    for(int  j = 0; j < N2 ; j++) {
-    if((round(ipzHost[i * N2 + j]) != ipHost[i * N2 + j]) || isnan(ipzHost[i * N2 + j])) {
-      cout << " Mismatch at  " << i * N2 + j << " input " << ipHost[i * N2 + j] << " amp " << round(ipzHost[i * N2 + j]) << endl;
+  for(int  i = 0; i < N2 ; i++) {
+    for(int  j = 0; j < N1 ; j++) {
+    if((round(ipzHost[i * N1 + j]) != ipHost[i * N1 + j]) || isnan(ipzHost[i * N1 + j])) {
+      cout << " Mismatch at  " << i * N1 + j << " input " << ipHost[i * N1 + j] << " amp " << round(ipzHost[i * N1 + j]) << endl;
       cout << " TEST FAILED " << std::endl;
       exit(0);
     }
