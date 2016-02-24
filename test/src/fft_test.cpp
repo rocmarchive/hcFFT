@@ -73,12 +73,12 @@ int main(int argc, char* argv[]) {
   float* ipzHost = (float*)calloc(realsize, sizeof(float));
   float* opHost = (float*)calloc(cmplexsize, sizeof(float));
 
-    printf("ip\n");
-    for(int  i = 0; i < N2 ; i++) {
-      for(int  j = 0; j < N1 ; j++) {
-        ipHost[i * N1 + j] = i * N1 + j + 1;
-      }
+  printf("ip\n");
+  for(int  i = 0; i < N2 ; i++) {
+    for(int  j = 0; j < N1 ; j++) {
+      ipHost[i * N1 + j] = i * N1 + j + 1;
     }
+  }
 
   float* ipDev = (float*)am_alloc(realsize * sizeof(float), accs[1], 0);
   float* ipzDev = (float*)am_alloc(realsize * sizeof(float), accs[1], 0);
@@ -158,9 +158,10 @@ int main(int argc, char* argv[]) {
   if(status != HCFFT_SUCCEEDS) {
     cout << " destroy plan error " << endl;
   }
-  printf("r2c\n");
 
 #if PRINT
+
+  printf("r2c\n");
 
   /* Print Output */
     for(int  i = 0; i < N2 ; i++) {
