@@ -102,6 +102,7 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
   size_t* length = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t ipDistance, opDistance;
 
   if ( nx < 0 ) {
      // invalid size
@@ -109,13 +110,6 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
   } else {
     length[0] = nx;
   }
-
-  ipStrides[0] = 1;
-
-  opStrides[0] = 1;
-
-  size_t ipDistance = length[0];
-  size_t opDistance = 1 + length[0]/2;
 
   // Allocate Rawplan
   hcfftResult res = hcfftCreate(plan);
@@ -128,8 +122,30 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
     return HCFFT_SETUP_FAILED;
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
-  if(!libType)
-    return HCFFT_INVALID_VALUE;
+
+  switch (libType) {
+    case HCFFT_R2CD2Z:
+      ipStrides[0] = 1;
+      opStrides[0] = 1;
+      ipDistance = length[0];
+      opDistance = 1 + length[0]/2;
+      break;
+    case HCFFT_C2RZ2D:
+      ipStrides[0] = 1;
+      opStrides[0] = 1;
+      ipDistance = 1 + length[0]/2;
+      opDistance = length[0];
+      break;
+    case HCFFT_C2CZ2Z:
+      ipStrides[0] = 1;
+      opStrides[0] = 1;
+      ipDistance = length[0];
+      opDistance = length[0];
+      break;
+    default:
+      // Invalid type
+      return HCFFT_INVALID_VALUE;
+  }
 
   hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc, precision, libType);
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
@@ -242,6 +258,7 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
   size_t* length = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t ipDistance, opDistance;
 
   if (nx < 0 || ny < 0) {
      // invalid size
@@ -250,15 +267,6 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
     length[0] = nx;
     length[1] = ny;
   }
-
-  ipStrides[0] = 1;
-  ipStrides[1] = length[1];
-
-  opStrides[0] = 1;
-  opStrides[1] = 1 + length[1]/2;
-
-  size_t ipDistance = length[1] * length[0];
-  size_t opDistance = length[0] * (1 + length[1]/2);
 
   // Allocate Rawplan
   hcfftResult res = hcfftCreate(plan);
@@ -271,8 +279,36 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
     return HCFFT_SETUP_FAILED;
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
-  if(!libType)
-    return HCFFT_INVALID_VALUE;
+
+  switch (libType) {
+    case HCFFT_R2CD2Z:
+      ipStrides[0] = 1;
+      ipStrides[1] = length[0];
+      opStrides[0] = 1;
+      opStrides[1] = 1 + length[0]/2;
+      ipDistance = length[1] * length[0];
+      opDistance = length[1] * (1 + length[0]/2);
+      break;
+    case HCFFT_C2RZ2D:
+      ipStrides[0] = 1;
+      ipStrides[1] = 1 + length[0]/2;
+      opStrides[0] = 1;
+      opStrides[1] = length[0];
+      ipDistance = length[1] * (1 + length[0]/2);
+      opDistance = length[1] * length[0];
+      break;
+    case HCFFT_C2CZ2Z:
+      ipStrides[0] = 1;
+      ipStrides[0] = length[0];
+      opStrides[0] = 1;
+      opStrides[0] = length[0];
+      ipDistance = length[1] * length[0];
+      opDistance = length[1] * length[0];
+      break;
+    default:
+      // Invalid type
+      return HCFFT_INVALID_VALUE;
+  }
 
   hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc, precision, libType);
 
@@ -387,6 +423,7 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
   size_t* length = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t ipDistance, opDistance;
 
   if (nx < 0 || ny < 0 || nz < 0) {
      // invalid size
@@ -396,17 +433,6 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
     length[1] = ny;
     length[2] = nz;
   }
-
-  ipStrides[0] = 1;
-  ipStrides[1] = length[1];
-  ipStrides[2] = length[1] * length[2];
-
-  opStrides[0] = 1;
-  opStrides[1] = 1 + length[1]/2;
-  opStrides[2] = 1 + length[1]/2 + length[2]/2;
-
-  size_t ipDistance = length[0] * length[1] * length[2];
-  size_t opDistance = length[0] * length[1] * (1 + length[2]/2);
 
   // Allocate Rawplan
   hcfftResult res = hcfftCreate(plan);
@@ -419,8 +445,42 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
     return HCFFT_SETUP_FAILED;
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
-  if(!libType)
-    return HCFFT_INVALID_VALUE;
+
+  switch (libType) {
+    case HCFFT_R2CD2Z:
+      ipStrides[0] = 1;
+      ipStrides[1] = length[0];
+      ipStrides[2] = length[0] * length[1];
+      opStrides[0] = 1;
+      opStrides[1] = 1 + (length[0] / 2);
+      opStrides[2] = (1 + (length[0] / 2)) * length[1];
+      ipDistance = length[2] * length[1] * length[0];
+      opDistance = length[2] * length[1] * (1 + length[0]/2);
+      break;
+    case HCFFT_C2RZ2D:
+      ipStrides[0] = 1;
+      ipStrides[1] = 1 + (length[0] / 2);
+      ipStrides[2] = (1 + (length[0] / 2)) * length[1];
+      opStrides[0] = 1;
+      opStrides[1] = length[0];
+      opStrides[2] = length[0] * length[1];
+      ipDistance = length[2] * length[1] * (1 + length[0]/2);
+      opDistance = length[2] * length[1] * length[0];
+      break;
+    case HCFFT_C2CZ2Z:
+      ipStrides[0] = 1;
+      ipStrides[1] = length[0];
+      ipStrides[2] = length[0] * length[1];
+      opStrides[0] = 1;
+      opStrides[1] = length[0];
+      opStrides[2] = length[0] * length[1];
+      ipDistance = length[2] * length[1] * length[0];
+      opDistance = length[2] * length[1] * length[0];
+      break;
+    default:
+      // Invalid type
+      return HCFFT_INVALID_VALUE;
+  }
 
   hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc, precision, libType);
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
