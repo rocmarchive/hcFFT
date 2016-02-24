@@ -34,6 +34,32 @@ hcfftResult hcfftCreate(hcfftHandle *&plan) {
   }
 }
 
+int checkLength(int x)
+{
+  size_t baseRadix[] = {7, 5, 3, 2}; // list only supported primes
+  size_t baseRadixSize = sizeof(baseRadix) / sizeof(baseRadix[0]);
+
+  do
+  {
+  int len = x;
+  for(size_t r = 0; r < baseRadixSize; r++) {
+    size_t rad = baseRadix[r];
+
+    while(!(len % rad)) {
+      len /= rad;
+    }
+  }
+
+  if( len != 1)
+    ++x;
+  else
+    break;
+
+  }while(1);
+
+  return x;
+}
+
 /******************************************************************************************************************
  * <i>  Function hcfftPlan1d()
    Description:
@@ -123,24 +149,26 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
 
+  nx = checkLength(length[0]);
+
   switch (libType) {
     case HCFFT_R2CD2Z:
       ipStrides[0] = 1;
       opStrides[0] = 1;
-      ipDistance = length[0];
-      opDistance = 1 + length[0]/2;
+      ipDistance = nx;
+      opDistance = 1 + nx/2;
       break;
     case HCFFT_C2RZ2D:
       ipStrides[0] = 1;
       opStrides[0] = 1;
-      ipDistance = 1 + length[0]/2;
-      opDistance = length[0];
+      ipDistance = 1 + nx/2;
+      opDistance = nx;
       break;
     case HCFFT_C2CZ2Z:
       ipStrides[0] = 1;
       opStrides[0] = 1;
-      ipDistance = length[0];
-      opDistance = length[0];
+      ipDistance = nx;
+      opDistance = nx;
       break;
     default:
       // Invalid type
@@ -280,30 +308,33 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
 
+  nx = checkLength(length[0]);
+  ny = checkLength(length[1]);
+
   switch (libType) {
     case HCFFT_R2CD2Z:
       ipStrides[0] = 1;
-      ipStrides[1] = length[0];
+      ipStrides[1] = nx;
       opStrides[0] = 1;
-      opStrides[1] = 1 + length[0]/2;
-      ipDistance = length[1] * length[0];
-      opDistance = length[1] * (1 + length[0]/2);
+      opStrides[1] = 1 + nx/2;
+      ipDistance = ny * nx;
+      opDistance = ny * (1 + nx/2);
       break;
     case HCFFT_C2RZ2D:
       ipStrides[0] = 1;
-      ipStrides[1] = 1 + length[0]/2;
+      ipStrides[1] = 1 + nx/2;
       opStrides[0] = 1;
-      opStrides[1] = length[0];
-      ipDistance = length[1] * (1 + length[0]/2);
-      opDistance = length[1] * length[0];
+      opStrides[1] = nx;
+      ipDistance = ny * (1 + nx/2);
+      opDistance = ny * nx;
       break;
     case HCFFT_C2CZ2Z:
       ipStrides[0] = 1;
-      ipStrides[0] = length[0];
+      ipStrides[0] = nx;
       opStrides[0] = 1;
-      opStrides[0] = length[0];
-      ipDistance = length[1] * length[0];
-      opDistance = length[1] * length[0];
+      opStrides[0] = nx;
+      ipDistance = ny * nx;
+      opDistance = ny * nx;
       break;
     default:
       // Invalid type
@@ -446,36 +477,40 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
 
+  nx = checkLength(length[0]);
+  ny = checkLength(length[1]);
+  nz = checkLength(length[2]);
+
   switch (libType) {
     case HCFFT_R2CD2Z:
       ipStrides[0] = 1;
-      ipStrides[1] = length[0];
-      ipStrides[2] = length[0] * length[1];
+      ipStrides[1] = nx;
+      ipStrides[2] = nx * ny;
       opStrides[0] = 1;
-      opStrides[1] = 1 + (length[0] / 2);
-      opStrides[2] = (1 + (length[0] / 2)) * length[1];
-      ipDistance = length[2] * length[1] * length[0];
-      opDistance = length[2] * length[1] * (1 + length[0]/2);
+      opStrides[1] = 1 + (nx / 2);
+      opStrides[2] = (1 + (nx / 2)) * ny;
+      ipDistance = nz * ny * nx;
+      opDistance = nz * ny * (1 + nx/2);
       break;
     case HCFFT_C2RZ2D:
       ipStrides[0] = 1;
-      ipStrides[1] = 1 + (length[0] / 2);
-      ipStrides[2] = (1 + (length[0] / 2)) * length[1];
+      ipStrides[1] = 1 + (nx / 2);
+      ipStrides[2] = (1 + (nx / 2)) * ny;
       opStrides[0] = 1;
-      opStrides[1] = length[0];
-      opStrides[2] = length[0] * length[1];
-      ipDistance = length[2] * length[1] * (1 + length[0]/2);
-      opDistance = length[2] * length[1] * length[0];
+      opStrides[1] = nx;
+      opStrides[2] = nx * ny;
+      ipDistance = nz * ny * (1 + nx/2);
+      opDistance = nz * ny * nx;
       break;
     case HCFFT_C2CZ2Z:
       ipStrides[0] = 1;
-      ipStrides[1] = length[0];
-      ipStrides[2] = length[0] * length[1];
+      ipStrides[1] = nx;
+      ipStrides[2] = nx * ny;
       opStrides[0] = 1;
-      opStrides[1] = length[0];
-      opStrides[2] = length[0] * length[1];
-      ipDistance = length[2] * length[1] * length[0];
-      opDistance = length[2] * length[1] * length[0];
+      opStrides[1] = nx;
+      opStrides[2] = nx * ny;
+      ipDistance = nz * ny * nx;
+      opDistance = nz * ny * nx;
       break;
     default:
       // Invalid type
