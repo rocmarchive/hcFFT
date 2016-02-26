@@ -5,21 +5,17 @@
 lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
 
 //  Static initialization of the plan count variable
-size_t FFTPlan::count = 0;
 size_t FFTRepo::planCount = 1;
+static std::string kernellib, filename;
 static size_t beforeCompile = 99999999;
-static std::string kernellib;
-static std::string filename;
-static bool exist = false;
-static size_t countKernel;
-static std::vector<size_t> originalLength;
-static hcfftLibType hcfftlibtype;
+static size_t countKernel,bakedPlanCount;
+static bool exist;
 
 bool has_suffix(const string& s, const string& suffix) {
   return (s.size() >= suffix.size()) && equal(suffix.rbegin(), suffix.rend(), s.rbegin());
 }
 
-bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision) {
+bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision, std::vector<size_t> originalLength, hcfftLibType hcfftlibtype) {
   DIR*           d;
   struct dirent* dir;
   std::string pwd = getHomeDir();
@@ -141,7 +137,8 @@ hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators g
 }
 
 //  Compile the kernels that this plan uses, and store into the plan
-hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators gen, FFTPlan* fftPlan, hcfftPlanHandle plHandleOrigin, bool exist) {
+hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators gen, FFTPlan* fftPlan, hcfftPlanHandle plHandleOrigin,
+                           bool exist, std::vector<size_t> originalLength, hcfftLibType hcfftlibtype) {
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   FFTKernelGenKeyParams fftParams;
   fftPlan->GetKernelGenKey( fftParams );
@@ -417,20 +414,20 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
   }
 
   hcfftStatus ret = hcfftCreateDefaultPlanInternal(plHandle, dim, modifiedLengths);
-  originalLength.clear();
-
-  for(int i = 0 ; i < dim ; i++) {
-    originalLength.push_back(modifiedLengths[i]);
-  }
 
   if(ret == HCFFT_SUCCEEDS) {
     FFTRepo& fftRepo  = FFTRepo::getInstance( );
     FFTPlan* fftPlan = NULL;
     lockRAII* planLock  = NULL;
     fftRepo.getPlan( *plHandle, fftPlan, planLock );
-    fftPlan->count = 0;
     fftPlan->plHandleOrigin = *plHandle;
     fftPlan->isPadded = padded;
+    fftPlan->originalLength.clear();
+
+    for(int i = 0 ; i < dim ; i++) {
+      fftPlan->originalLength.push_back(modifiedLengths[i]);
+    }
+
     switch( dim ) {
       case HCFFT_1D: {
         fftPlan->unpaddedLength.push_back( clLengths[0] );
@@ -452,8 +449,7 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
     }
     fftPlan->userPlan = true;
     fftPlan->acc = acc;
-    hcfftlibtype = libType;
-    exist = checkIfsoExist(dir, precision);
+    fftPlan->hcfftlibtype = libType;
   }
 
   return ret;
@@ -547,7 +543,7 @@ hcfftStatus FFTPlan::hcfftUnpadding(float *input,
 
 hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, float* clInputBuffers,
     float* clOutputBuffers, float* clTmpBuffers) {
-  hcfftStatus status = HCFFT_SUCCEEDS;
+  hcfftStatus status = HCFFT_INVALID;
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock  = NULL;
@@ -560,7 +556,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
     float *paddedOutputBuffers;
     size_t realsize, complexsize, origrealsize, origcomplexsize;
 
-    switch(hcfftlibtype) {
+    switch(fftPlan->hcfftlibtype) {
       case HCFFT_R2CD2Z:
         realsize = fftPlan->length[0];
         complexsize = ((fftPlan->length[0] / 2) + 1) * 2;
@@ -582,7 +578,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             float *temp =  (float*)calloc(realsize, sizeof(float));
             hc::am_copy(paddedInputBuffers, temp,  realsize * sizeof(float));
             hc::am_copy(paddedInputBuffers, clInputBuffers, origrealsize * sizeof(float));
-            hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
+            status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hc::am_copy(clOutputBuffers, paddedOutputBuffers, origcomplexsize * sizeof(float));
             free(temp);
           }
@@ -592,7 +588,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hcfftpadding(clInputBuffers, paddedInputBuffers, fftPlan->unpaddedLength[0], fftPlan->length[0], fftPlan->unpaddedLength[1], fftPlan->length[1]);
             float *temp = (float*)calloc(complexsize, sizeof(float));
             hc::am_copy(paddedOutputBuffers, temp,  complexsize * sizeof(float));
-            hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
+            status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, ((fftPlan->unpaddedLength[0] / 2) + 1) * 2, ((fftPlan->length[0] / 2) + 1) * 2, fftPlan->unpaddedLength[1], fftPlan->length[1]);
             free(temp);
           }
@@ -600,7 +596,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           case HCFFT_3D:
           {
             hcfftpadding(clInputBuffers, paddedInputBuffers, fftPlan->unpaddedLength[0], fftPlan->length[0], fftPlan->unpaddedLength[1], fftPlan->length[1], fftPlan->unpaddedLength[2], fftPlan->length[2]);
-            hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
+            status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, fftPlan->unpaddedLength[0], fftPlan->length[0], fftPlan->unpaddedLength[1], fftPlan->length[1], fftPlan->unpaddedLength[2], fftPlan->length[2]);
           }
           break;
@@ -631,7 +627,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             float *temp =  (float*)calloc(complexsize, sizeof(float));
             hc::am_copy(paddedInputBuffers, temp,  complexsize * sizeof(float));
             hc::am_copy(paddedInputBuffers, clInputBuffers, origcomplexsize * sizeof(float));
-            hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
+            status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hc::am_copy(clOutputBuffers, paddedOutputBuffers, origrealsize * sizeof(float));
             free(temp);
           }
@@ -641,7 +637,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hcfftpadding(clInputBuffers, paddedInputBuffers, ((fftPlan->unpaddedLength[0] / 2) + 1) * 2, ((fftPlan->length[0] / 2) + 1) * 2, fftPlan->unpaddedLength[1], fftPlan->length[1]);
             float *temp =  (float*)calloc(realsize, sizeof(float));
             hc::am_copy(paddedOutputBuffers, temp,  realsize * sizeof(float));
-            hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
+            status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, fftPlan->unpaddedLength[0], fftPlan->length[0], fftPlan->unpaddedLength[1], fftPlan->length[1]);
             free(temp);
           }
@@ -649,7 +645,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           case HCFFT_3D:
           {
             hcfftpadding(clInputBuffers, paddedInputBuffers, ((fftPlan->unpaddedLength[0] / 2) + 1) * 2, ((fftPlan->length[0] / 2) + 1) * 2, fftPlan->unpaddedLength[1], fftPlan->length[1], fftPlan->unpaddedLength[2], fftPlan->length[2]);
-            hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
+            status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, ((fftPlan->unpaddedLength[0] / 2) + 1) * 2, ((fftPlan->length[0] / 2) + 1) * 2, fftPlan->unpaddedLength[1], fftPlan->length[1], fftPlan->unpaddedLength[2], fftPlan->length[2]);
           }
           break;
@@ -675,7 +671,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             float *temp =  (float*)calloc(complexsize, sizeof(float));
             hc::am_copy(paddedInputBuffers, temp,  complexsize * sizeof(float));
             hc::am_copy(paddedInputBuffers, clInputBuffers, origcomplexsize * sizeof(float));
-            hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
+            status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hc::am_copy(clOutputBuffers, paddedOutputBuffers, origcomplexsize * sizeof(float));
             free(temp);
           }
@@ -685,7 +681,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hcfftpadding(clInputBuffers, paddedInputBuffers, fftPlan->unpaddedLength[0] * 2, fftPlan->length[0] * 2, fftPlan->unpaddedLength[1], fftPlan->length[1]);
             float *temp =  (float*)calloc(complexsize, sizeof(float));
             hc::am_copy(paddedOutputBuffers, temp,  complexsize * sizeof(float));
-            hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
+            status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, fftPlan->unpaddedLength[0] * 2, fftPlan->length[0] * 2, fftPlan->unpaddedLength[1], fftPlan->length[1]);
             free(temp);
           }
@@ -693,7 +689,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           case HCFFT_3D:
           {
             hcfftpadding(clInputBuffers, paddedInputBuffers, fftPlan->unpaddedLength[0] * 2, fftPlan->length[0] * 2, fftPlan->unpaddedLength[1], fftPlan->length[1], fftPlan->unpaddedLength[2], fftPlan->length[2]);
-            hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
+            status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, clTmpBuffers);
             hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, fftPlan->unpaddedLength[0] * 2, fftPlan->length[0] * 2, fftPlan->unpaddedLength[1], fftPlan->length[1], fftPlan->unpaddedLength[2], fftPlan->length[2]);
           }
             break;
@@ -710,7 +706,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   }
   else
   {
-    return hcfftEnqueueTransformInternal(plHandle, dir, clInputBuffers, clOutputBuffers, clTmpBuffers);
+    status = hcfftEnqueueTransformInternal(plHandle, dir, clInputBuffers, clOutputBuffers, clTmpBuffers);
   }
   return status;
 }
@@ -1812,7 +1808,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
     double *paddedOutputBuffers;
     size_t realsize, complexsize, origrealsize, origcomplexsize;
 
-    switch(hcfftlibtype) {
+    switch(fftPlan->hcfftlibtype) {
       case HCFFT_R2CD2Z:
         realsize = fftPlan->length[0];
         complexsize = ((fftPlan->length[0] / 2) + 1) * 2;
@@ -2958,6 +2954,16 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
 }
 
 hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
+  bakedPlanCount = 0;
+  FFTRepo& fftRepo  = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock  = NULL;
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  exist = checkIfsoExist(fftPlan->direction, fftPlan->precision, fftPlan->originalLength, fftPlan->hcfftlibtype);
+  return hcfftBakePlanInternal(plHandle);
+}
+
+hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
@@ -3053,11 +3059,11 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
 
   if(fftPlan->gen == Copy) {
     if(!exist) {
-      fftPlan->GenerateKernel(plHandle, fftRepo, count);
-      count++;
+      fftPlan->GenerateKernel(plHandle, fftRepo, bakedPlanCount);
+      bakedPlanCount++;
     }
 
-    CompileKernels(plHandle, fftPlan->gen, fftPlan, plHandleOrigin, exist);
+    CompileKernels(plHandle, fftPlan->gen, fftPlan, plHandleOrigin, exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
     fftPlan->baked = true;
     return HCFFT_SUCCEEDS;
   }
@@ -3329,7 +3335,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             trans1Plan->oDist         = clLengths[0] * trans1Plan->outStride[1];
             trans1Plan->gen           = Transpose;
             trans1Plan->transflag     = true;
-            hcfftBakePlan(fftPlan->planTX);
+            trans1Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans1Plan->originalLength  = fftPlan->originalLength;
+
+            hcfftBakePlanInternal(fftPlan->planTX);
             //Row transform
             //tmp->output
             //size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
@@ -3356,7 +3365,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             row1Plan->outStride.push_back(clLengths[1]);
             row1Plan->iDist         = clLengths[0] * row1Plan->inStride[1];
             row1Plan->oDist         = fftPlan->oDist;
-            hcfftBakePlan(fftPlan->planX);
+            row1Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            row1Plan->originalLength  = fftPlan->originalLength;
+
+            hcfftBakePlanInternal(fftPlan->planX);
             //Transpose 2
             //Output --> tmp buffer
             clLengths[2] = clLengths[0];
@@ -3380,7 +3392,9 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             trans2Plan->gen           = Transpose;
             trans2Plan->large1D   = fftPlan->length[0];
             trans2Plan->transflag     = true;
-            hcfftBakePlan(fftPlan->planTY);
+            trans2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans2Plan->originalLength  = fftPlan->originalLength;
+            hcfftBakePlanInternal(fftPlan->planTY);
             //Row transform 2
             //tmp->tmp
             //size clLengths[0], batch clLengths[1]
@@ -3405,7 +3419,9 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             row2Plan->outStride.push_back(clLengths[0] + padding);
             row2Plan->iDist         = clLengths[1] * row2Plan->inStride[1];
             row2Plan->oDist         = clLengths[1] * row2Plan->outStride[1];
-            hcfftBakePlan(fftPlan->planY);
+            row2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            row2Plan->originalLength  = fftPlan->originalLength;
+            hcfftBakePlanInternal(fftPlan->planY);
             //Transpose 3
             //tmp --> output
             hcfftCreateDefaultPlanInternal( &fftPlan->planTZ, HCFFT_2D, clLengths );
@@ -3428,7 +3444,9 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             trans3Plan->gen           = Transpose;
             trans3Plan->transflag     = true;
             trans3Plan->transOutHorizontal = true;
-            hcfftBakePlan(fftPlan->planTZ);
+            trans3Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans3Plan->originalLength  = fftPlan->originalLength;
+            hcfftBakePlanInternal(fftPlan->planTZ);
             fftPlan->transflag = true;
             fftPlan->baked = true;
             return  HCFFT_SUCCEEDS;
@@ -3497,7 +3515,9 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             trans1Plan->oDist         = clLengths[0] * trans1Plan->outStride[1];
             trans1Plan->gen           = Transpose;
             trans1Plan->transflag     = true;
-            hcfftBakePlan(fftPlan->planTX);
+            trans1Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans1Plan->originalLength  = fftPlan->originalLength;
+            hcfftBakePlanInternal(fftPlan->planTX);
             //Row transform
             //tmp->output
             //size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
@@ -3524,7 +3544,9 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             row1Plan->outStride.push_back(1 + clLengths[1] / 2);
             row1Plan->iDist         = clLengths[0] * row1Plan->inStride[1];
             row1Plan->oDist         = clLengths[0] * row1Plan->outStride[1];
-            hcfftBakePlan(fftPlan->planX);
+            row1Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            row1Plan->originalLength  = fftPlan->originalLength;
+            hcfftBakePlanInternal(fftPlan->planX);
             //Transpose 2
             //Output --> tmp buffer
             clLengths[2] = clLengths[0];
@@ -3553,7 +3575,9 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             trans2Plan->gen           = Transpose;
             trans2Plan->transflag     = true;
             trans2Plan->transOutHorizontal = true;
-            hcfftBakePlan(fftPlan->planTY);
+            trans2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans2Plan->originalLength  = fftPlan->originalLength;
+            hcfftBakePlanInternal(fftPlan->planTY);
             //Row transform 2
             //tmp->tmp
             //size clLengths[0], batch clLengths[1]
@@ -3582,7 +3606,9 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             row2Plan->twiddleFront  = true;
             row2Plan->realSpecial = true;
             row2Plan->realSpecial_Nr = clLengths[1];
-            hcfftBakePlan(fftPlan->planY);
+            row2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            row2Plan->originalLength  = fftPlan->originalLength;
+            hcfftBakePlanInternal(fftPlan->planY);
             //Transpose 3
             //tmp --> output
             hcfftCreateDefaultPlanInternal( &fftPlan->planTZ, HCFFT_2D, clLengths );
@@ -3616,7 +3642,9 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             trans3Plan->transflag     = true;
             trans3Plan->realSpecial   = true;
             trans3Plan->transOutHorizontal = true;
-            hcfftBakePlan(fftPlan->planTZ);
+            trans3Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans3Plan->originalLength  = fftPlan->originalLength;
+            hcfftBakePlanInternal(fftPlan->planTZ);
             fftPlan->transflag = true;
             fftPlan->baked = true;
             return  HCFFT_SUCCEEDS;
@@ -3670,8 +3698,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               colTPlan->outStride.push_back(colTPlan->oDist);
               colTPlan->oDist        *= fftPlan->length[index];
             }
+            colTPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            colTPlan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planX);
+            hcfftBakePlanInternal(fftPlan->planX);
             //another column FFT, size clLengths[0], batch clLengths[1], output without transpose
             hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D,  &clLengths[0] );
             FFTPlan* col2Plan = NULL;
@@ -3705,8 +3735,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               col2Plan->iDist   *= fftPlan->length[index];
               col2Plan->oDist   *= fftPlan->length[index];
             }
+            col2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            col2Plan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planY);
+            hcfftBakePlanInternal(fftPlan->planY);
             // copy plan to get back to hermitian
             hcfftCreateDefaultPlanInternal( &fftPlan->planRCcopy, HCFFT_1D,  &fftPlan->length[0]);
             FFTPlan* copyPlan = NULL;
@@ -3729,6 +3761,8 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             copyPlan->iDist        = fftPlan->length[0];
             copyPlan->outStride[0] = fftPlan->outStride[0];
             copyPlan->oDist         = fftPlan->oDist;
+            copyPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            copyPlan->originalLength  = fftPlan->originalLength;
 
             for (size_t index = 1; index < fftPlan->length.size(); index++) {
               copyPlan->length.push_back(fftPlan->length[index]);
@@ -3737,7 +3771,7 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               copyPlan->outStride.push_back(fftPlan->outStride[index]);
             }
 
-            hcfftBakePlan(fftPlan->planRCcopy);
+            hcfftBakePlanInternal(fftPlan->planRCcopy);
           } else if(fftPlan->opLayout == HCFFT_REAL) {
             if (fftPlan->tmpBufSizeRC == 0 ) {
               fftPlan->tmpBufSizeRC = length0 * length1 *
@@ -3777,8 +3811,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               copyPlan->oDist   *= fftPlan->length[index];
               copyPlan->inStride.push_back(fftPlan->inStride[index]);
             }
+            copyPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            copyPlan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planRCcopy);
+            hcfftBakePlanInternal(fftPlan->planRCcopy);
             // column FFT, size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
             // transposed output
             hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_1D, &clLengths[1] );
@@ -3818,8 +3854,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               colTPlan->iDist   *= fftPlan->length[index];
               colTPlan->oDist   *= fftPlan->length[index];
             }
+            colTPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            colTPlan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planX);
+            hcfftBakePlanInternal(fftPlan->planX);
             //another column FFT, size clLengths[0], batch clLengths[1], output without transpose
             hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D,  &clLengths[0] );
             FFTPlan* col2Plan = NULL;
@@ -3853,8 +3891,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               col2Plan->iDist   *= fftPlan->length[index];
               col2Plan->outStride.push_back(fftPlan->outStride[index]);
             }
+            col2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            col2Plan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planY);
+            hcfftBakePlanInternal(fftPlan->planY);
           } else {
             if( (fftPlan->length[0] > 262144 / width(fftPlan->precision)) && fftPlan->blockCompute ) {
               assert(fftPlan->length[0] <= 1048576);
@@ -3898,8 +3938,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
                 trans1Plan->outStride.push_back(trans1Plan->oDist);
                 trans1Plan->oDist *= fftPlan->length[index];
               }
+              trans1Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+              trans1Plan->originalLength  = fftPlan->originalLength;
 
-              hcfftBakePlan(fftPlan->planTX);
+              hcfftBakePlanInternal(fftPlan->planTX);
               // row FFT
               hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_1D, &clLengths[0] );
               FFTPlan* rowPlan  = NULL;
@@ -3931,8 +3973,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
                 rowPlan->outStride.push_back(rowPlan->oDist);
                 rowPlan->oDist *= fftPlan->length[index];
               }
+              rowPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+              rowPlan->originalLength  = fftPlan->originalLength;
 
-              hcfftBakePlan(fftPlan->planX);
+              hcfftBakePlanInternal(fftPlan->planX);
               //column FFT
               hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D,  &clLengths[1] );
               FFTPlan* col2Plan = NULL;
@@ -3967,8 +4011,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
                 col2Plan->iDist   *= fftPlan->length[index];
                 col2Plan->oDist   *= fftPlan->length[index];
               }
+              col2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+              col2Plan->originalLength  = fftPlan->originalLength;
 
-              hcfftBakePlan(fftPlan->planY);
+              hcfftBakePlanInternal(fftPlan->planY);
               // copy plan to get results back to packed output
               hcfftCreateDefaultPlanInternal( &fftPlan->planCopy, HCFFT_1D,  &clLengths[0] );
               FFTPlan* copyPlan = NULL;
@@ -3998,8 +4044,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
                 copyPlan->iDist   *= fftPlan->length[index];
                 copyPlan->outStride.push_back(fftPlan->outStride[index]);
               }
+              copyPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+              copyPlan->originalLength  = fftPlan->originalLength;
 
-              hcfftBakePlan(fftPlan->planCopy);
+              hcfftBakePlanInternal(fftPlan->planCopy);
             } else {
               if (fftPlan->tmpBufSize == 0 ) {
                 fftPlan->tmpBufSize = length0 * length1 *
@@ -4055,8 +4103,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
                 colTPlan->outStride.push_back(colTPlan->oDist);
                 colTPlan->oDist        *= fftPlan->length[index];
               }
+              colTPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+              colTPlan->originalLength  = fftPlan->originalLength;
 
-              hcfftBakePlan(fftPlan->planX);
+              hcfftBakePlanInternal(fftPlan->planX);
               //another column FFT, size clLengths[0], batch clLengths[1], output without transpose
               hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D,  &clLengths[0] );
               FFTPlan* col2Plan = NULL;
@@ -4125,8 +4175,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
                   col2Plan->iDist   *= fftPlan->length[index];
                 }
               }
+              col2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+              col2Plan->originalLength  = fftPlan->originalLength;
 
-              hcfftBakePlan(fftPlan->planY);
+              hcfftBakePlanInternal(fftPlan->planY);
 
               if(!integratedTranposes) {
                 //Transpose
@@ -4157,8 +4209,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
                   trans3Plan->iDist *= fftPlan->length[index];
                   trans3Plan->outStride.push_back(fftPlan->outStride[index]);
                 }
+                trans3Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+                trans3Plan->originalLength  = fftPlan->originalLength;
 
-                hcfftBakePlan(fftPlan->planTZ);
+                hcfftBakePlanInternal(fftPlan->planTZ);
               }
             }
           }
@@ -4172,11 +4226,11 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
     case HCFFT_2D: {
         if (fftPlan->transflag) { //Transpose for 2D
           if(!exist) {
-            fftPlan->GenerateKernel(plHandle, fftRepo, count);
-            count++;
+            fftPlan->GenerateKernel(plHandle, fftRepo, bakedPlanCount);
+            bakedPlanCount++;
           }
 
-          CompileKernels(plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, exist);
+          CompileKernels(plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
           fftPlan->baked    = true;
           return  HCFFT_SUCCEEDS;
         }
@@ -4265,7 +4319,9 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
           rowPlan->length.push_back(fftPlan->length[1]);
           rowPlan->inStride.push_back(fftPlan->inStride[1]);
           rowPlan->iDist           = fftPlan->iDist;
-          hcfftBakePlan(fftPlan->planX);
+          rowPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+          rowPlan->originalLength  = fftPlan->originalLength;
+          hcfftBakePlanInternal(fftPlan->planX);
           //Create transpose plan for first transpose
           //x=y: inplace. x!=y inplace: in->tmp, outofplace out->tmp
           size_t clLengths[] = { 1, 1, 0 };
@@ -4308,8 +4364,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             transPlanX->outStride[1]    = fftPlan->outStride[1];
             transPlanX->oDist           = fftPlan->oDist;
           }
+          transPlanX->hcfftlibtype  = fftPlan->hcfftlibtype;
+          transPlanX->originalLength  = fftPlan->originalLength;
 
-          hcfftBakePlan(fftPlan->planTX);
+          hcfftBakePlanInternal(fftPlan->planTX);
           //create second row plan
           //x!=y: tmp->tmp, x=y case: In->In or Out->Out
           //if Transposed result is a choice x!=y: tmp->In or out
@@ -4357,7 +4415,9 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
           colPlan->envelope    = fftPlan->envelope;
           colPlan->batchSize       = fftPlan->batchSize;
           colPlan->length.push_back(fftPlan->length[0]);
-          hcfftBakePlan(fftPlan->planY);
+          colPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+          colPlan->originalLength  = fftPlan->originalLength;
+          hcfftBakePlanInternal(fftPlan->planY);
 
           if (fftPlan->transposeType == HCFFT_TRANSPOSED) {
             fftPlan->baked = true;
@@ -4397,7 +4457,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
           transPlanY->envelope      = fftPlan->envelope;
           transPlanY->batchSize       = fftPlan->batchSize;
           transPlanY->transflag       = true;
-          hcfftBakePlan(fftPlan->planTY);
+          transPlanY->hcfftlibtype  = fftPlan->hcfftlibtype;
+          transPlanY->originalLength  = fftPlan->originalLength;
+
+          hcfftBakePlanInternal(fftPlan->planTY);
           fftPlan->baked = true;
           return  HCFFT_SUCCEEDS;
         }
@@ -4443,8 +4506,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             rowPlan->inStride.push_back(fftPlan->inStride[index]);
             rowPlan->outStride.push_back(fftPlan->outStride[index]);
           }
+          rowPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+          rowPlan->originalLength  = fftPlan->originalLength;
 
-          hcfftBakePlan(fftPlan->planX);
+          hcfftBakePlanInternal(fftPlan->planX);
 
           if( (rowPlan->inStride[0] == 1) && (rowPlan->outStride[0] == 1) &&
               ( ((rowPlan->inStride[1] == Nt * 2) && (rowPlan->location == HCFFT_INPLACE)) ||
@@ -4511,8 +4576,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               trans1Plan->outStride.push_back(trans1Plan->oDist);
               trans1Plan->oDist *= fftPlan->length[index];
             }
+            trans1Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans1Plan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planTX);
+            hcfftBakePlanInternal(fftPlan->planTX);
             // Create column plan as a row plan
             hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ]);
             FFTPlan* colPlan  = NULL;
@@ -4545,8 +4612,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               colPlan->iDist *= fftPlan->length[index];
               colPlan->oDist *= fftPlan->length[index];
             }
+            colPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            colPlan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planY);
+            hcfftBakePlanInternal(fftPlan->planY);
 
             if (fftPlan->transposeType == HCFFT_TRANSPOSED) {
               fftPlan->baked = true;
@@ -4605,8 +4674,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               trans2Plan->iDist *= fftPlan->length[index];
               trans2Plan->outStride.push_back(fftPlan->outStride[index]);
             }
+            trans2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans2Plan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planTY);
+            hcfftBakePlanInternal(fftPlan->planTY);
           } else {
             // create col plan
             // complex to complex
@@ -4655,8 +4726,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               colPlan->outStride.push_back(fftPlan->outStride[index]);
               colPlan->inStride.push_back(rowPlan->outStride[index]);
             }
+            colPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            colPlan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planY);
+            hcfftBakePlanInternal(fftPlan->planY);
           }
         } else if(fftPlan->opLayout == HCFFT_REAL) {
           length0 = fftPlan->length[0];
@@ -4731,8 +4804,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               trans1Plan->outStride.push_back(trans1Plan->oDist);
               trans1Plan->oDist *= fftPlan->length[index];
             }
+            trans1Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans1Plan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planTY);
+            hcfftBakePlanInternal(fftPlan->planTY);
             // create col plan
             // complex to complex
             hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
@@ -4764,7 +4839,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             colPlan->gen      = fftPlan->gen;
             colPlan->envelope   = fftPlan->envelope;
             colPlan->batchSize = fftPlan->batchSize;
-            hcfftBakePlan(fftPlan->planY);
+            colPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            colPlan->originalLength  = fftPlan->originalLength;
+
+            hcfftBakePlanInternal(fftPlan->planY);
             // create second transpose plan
             //Transpose
             //tmp --> output
@@ -4801,8 +4879,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               trans2Plan->outStride.push_back(trans2Plan->oDist);
               trans2Plan->oDist *= fftPlan->length[index];
             }
+            trans2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans2Plan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planTX);
+            hcfftBakePlanInternal(fftPlan->planTX);
             // create row plan
             // hermitian to real
             //create row plan
@@ -4840,7 +4920,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             rowPlan->gen      = fftPlan->gen;
             rowPlan->envelope   = fftPlan->envelope;
             rowPlan->batchSize    = fftPlan->batchSize;
-            hcfftBakePlan(fftPlan->planX);
+            rowPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            rowPlan->originalLength  = fftPlan->originalLength;
+
+            hcfftBakePlanInternal(fftPlan->planX);
           } else {
             // create col plan
             // complex to complex
@@ -4912,7 +4995,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             colPlan->gen    = fftPlan->gen;
             colPlan->envelope = fftPlan->envelope;
             colPlan->batchSize = fftPlan->batchSize;
-            hcfftBakePlan(fftPlan->planY);
+            colPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            colPlan->originalLength  = fftPlan->originalLength;
+
+            hcfftBakePlanInternal(fftPlan->planY);
             // create row plan
             // hermitian to real
             //create row plan
@@ -4960,7 +5046,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             rowPlan->gen      = fftPlan->gen;
             rowPlan->envelope   = fftPlan->envelope;
             rowPlan->batchSize    = fftPlan->batchSize;
-            hcfftBakePlan(fftPlan->planX);
+            rowPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            rowPlan->originalLength  = fftPlan->originalLength;
+
+            hcfftBakePlanInternal(fftPlan->planX);
           }
         } else {
           if (fftPlan->tmpBufSize == 0 && fftPlan->length.size() <= 2) {
@@ -5012,7 +5101,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
           }
 
           rowPlan->iDist    = fftPlan->iDist;
-          hcfftBakePlan(fftPlan->planX);
+          rowPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+          rowPlan->originalLength  = fftPlan->originalLength;
+
+          hcfftBakePlanInternal(fftPlan->planX);
           //create col plan
           hcfftCreateDefaultPlanInternal( &fftPlan->planY, HCFFT_1D, &fftPlan->length[ 1 ] );
           FFTPlan* colPlan  = NULL;
@@ -5057,8 +5149,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             colPlan->inStride.push_back(fftPlan->outStride[2]);
             colPlan->outStride.push_back(fftPlan->outStride[2]);
           }
+          colPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+          colPlan->originalLength  = fftPlan->originalLength;
 
-          hcfftBakePlan(fftPlan->planY);
+          hcfftBakePlanInternal(fftPlan->planY);
         }
 
         fftPlan->baked = true;
@@ -5107,8 +5201,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             xyPlan->inStride.push_back(fftPlan->inStride[index]);
             xyPlan->outStride.push_back(fftPlan->outStride[index]);
           }
+          xyPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+          xyPlan->originalLength  = fftPlan->originalLength;
 
-          hcfftBakePlan(fftPlan->planX);
+          hcfftBakePlanInternal(fftPlan->planX);
 
           if( (xyPlan->inStride[0] == 1) && (xyPlan->outStride[0] == 1) &&
               (xyPlan->outStride[2] == Nt * length1) &&
@@ -5174,8 +5270,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               trans1Plan->outStride.push_back(trans1Plan->oDist);
               trans1Plan->oDist *= fftPlan->length[index];
             }
+            trans1Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans1Plan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planTX);
+            hcfftBakePlanInternal(fftPlan->planTX);
             // Create column plan as a row plan
             hcfftCreateDefaultPlanInternal( &fftPlan->planZ, HCFFT_1D, &fftPlan->length[2] );
             FFTPlan* colPlan  = NULL;
@@ -5208,8 +5306,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               colPlan->iDist *= fftPlan->length[index];
               colPlan->oDist *= fftPlan->length[index];
             }
+            colPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            colPlan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planZ);
+            hcfftBakePlanInternal(fftPlan->planZ);
 
             if (fftPlan->transposeType == HCFFT_TRANSPOSED) {
               fftPlan->baked = true;
@@ -5268,8 +5368,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               trans2Plan->iDist *= fftPlan->length[index];
               trans2Plan->outStride.push_back(fftPlan->outStride[index]);
             }
+            trans2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans2Plan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planTY);
+            hcfftBakePlanInternal(fftPlan->planTY);
           } else {
             clLengths[0] = fftPlan->length[ 2 ];
             clLengths[1] = clLengths[2] = 0;
@@ -5325,8 +5427,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               colPlan->inStride.push_back(xyPlan->outStride[index]);
               colPlan->outStride.push_back(fftPlan->outStride[index]);
             }
+            colPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            colPlan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planZ);
+            hcfftBakePlanInternal(fftPlan->planZ);
           }
         } else if(fftPlan->opLayout == HCFFT_REAL) {
           size_t length0 = fftPlan->length[ 0 ];
@@ -5402,8 +5506,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               trans1Plan->outStride.push_back(trans1Plan->oDist);
               trans1Plan->oDist *= fftPlan->length[index];
             }
+            trans1Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans1Plan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planTZ);
+            hcfftBakePlanInternal(fftPlan->planTZ);
             // create col plan
             // complex to complex
             hcfftCreateDefaultPlanInternal( &fftPlan->planZ, HCFFT_1D, &fftPlan->length[ 2 ] );
@@ -5435,7 +5541,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             colPlan->gen      = fftPlan->gen;
             colPlan->envelope   = fftPlan->envelope;
             colPlan->batchSize = fftPlan->batchSize;
-            hcfftBakePlan(fftPlan->planZ);
+            colPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            colPlan->originalLength  = fftPlan->originalLength;
+
+            hcfftBakePlanInternal(fftPlan->planZ);
             // create second transpose plan
             //Transpose
             //tmp --> output
@@ -5472,8 +5581,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
               trans2Plan->outStride.push_back(trans2Plan->oDist);
               trans2Plan->oDist *= fftPlan->length[index];
             }
+            trans2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans2Plan->originalLength  = fftPlan->originalLength;
 
-            hcfftBakePlan(fftPlan->planTX);
+            hcfftBakePlanInternal(fftPlan->planTX);
             // create row plan
             // hermitian to real
             //create 2D xy plan
@@ -5514,7 +5625,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             rowPlan->gen      = fftPlan->gen;
             rowPlan->envelope   = fftPlan->envelope;
             rowPlan->batchSize    = fftPlan->batchSize;
-            hcfftBakePlan(fftPlan->planX);
+            rowPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            rowPlan->originalLength  = fftPlan->originalLength;
+
+            hcfftBakePlanInternal(fftPlan->planX);
           } else {
             size_t clLengths[] = { 1, 0, 0 };
             clLengths[0] = fftPlan->length[ 2 ];
@@ -5583,7 +5697,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             colPlan->gen       = fftPlan->gen;
             colPlan->envelope    = fftPlan->envelope;
             colPlan->batchSize = fftPlan->batchSize;
-            hcfftBakePlan(fftPlan->planZ);
+            colPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            colPlan->originalLength  = fftPlan->originalLength;
+
+            hcfftBakePlanInternal(fftPlan->planZ);
             clLengths[0] = fftPlan->length[ 0 ];
             clLengths[1] = fftPlan->length[ 1 ];
             //create 2D xy plan
@@ -5634,7 +5751,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
             xyPlan->gen      = fftPlan->gen;
             xyPlan->envelope   = fftPlan->envelope;
             xyPlan->batchSize    = fftPlan->batchSize;
-            hcfftBakePlan(fftPlan->planX);
+            xyPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            xyPlan->originalLength  = fftPlan->originalLength;
+
+            hcfftBakePlanInternal(fftPlan->planX);
           }
         } else {
           if (fftPlan->tmpBufSize == 0 && (
@@ -5677,7 +5797,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
           xyPlan->outStride.push_back(fftPlan->outStride[2]);
           xyPlan->iDist    = fftPlan->iDist;
           xyPlan->oDist    = fftPlan->oDist;
-          hcfftBakePlan(fftPlan->planX);
+          xyPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+          xyPlan->originalLength  = fftPlan->originalLength;
+
+          hcfftBakePlanInternal(fftPlan->planX);
           clLengths[0] = fftPlan->length[ 2 ];
           clLengths[1] = clLengths[2] = 0;
           //create 1D col plan
@@ -5709,7 +5832,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
           colPlan->outStride.push_back(fftPlan->outStride[1]);
           colPlan->iDist    = fftPlan->oDist;
           colPlan->oDist    = fftPlan->oDist;
-          hcfftBakePlan(fftPlan->planZ);
+          colPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+          colPlan->originalLength  = fftPlan->originalLength;
+
+          hcfftBakePlanInternal(fftPlan->planZ);
         }
 
         fftPlan->baked = true;
@@ -5719,12 +5845,12 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
 
   if(!exist) {
     //  For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
-    fftPlan->GenerateKernel( plHandle, fftRepo, count);
+    fftPlan->GenerateKernel( plHandle, fftRepo, bakedPlanCount);
     //  For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
-    count++;
+    bakedPlanCount++;
   }
 
-  CompileKernels( plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, exist);
+  CompileKernels( plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
   //  Allocate resources
   fftPlan->AllocateWriteBuffers ();
   //  Record that we baked the plan

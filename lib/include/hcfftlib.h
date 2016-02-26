@@ -395,7 +395,6 @@ class FFTPlan {
   double forwardScale;
   double backwardScale;
   bool  twiddleFront;
-  static size_t count;
 
   bool isPadded;
   bool baked;
@@ -468,6 +467,12 @@ class FFTPlan {
   bool blockCompute;
   BlockComputeType blockComputeType;
 
+  // Store sizes of original plan
+  std::vector<size_t> originalLength;
+
+  // Store the type of transform
+  hcfftLibType hcfftlibtype;
+
   FFTPlan() : dimension (HCFFT_1D), ipLayout (HCFFT_COMPLEX_INTERLEAVED),
     opLayout (HCFFT_COMPLEX_INTERLEAVED), direction(HCFFT_FORWARD), location (HCFFT_INPLACE),
     transposeType (HCFFT_NOTRANSPOSE), precision (HCFFT_SINGLE),
@@ -479,7 +484,7 @@ class FFTPlan {
     tmpBufSizeC2R(0), intBufferC2RD(NULL), intBufferC2R(NULL), transflag(false),
     transOutHorizontal(false), large1D(0), large2D(false), const_buffer(NULL), const_bufferD(NULL),
     RCsimple(false), realSpecial(false), realSpecial_Nr(0), userPlan(false),
-    blockCompute(false), blockComputeType(BCT_C2C) {
+    blockCompute(false), blockComputeType(BCT_C2C), hcfftlibtype(HCFFT_R2CD2Z) {
   };
 
   hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, accelerator acc, hcfftPrecision precision, hcfftLibType libType);
@@ -505,6 +510,8 @@ class FFTPlan {
                              size_t z_size, size_t z_pad_size);
 
   hcfftStatus hcfftBakePlan(hcfftPlanHandle plHandle);
+
+  hcfftStatus hcfftBakePlanInternal(hcfftPlanHandle plHandle);
 
   hcfftStatus hcfftDestroyPlan(hcfftPlanHandle* plHandle);
 
