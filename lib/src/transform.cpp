@@ -420,6 +420,7 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
     FFTPlan* fftPlan = NULL;
     lockRAII* planLock  = NULL;
     fftRepo.getPlan( *plHandle, fftPlan, planLock );
+    fftPlan->direction = dir;
     fftPlan->plHandleOrigin = *plHandle;
     fftPlan->isPadded = padded;
     fftPlan->originalLength.clear();
