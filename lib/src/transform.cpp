@@ -19,6 +19,7 @@ bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision, std::vec
   DIR*           d;
   struct dirent* dir;
   std::string pwd = getHomeDir();
+  bool soExist = false;
 
   pwd += "/kernCache/";
 
@@ -76,17 +77,18 @@ bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision, std::vec
         }
 
         if( i == originalLength.size()) {
-          return true;
+          soExist = true;
         }
       }
     }
 
     if(closedir(d) < 0) {
+      std::cout << " Directory failed to close " << std::endl;
       return false;
     }
   }
 
-  return false;
+  return soExist ;
 }
 
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
