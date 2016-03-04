@@ -95,12 +95,12 @@ int main(int argc, char* argv[]) {
   if(status != HCFFT_SUCCEEDS) {
     cout << " Create plan error " << endl;
   }
-#if 0
+
   status = plan.hcfftSetAcclView(planhandle, accs[1].create_view());
   if(status != HCFFT_SUCCEEDS) {
     cout << " set accleration view error " << endl;
   }
-#endif
+
   status = plan.hcfftSetPlanPrecision(planhandle, precision);
 
   if(status != HCFFT_SUCCEEDS) {
@@ -196,12 +196,12 @@ int main(int argc, char* argv[]) {
   if(status != HCFFT_SUCCEEDS) {
     cout << " Create plan error " << endl;
   }
-#if 0
+
   status = plan.hcfftSetAcclView(planhandle, accs[1].create_view());
   if(status != HCFFT_SUCCEEDS) {
     cout << " set accleration view error " << endl;
   }
-#endif
+
   status = plan1.hcfftSetPlanPrecision(planhandle, precision);
 
   if(status != HCFFT_SUCCEEDS) {
