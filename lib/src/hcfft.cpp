@@ -19,6 +19,17 @@ hcfftResult hcfftXtSetGPUs(accelerator &acc)
   return HCFFT_SUCCESS;
 }
 
+/* Function hcfftSetStream()
+Associate FFT Plan with an accelerator_view
+*/
+hcfftResult hcfftSetStream(hcfftHandle *&plan, accelerator_view &acc_view) {
+  hcfftStatus status = planObject.hcfftSetAcclView(*plan, acc_view);
+  if ( status != HCFFT_SUCCEEDS ) {
+    return HCFFT_SETUP_FAILED;
+  }
+  return HCFFT_SUCCESS;
+}
+
 /* Function hcfftCreate()
 Creates only an opaque handle, and allocates small data structures on the host.
 */
@@ -34,6 +45,10 @@ hcfftResult hcfftCreate(hcfftHandle *&plan) {
   }
 }
 
+/* Function checkLength()
+Check if given size is a multiple of 2,3,5 or 7.
+If not, returns the next integer that satisfies it.
+*/
 int checkLength(int x)
 {
   size_t baseRadix[] = {7, 5, 3, 2}; // list only supported primes
@@ -175,7 +190,7 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
       return HCFFT_INVALID_VALUE;
   }
 
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc, precision, libType);
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, precision, libType);
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
   }
@@ -341,7 +356,7 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
       return HCFFT_INVALID_VALUE;
   }
 
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc, precision, libType);
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, precision, libType);
 
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
@@ -517,7 +532,7 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
       return HCFFT_INVALID_VALUE;
   }
 
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, acc, precision, libType);
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, precision, libType);
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
   } 

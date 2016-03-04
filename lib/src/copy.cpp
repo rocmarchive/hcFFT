@@ -176,7 +176,7 @@ class CopyKernel {
     }
 
     str += SztToStr(count);
-    str += "(std::map<int, void*> vectArr, accelerator &acc)";
+    str += "(std::map<int, void*> vectArr, accelerator_view &acc_view, accelerator &acc)";
     str += "{\n\t";
     int arg = 0;
 
@@ -236,7 +236,7 @@ class CopyKernel {
     str += "\thc::tiled_extent<2> t_ext = grdExt.tile( ";
     str += SztToStr(lWorkSize[0]);
     str += ", 1);\n";
-    str += "\thc::parallel_for_each(t_ext, [=] (hc::tiled_index<2> tidx) [[hc]]\n\t {";
+    str += "\thc::parallel_for_each(acc_view, t_ext, [=] (hc::tiled_index<2> tidx) [[hc]]\n\t {";
 
     // Initialize
     if(general) {

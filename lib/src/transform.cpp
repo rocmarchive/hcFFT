@@ -193,7 +193,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
     filename += type;
     kernellib += type;
 
-    for(int i = 0; i < (fftParams.fft_DataDim - 1); i++) {
+    for(int i = 0; i < originalLength.size(); i++) {
       filename += SztToStr(originalLength[i]);
       kernellib += SztToStr(originalLength[i]);
       filename += "_";
@@ -383,7 +383,7 @@ hcfftStatus hcfftCreateDefaultPlanInternal (hcfftPlanHandle* plHandle, hcfftDim 
 
 // This external entry-point should not be called from within the library. Use clfftCreateDefaultPlanInternal instead.
 hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hcfftDim dim,
-    const size_t* clLengths, hcfftDirection dir, accelerator acc, hcfftPrecision precision,
+    const size_t* clLengths, hcfftDirection dir, hcfftPrecision precision,
     hcfftLibType libType) {
 
   size_t *modifiedLengths = (size_t*)calloc(dim, sizeof(size_t));
@@ -451,11 +451,37 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
       break;
     }
     fftPlan->userPlan = true;
-    fftPlan->acc = acc;
     fftPlan->hcfftlibtype = libType;
   }
 
   return ret;
+}
+
+hcfftStatus FFTPlan::hcfftSetAcclView( hcfftPlanHandle plHandle, accelerator_view acc_view)
+{
+  FFTRepo& fftRepo  = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock  = NULL;
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock(*planLock, _T( " hcfftSetAcclView" ) );
+
+  fftPlan->acc_view = acc_view;
+  fftPlan->acc = acc_view.get_accelerator();
+
+  return HCFFT_SUCCEEDS;
+}
+
+hcfftStatus FFTPlan::hcfftGetAcclView( hcfftPlanHandle plHandle, accelerator_view *acc_view)
+{
+  FFTRepo& fftRepo  = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock  = NULL;
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock(*planLock, _T( " hcfftGetAcclView" ) );
+
+  *acc_view = fftPlan->acc_view;
+
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftpadding(float *input,
@@ -1619,7 +1645,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   remove(filename.c_str());
 
   void* kernelHandle = NULL;
-  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, accelerator &acc);
+  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, accelerator_view &acc_view, accelerator &acc);
   FUNC_FFTFwd* FFTcall = NULL;
 
   std::string pwd = getHomeDir();
@@ -1705,7 +1731,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
     }
   }
 
-  FFTcall(&vectArr, fftPlan->acc);
+  FFTcall(&vectArr, fftPlan->acc_view, fftPlan->acc);
   countKernel++;
   if(dlclose(kernelHandle)) {
     err = dlerror();
@@ -2875,7 +2901,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   remove(filename.c_str());
 
   void* kernelHandle = NULL;
-  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, accelerator &acc);
+  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, accelerator_view &acc_view, accelerator &acc);
   FUNC_FFTFwd* FFTcall = NULL;
 
   std::string pwd = getHomeDir();
@@ -2961,7 +2987,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
     }
   }
 
-  FFTcall(&vectArr, fftPlan->acc);
+  FFTcall(&vectArr, fftPlan->acc_view, fftPlan->acc);
   countKernel++;
   if(dlclose(kernelHandle)) {
     err = dlerror();

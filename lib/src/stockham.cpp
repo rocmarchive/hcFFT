@@ -3080,7 +3080,7 @@ class Kernel {
         str += SztToStr(count);
       }
 
-      str += "( std::map<int, void*> vectArr, accelerator &acc )\n\t{\n\t";
+      str += "( std::map<int, void*> vectArr, accelerator_view &acc_view, accelerator &acc )\n\t{\n\t";
       str += rType;
       str += " *cb = static_cast<";
       str += rType;
@@ -3302,7 +3302,7 @@ class Kernel {
       str += SztToStr(lWorkSize[0]);
       str += ",1);\n";
 
-      str += "\thc::parallel_for_each(t_ext, [=] (hc::tiled_index<2> tidx) [[hc]]\n\t { ";
+      str += "\thc::parallel_for_each(acc_view, t_ext, [=] (hc::tiled_index<2> tidx) [[hc]]\n\t { ";
 
       // Initialize
       str += "\t";

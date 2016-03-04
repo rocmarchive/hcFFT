@@ -88,7 +88,7 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
   uint arg = 0;
   // Declare and define the function
   hcKernWrite( transKernel, 0 ) << "extern \"C\"\n { void" << std::endl;
-  hcKernWrite( transKernel, 0 ) << funcName << "(  std::map<int, void*> vectArr, accelerator &acc ) \n {";
+  hcKernWrite( transKernel, 0 ) << funcName << "(  std::map<int, void*> vectArr, accelerator_view &acc_view, accelerator &acc) \n {";
 
   switch( params.fft_inputLayout ) {
     case HCFFT_COMPLEX_INTERLEAVED:
@@ -278,7 +278,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
     hcKernWrite( transKernel, 3 ) << "\thc::extent<2> grdExt( ";
     hcKernWrite( transKernel, 3 ) <<  SztToStr(gWorkSize[0]) << ", " << SztToStr(gWorkSize[1]) << "); \n" << "\thc::tiled_extent<2> t_ext = grdExt.tile(";
     hcKernWrite( transKernel, 3 ) <<  SztToStr(lwSize.x) << ", " << SztToStr(lwSize.y) << ");\n";
-    hcKernWrite( transKernel, 3 ) << "\thc::parallel_for_each(t_ext, [=] (hc::tiled_index<2> tidx) [[hc]]\n\t { ";
+    hcKernWrite( transKernel, 3 ) << "\thc::parallel_for_each(acc_view, t_ext, [=] (hc::tiled_index<2> tidx) [[hc]]\n\t { ";
     hcKernWrite( transKernel, 3 ) << "const uint_2 localIndex( tidx.local[0] , tidx.local[1]); " << std::endl;
     hcKernWrite( transKernel, 3 ) << "const uint_2 localExtent( tidx.tile_dim[0], tidx.tile_dim[1]); " << std::endl;
     hcKernWrite( transKernel, 3 ) << "const uint_2 groupIndex(tidx.tile[0] , tidx.tile[1]);" << std::endl;

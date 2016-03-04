@@ -48,6 +48,11 @@ Creates only an opaque handle, and allocates small data structures on the host.
 */
 hcfftResult hcfftCreate(hcfftHandle *&plan);
 
+/* Function hcfftSetStream()
+Associate FFT Plan with an accelerator_view
+*/
+hcfftResult hcfftSetStream(hcfftHandle *&plan, accelerator_view &acc_view);
+
 /*hcFFT Basic Plans*/
 
 /******************************************************************************************************************

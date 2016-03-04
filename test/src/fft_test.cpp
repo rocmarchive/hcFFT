@@ -91,11 +91,16 @@ int main(int argc, char* argv[]) {
 
   hcfftLibType libtype = HCFFT_R2CD2Z;
 
-  hcfftStatus status = plan.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, accs[1], precision, libtype);
+  hcfftStatus status = plan.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, precision, libtype);
   if(status != HCFFT_SUCCEEDS) {
     cout << " Create plan error " << endl;
   }
-
+#if 0
+  status = plan.hcfftSetAcclView(planhandle, accs[1].create_view());
+  if(status != HCFFT_SUCCEEDS) {
+    cout << " set accleration view error " << endl;
+  }
+#endif
   status = plan.hcfftSetPlanPrecision(planhandle, precision);
 
   if(status != HCFFT_SUCCEEDS) {
@@ -151,6 +156,7 @@ int main(int argc, char* argv[]) {
     cout << " Transform error " << endl;
   }
   std::cout << " R2C done " << std::endl;
+
   // Copy Device output  contents back to host
   hc::am_copy(opHost, opDev, cmplexsize * sizeof(float));
 
@@ -186,11 +192,16 @@ int main(int argc, char* argv[]) {
   ipDistance = length[1] * (1 + length[0]/2);
   opDistance = length[0] * length[1];
 
-  status = plan1.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, accs[1], precision, libtype);
+  status = plan1.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, precision, libtype);
   if(status != HCFFT_SUCCEEDS) {
     cout << " Create plan error " << endl;
   }
-
+#if 0
+  status = plan.hcfftSetAcclView(planhandle, accs[1].create_view());
+  if(status != HCFFT_SUCCEEDS) {
+    cout << " set accleration view error " << endl;
+  }
+#endif
   status = plan1.hcfftSetPlanPrecision(planhandle, precision);
 
   if(status != HCFFT_SUCCEEDS) {

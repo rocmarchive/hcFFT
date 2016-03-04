@@ -377,6 +377,7 @@ class FFTRepo;
 class FFTPlan {
  public:
   accelerator acc;
+  accelerator_view acc_view = accelerator().get_default_view();
   hcfftDim dimension;
   hcfftIpLayout ipLayout;
   hcfftOpLayout opLayout;
@@ -485,9 +486,10 @@ class FFTPlan {
     transOutHorizontal(false), large1D(0), large2D(false), const_buffer(NULL), const_bufferD(NULL),
     RCsimple(false), realSpecial(false), realSpecial_Nr(0), userPlan(false),
     blockCompute(false), blockComputeType(BCT_C2C), hcfftlibtype(HCFFT_R2CD2Z) {
+    originalLength.clear();
   };
 
-  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, accelerator acc, hcfftPrecision precision, hcfftLibType libType);
+  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, hcfftPrecision precision, hcfftLibType libType);
 
   hcfftStatus hcfftpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
 
@@ -526,6 +528,10 @@ class FFTPlan {
 
   hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, double* inputBuffers,
                                             double* outputBuffers, double* tmpBuffer);
+
+  hcfftStatus hcfftSetAcclView( hcfftPlanHandle plHandle, accelerator_view accl_view);
+
+  hcfftStatus hcfftGetAcclView( hcfftPlanHandle plHandle, accelerator_view *accl_view);
 
   hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 
