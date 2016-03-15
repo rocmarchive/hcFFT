@@ -144,6 +144,7 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
   size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t ipDistance, opDistance;
+  float scale;
 
   if ( nx < 0 ) {
      // invalid size
@@ -178,6 +179,7 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
       opStrides[0] = 1;
       ipDistance = 1 + nx/2;
       opDistance = nx;
+      scale = 1.0;
       break;
     case HCFFT_C2CZ2Z:
       ipStrides[0] = 1;
@@ -228,6 +230,13 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
   status = planObject.hcfftSetPlanDistance(*plan, ipDistance, opDistance);
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
+  }
+
+  if ( libType == HCFFT_C2RZ2D) {
+    status = planObject.hcfftSetPlanScale(*plan, direction, scale );
+    if( status != HCFFT_SUCCEEDS) {
+      return HCFFT_SETUP_FAILED;
+    }
   }
 
   return HCFFT_SUCCESS;
@@ -302,6 +311,7 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
   size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t ipDistance, opDistance;
+  float scale;
 
   if (nx < 0 || ny < 0) {
      // invalid size
@@ -342,6 +352,7 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
       opStrides[1] = nx;
       ipDistance = ny * (1 + nx/2);
       opDistance = ny * nx;
+      scale = 1.0;
       break;
     case HCFFT_C2CZ2Z:
       ipStrides[0] = 1;
@@ -395,6 +406,14 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
   status = planObject.hcfftSetPlanDistance(*plan, ipDistance, opDistance);
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
+  }
+
+  if ( libType == HCFFT_C2RZ2D) {
+ std::cout << " setting scael "<< scale <<std::endl;
+    status = planObject.hcfftSetPlanScale(*plan, direction, scale );
+    if( status != HCFFT_SUCCEEDS) {
+      return HCFFT_SETUP_FAILED;
+    }
   }
 
   return HCFFT_SUCCESS;
@@ -470,6 +489,7 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
   size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t ipDistance, opDistance;
+  float scale;
 
   if (nx < 0 || ny < 0 || nz < 0) {
      // invalid size
@@ -516,6 +536,7 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
       opStrides[2] = nx * ny;
       ipDistance = nz * ny * (1 + nx/2);
       opDistance = nz * ny * nx;
+      scale = 1.0;
       break;
     case HCFFT_C2CZ2Z:
       ipStrides[0] = 1;
@@ -570,6 +591,13 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
   status = planObject.hcfftSetPlanDistance(*plan, ipDistance, opDistance);
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
+  }
+
+  if ( libType == HCFFT_C2RZ2D) {
+    status = planObject.hcfftSetPlanScale(*plan, direction, scale );
+    if( status != HCFFT_SUCCEEDS) {
+      return HCFFT_SETUP_FAILED;
+    }
   }
 
   return HCFFT_SUCCESS;

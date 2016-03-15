@@ -197,7 +197,7 @@ int main(int argc, char* argv[]) {
     cout << " Create plan error " << endl;
   }
 
-  status = plan.hcfftSetAcclView(planhandle, accs[1].create_view());
+  status = plan1.hcfftSetAcclView(planhandle, accs[1].create_view());
   if(status != HCFFT_SUCCEEDS) {
     cout << " set accleration view error " << endl;
   }
@@ -226,26 +226,30 @@ int main(int argc, char* argv[]) {
     cout << " set layout error " << endl;
   }
 
-  status = plan.hcfftSetPlanInStride(planhandle, dimension, ipStrides );
+  status = plan1.hcfftSetPlanInStride(planhandle, dimension, ipStrides );
 
   if(status != HCFFT_SUCCEEDS) {
     cout<<" hcfftSetPlanInStride error "<<endl;
   }
 
-  status = plan.hcfftSetPlanOutStride(planhandle, dimension, opStrides );
+  status = plan1.hcfftSetPlanOutStride(planhandle, dimension, opStrides );
 
   if(status != HCFFT_SUCCEEDS) {
     cout<<"hcfftSetPlanOutStride error "<<endl;
   }
 
-  status = plan.hcfftSetPlanDistance(planhandle, ipDistance, opDistance );
+  status = plan1.hcfftSetPlanDistance(planhandle, ipDistance, opDistance );
 
   if(status != HCFFT_SUCCEEDS) {
     cout<<"hcfftSetPlanDistance error "<<endl;
   }
 
-  status = plan1.hcfftBakePlan(planhandle);
+  status = plan1.hcfftSetPlanScale(planhandle, dir, 1.0 );
+  if( status != HCFFT_SUCCEEDS) {
+    cout << " setplan scale error " << endl;;
+  }
 
+  status = plan1.hcfftBakePlan(planhandle);
   if(status != HCFFT_SUCCEEDS) {
     cout << " bake plan error " << endl;
   }
@@ -274,7 +278,7 @@ int main(int argc, char* argv[]) {
   std::cout <<  " Comparing results " << std::endl;
   for(int  i = 0; i < N2 ; i++) {
     for(int  j = 0; j < N1 ; j++) {
-    if((round(ipzHost[i * N1 + j]) != ipHost[i * N1 + j]) || isnan(ipzHost[i * N1 + j])) {
+    if((round(ipzHost[i * N1 + j]) != (ipHost[i * N1 + j]) * N1 * N2) || isnan(ipzHost[i * N1 + j])) {
       cout << " Mismatch at  " << i * N1 + j << " input " << ipHost[i * N1 + j] << " amp " << round(ipzHost[i * N1 + j]) << endl;
       cout << " TEST FAILED " << std::endl;
       exit(0);
