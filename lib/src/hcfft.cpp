@@ -409,7 +409,6 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
   }
 
   if ( libType == HCFFT_C2RZ2D) {
- std::cout << " setting scael "<< scale <<std::endl;
     status = planObject.hcfftSetPlanScale(*plan, direction, scale );
     if( status != HCFFT_SUCCEEDS) {
       return HCFFT_SETUP_FAILED;
