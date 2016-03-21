@@ -54,6 +54,10 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_D2Z ) {
   clfftPlanHandle planHandle;
   clfftDim dim = CLFFT_2D;
   size_t clLengths[2] = { N1, N2};
+  size_t ipStrides[2] = {1, N1};
+  size_t ipDistance = N2 * N1;
+  size_t opStrides[2] = {1, 1 + N1/2};
+  size_t opDistance = N2*(1 + N1/2);
 
   /* Setup OpenCL environment. */
   err = clGetPlatformIDs( 1, &platform, NULL );
@@ -120,6 +124,15 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_D2Z ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   err = clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanInStride(planHandle, dim, ipStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanOutStride(planHandle, dim, opStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanDistance(planHandle, ipDistance, opDistance );
   EXPECT_EQ(err, CL_SUCCESS);
 
   /* Bake the plan. */
@@ -221,6 +234,11 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2D ) {
   clfftPlanHandle planHandle;
   clfftDim dim = CLFFT_2D;
   size_t clLengths[2] = { N1, N2};
+  size_t ipStrides[2] = {1, 1 + N1/2};
+  size_t ipDistance = N2 * (1+N1/2);
+  size_t opStrides[2] = {1, N1};
+  size_t  opDistance = N2*N1;
+  cl_float scale = 1.0;
 
   /* Setup OpenCL environment. */
   err = clGetPlatformIDs( 1, &platform, NULL );
@@ -288,6 +306,18 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2D ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   err = clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanInStride(planHandle, dim, ipStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanOutStride(planHandle, dim, opStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanDistance(planHandle, ipDistance, opDistance );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanScale(planHandle, CLFFT_BACKWARD, scale );
   EXPECT_EQ(err, CL_SUCCESS);
 
   /* Bake the plan. */
@@ -387,6 +417,10 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
   clfftPlanHandle planHandle;
   clfftDim dim = CLFFT_2D;
   size_t clLengths[2] = { N1, N2};
+  size_t ipStrides[2] = {1, N1};
+  size_t ipDistance = N2 * N1;
+  size_t opStrides[2] = {1, N1};
+  size_t  opDistance = N2 * N1;
 
   /* Setup OpenCL environment. */
   err = clGetPlatformIDs( 1, &platform, NULL );
@@ -453,6 +487,15 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   err = clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanInStride(planHandle, dim, ipStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanOutStride(planHandle, dim, opStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanDistance(planHandle, ipDistance, opDistance );
   EXPECT_EQ(err, CL_SUCCESS);
 
   /* Bake the plan. */
