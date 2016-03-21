@@ -1832,17 +1832,15 @@ hcfftStatus FFTPlan::hcfftUnpadding(double *input,
 
 hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, double* clInputBuffers,
     double* clOutputBuffers, double* clTmpBuffers) {
-  hcfftStatus status = HCFFT_SUCCEEDS;
+  hcfftStatus status = HCFFT_INVALID;
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
   countKernel = 0;
 
-  double* localIntBuffer = hc::am_alloc(fftPlan->tmpBufSize * sizeof(double), fftPlan->acc, 0);
+  double* localIntBuffer = clTmpBuffers;
   // we do not check the user provided buffer at this release
-  hc::am_copy(localIntBuffer, clTmpBuffers, fftPlan->tmpBufSize * sizeof(double));
-
   if( clTmpBuffers == NULL && fftPlan->tmpBufSize > 0 && fftPlan->intBufferD == NULL) {
     // create the intermediate buffers
     // The intermediate buffer is always interleave and packed
@@ -1852,6 +1850,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   }
 
   if( localIntBuffer == NULL && fftPlan->intBufferD != NULL ) {
+    localIntBuffer = hc::am_alloc(fftPlan->tmpBufSize * sizeof(double), fftPlan->acc, 0);
     hc::am_copy(localIntBuffer, fftPlan->intBufferD, fftPlan->tmpBufSize * sizeof(double));
   }
 
@@ -1885,6 +1884,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hc::am_copy(paddedInputBuffers, clInputBuffers, origrealsize * sizeof(double));
             status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, localIntBuffer);
             hc::am_copy(clOutputBuffers, paddedOutputBuffers, origcomplexsize * sizeof(double));
+            free(temp);
           }
           break;
           case HCFFT_2D:
@@ -1894,6 +1894,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hc::am_copy(paddedOutputBuffers, temp,  complexsize * sizeof(double));
             status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, localIntBuffer);
             hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, ((fftPlan->unpaddedLength[0] / 2) + 1) * 2, ((fftPlan->length[0] / 2) + 1) * 2, fftPlan->unpaddedLength[1], fftPlan->length[1]);
+            free(temp);
           }
           break;
           case HCFFT_3D:
@@ -1932,6 +1933,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hc::am_copy(paddedInputBuffers, clInputBuffers, origcomplexsize * sizeof(double));
             status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, localIntBuffer);
             hc::am_copy(clOutputBuffers, paddedOutputBuffers, origrealsize * sizeof(double));
+            free(temp);
           }
           break;
           case HCFFT_2D:
@@ -1941,6 +1943,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hc::am_copy(paddedOutputBuffers, temp,  realsize * sizeof(double));
             status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, localIntBuffer);
             hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, fftPlan->unpaddedLength[0], fftPlan->length[0], fftPlan->unpaddedLength[1], fftPlan->length[1]);
+            free(temp);
           }
           break;
           case HCFFT_3D:
@@ -1974,6 +1977,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hc::am_copy(paddedInputBuffers, clInputBuffers, origcomplexsize * sizeof(double));
             status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, localIntBuffer);
             hc::am_copy(clOutputBuffers, paddedOutputBuffers, origcomplexsize * sizeof(double));
+            free(temp);
           }
           break;
           case HCFFT_2D:
@@ -1983,6 +1987,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
             hc::am_copy(paddedOutputBuffers, temp,  complexsize * sizeof(double));
             status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, localIntBuffer);
             hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, fftPlan->unpaddedLength[0] * 2, fftPlan->length[0] * 2, fftPlan->unpaddedLength[1], fftPlan->length[1]);
+            free(temp);
           }
           break;
           case HCFFT_3D:

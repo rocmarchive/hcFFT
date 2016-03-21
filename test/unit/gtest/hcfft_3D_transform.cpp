@@ -54,6 +54,10 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_R2C ) {
   clfftPlanHandle planHandle;
   clfftDim dim = CLFFT_3D;
   size_t clLengths[3] = { N1, N2, N3};
+  size_t ipStrides[3] = {1, N1, N1 * N2};
+  size_t ipDistance = N3 * N2 * N1;
+  size_t opStrides[3] = {1, 1 + N1/2, N2 * (1 + N1/2)};
+  size_t opDistance = N3 * N2 * (1 + N1/2);
 
   /* Setup OpenCL environment. */
   err = clGetPlatformIDs( 1, &platform, NULL );
@@ -120,6 +124,15 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_R2C ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   err = clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanInStride(planHandle, dim, ipStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanOutStride(planHandle, dim, opStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanDistance(planHandle, ipDistance, opDistance );
   EXPECT_EQ(err, CL_SUCCESS);
 
   /* Bake the plan. */
@@ -221,6 +234,11 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2R ) {
   clfftPlanHandle planHandle;
   clfftDim dim = CLFFT_3D;
   size_t clLengths[3] = { N1, N2, N3};
+  size_t ipStrides[3] = {1, 1 + N1/2, N2 * (1 + N1/2)};
+  size_t ipDistance = N3 * N2 * (1 + N1/2);
+  size_t opStrides[3] = {1, N1, N1 * N2};
+  size_t opDistance = N3 * N2 * N1;
+  cl_float scale = 1.0;
 
   /* Setup OpenCL environment. */
   err = clGetPlatformIDs( 1, &platform, NULL );
@@ -288,6 +306,18 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2R ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   err = clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanInStride(planHandle, dim, ipStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanOutStride(planHandle, dim, opStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanDistance(planHandle, ipDistance, opDistance );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanScale(planHandle, CLFFT_BACKWARD, scale );
   EXPECT_EQ(err, CL_SUCCESS);
 
   /* Bake the plan. */
@@ -387,6 +417,10 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2C ) {
   clfftPlanHandle planHandle;
   clfftDim dim = CLFFT_3D;
   size_t clLengths[3] = { N1, N2, N3};
+  size_t ipStrides[3] = {1, N1, N1 * N2};
+  size_t ipDistance = N3 * N2 * N1;
+  size_t opStrides[3] = {1, N1, N1 * N2};
+  size_t opDistance = N3 * N2 * N1;
 
   /* Setup OpenCL environment. */
   err = clGetPlatformIDs( 1, &platform, NULL );
@@ -453,6 +487,15 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2C ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   err = clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanInStride(planHandle, dim, ipStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanOutStride(planHandle, dim, opStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanDistance(planHandle, ipDistance, opDistance );
   EXPECT_EQ(err, CL_SUCCESS);
 
   /* Bake the plan. */
