@@ -356,9 +356,9 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
       break;
     case HCFFT_C2CZ2Z:
       ipStrides[0] = 1;
-      ipStrides[0] = nx;
+      ipStrides[1] = nx;
       opStrides[0] = 1;
-      opStrides[0] = nx;
+      opStrides[1] = nx;
       ipDistance = ny * nx;
       opDistance = ny * nx;
       break;
