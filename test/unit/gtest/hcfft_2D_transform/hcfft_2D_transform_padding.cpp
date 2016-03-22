@@ -204,10 +204,11 @@ TEST(hcfft_2D_transform_padding_test, func_correct_2D_transform_padding_C2R ) {
   int seed = 123456789;
   srand(seed);
   // Populate the input
-  for(int i = 0; i < Csize ; i++)
-  {
-    input[i].x = rand();
-    input[i].y = rand();
+  for(int i = 0 ; i < VECTOR_SIZE; i++) {
+    for(int j = 0 ; j < (1 + VECTOR_SIZE / 2); j++) {
+      input[i * (1 + VECTOR_SIZE / 2) + j].x = rand();
+      input[i * (1 + VECTOR_SIZE / 2) + j].y = rand();
+    }
   }
 
   std::vector<accelerator> accs = accelerator::get_all();
@@ -280,9 +281,11 @@ TEST(hcfft_2D_transform_padding_test, func_correct_2D_transform_padding_C2R ) {
 
   X = (float *)calloc(realSize, sizeof(*X));
   Y = (float *)calloc(complexSize, sizeof(*Y));
-  for(int i = 0; i < Csize; i++) {
-          Y[2 * i] = input[i].x;
-          Y[2 * i + 1] = input[i].y;
+  for(int i = 0 ; i < VECTOR_SIZE; i++) {
+    for(int j = 0 ; j < (1 + VECTOR_SIZE / 2); j++) {
+      Y[i * (1 + PADDED_VECTOR_SIZE / 2) * 2 + (2 * j)] = input[i * (1 + VECTOR_SIZE / 2) + j].x;
+      Y[i * (1 + PADDED_VECTOR_SIZE / 2) * 2 + (2 * j) + 1] = input[i * (1 + VECTOR_SIZE / 2) + j].y;
+    }
   }
 
   /* Prepare OpenCL memory objects and place data inside them. */
@@ -348,8 +351,10 @@ TEST(hcfft_2D_transform_padding_test, func_correct_2D_transform_padding_C2R ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   //Compare the results of clFFT and HCFFT with 0.01 precision
-  for(int i = 0; i < Rsize; i++) {
-    EXPECT_NEAR(output[i], X[i], 0.01);
+  for(int i = 0; i < VECTOR_SIZE; i++) {
+    for(int j = 0 ; j < VECTOR_SIZE; j++) {
+      EXPECT_NEAR(output[i * VECTOR_SIZE + j], X[i * PADDED_VECTOR_SIZE + j], 0.01);
+    }
   }
 
   /* Release OpenCL memory objects. */
