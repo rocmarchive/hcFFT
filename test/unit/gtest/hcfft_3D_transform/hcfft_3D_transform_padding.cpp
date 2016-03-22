@@ -15,8 +15,15 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_R2C ) {
   int seed = 123456789;
   srand(seed);
   // Populate the input
-  for(int i = 0; i < Rsize ; i++) {
-    input[i] = rand();
+  for(int k = 0; k < VECTOR_SIZE; k++)
+  {
+    for(int i = 0; i < VECTOR_SIZE; i++)
+    {
+      for(int j = 0; j < VECTOR_SIZE; j++)
+      {
+        input[i * VECTOR_SIZE + j + k * VECTOR_SIZE * VECTOR_SIZE] = rand();
+      }
+    }
   }
 
   hcfftComplex *output = (hcfftComplex*)calloc(Csize, sizeof(hcfftComplex));
@@ -34,15 +41,6 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_R2C ) {
   EXPECT_EQ(status, HCFFT_SUCCESS);
 
   hc::am_copy(output, odata, sizeof(hcfftComplex) * Csize);
-
-  for(int  i = 0 ; i < Csize ; i++)
-    std::cout << " op["<<i<<"] "<<output[i].x<< " "<<output[i].y<<std::endl;
-
-  free(input);
-  free(output);
-
-  hc::am_free(idata);
-  hc::am_free(odata);
 
   status =  hcfftDestroy(*plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
@@ -65,6 +63,10 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_R2C ) {
   clfftPlanHandle planHandle;
   clfftDim dim = CLFFT_3D;
   size_t clLengths[3] = { N1, N2, N3};
+  size_t ipStrides[3] = {1, N1, N1 * N2};
+  size_t ipDistance = N3 * N2 * N1;
+  size_t opStrides[3] = {1, 1 + N1/2, N2 * (1 + N1/2)};
+  size_t opDistance = N3 * N2 * (1 + N1/2);
 
   /* Setup OpenCL environment. */
   err = clGetPlatformIDs( 1, &platform, NULL );
@@ -95,8 +97,13 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_R2C ) {
 
   X = (float *)calloc(realSize, sizeof(*X));
   Y = (float *)calloc(complexSize, sizeof(*Y));
-  for(int i = 0; i < Rsize; i++) {
-          X[i] = input[i];
+
+  for(int k = 0; k < VECTOR_SIZE; k++) {
+    for(int i = 0 ; i < VECTOR_SIZE; i++) {
+      for(int j = 0 ; j < VECTOR_SIZE; j++) {
+        X[i * PADDED_VECTOR_SIZE + j + k * PADDED_VECTOR_SIZE * PADDED_VECTOR_SIZE] = input[i * VECTOR_SIZE + j + k * VECTOR_SIZE * VECTOR_SIZE];
+      }
+    }
   }
 
   /* Prepare OpenCL memory objects and place data inside them. */
@@ -133,6 +140,15 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_R2C ) {
   err = clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
   EXPECT_EQ(err, CL_SUCCESS);
 
+  err = clfftSetPlanInStride(planHandle, dim, ipStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanOutStride(planHandle, dim, opStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanDistance(planHandle, ipDistance, opDistance );
+  EXPECT_EQ(err, CL_SUCCESS);
+
   /* Bake the plan. */
   err = clfftBakePlan(planHandle, 1, &queue, NULL, NULL);
   EXPECT_EQ(err, CL_SUCCESS);
@@ -150,9 +166,13 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_R2C ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   //Compare the results of clFFT and HCFFT with 0.01 precision
-  for(int i = 0; i < Csize; i++) {
-    EXPECT_NEAR(output[i].x, Y[2 * i], 0.01);
-    EXPECT_NEAR(output[i].y, Y[2 * i + 1], 0.01);
+  for(int k = 0 ; k < VECTOR_SIZE; k++) {
+    for(int i = 0 ; i < VECTOR_SIZE; i++) {
+      for(int j = 0 ; j < (1 + VECTOR_SIZE / 2); j++) {
+        EXPECT_NEAR(output[i * (1 + VECTOR_SIZE / 2) + j + k * VECTOR_SIZE * VECTOR_SIZE].x, Y[i * (1 + PADDED_VECTOR_SIZE / 2) * 2 + (2 * j) + k * PADDED_VECTOR_SIZE * PADDED_VECTOR_SIZE], 0.01);
+         EXPECT_NEAR(output[i * (1 + VECTOR_SIZE / 2) + j + k * VECTOR_SIZE * VECTOR_SIZE].y, Y[i * (1 + PADDED_VECTOR_SIZE / 2) * 2 + (2 * j ) + 1 + k * PADDED_VECTOR_SIZE * PADDED_VECTOR_SIZE], 0.01);
+      }
+    }
   }
 
   free(X);
@@ -172,6 +192,12 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_R2C ) {
   /* Release OpenCL working objects. */
   clReleaseCommandQueue( queue );
   clReleaseContext( ctx );
+
+  free(input);
+  free(output);
+
+  hc::am_free(idata);
+  hc::am_free(odata);
 }
 
 TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2R ) {
@@ -226,6 +252,11 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2R ) {
   clfftPlanHandle planHandle;
   clfftDim dim = CLFFT_3D;
   size_t clLengths[3] = { N1, N2, N3};
+  size_t ipStrides[3] = {1, 1 + N1/2, N2 * (1 + N1/2)};
+  size_t ipDistance = N3 * N2 * (1 + N1/2);
+  size_t opStrides[3] = {1, N1, N1 * N2};
+  size_t opDistance = N3 * N2 * N1;
+  cl_float scale = 1.0;
 
   /* Setup OpenCL environment. */
   err = clGetPlatformIDs( 1, &platform, NULL );
@@ -293,6 +324,18 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2R ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   err = clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanInStride(planHandle, dim, ipStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanOutStride(planHandle, dim, opStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanDistance(planHandle, ipDistance, opDistance );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanScale(planHandle, CLFFT_BACKWARD, scale );
   EXPECT_EQ(err, CL_SUCCESS);
 
   /* Bake the plan. */
@@ -392,6 +435,10 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2C ) {
   clfftPlanHandle planHandle;
   clfftDim dim = CLFFT_3D;
   size_t clLengths[3] = { N1, N2, N3};
+  size_t ipStrides[3] = {1, N1, N1 * N2};
+  size_t ipDistance = N3 * N2 * N1;
+  size_t opStrides[3] = {1, N1, N1 * N2};
+  size_t opDistance = N3 * N2 * N1;
 
   /* Setup OpenCL environment. */
   err = clGetPlatformIDs( 1, &platform, NULL );
@@ -458,6 +505,15 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2C ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   err = clfftSetResultLocation(planHandle, CLFFT_OUTOFPLACE);
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanInStride(planHandle, dim, ipStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanOutStride(planHandle, dim, opStrides );
+  EXPECT_EQ(err, CL_SUCCESS);
+
+  err = clfftSetPlanDistance(planHandle, ipDistance, opDistance );
   EXPECT_EQ(err, CL_SUCCESS);
 
   /* Bake the plan. */
