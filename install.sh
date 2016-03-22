@@ -25,7 +25,6 @@ current_work_dir=$PWD
 #Inputs converted to smallcase format
 input1=$1
 var1=${input1,,}
-var1="test=off"
 
 set +e
 # MAKE BUILD DIR
