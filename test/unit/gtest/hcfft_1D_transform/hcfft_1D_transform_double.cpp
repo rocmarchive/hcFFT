@@ -4,7 +4,7 @@
 
 #define VECTOR_SIZE 1024
 
-TEST(hcfft_1D_transform_test, func_correct_1D_transform_D2Z ) {
+TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_D2Z ) {
   // HCFFT work flow
   hcfftHandle *plan = NULL;
   hcfftResult status  = hcfftPlan1d(plan, VECTOR_SIZE, HCFFT_D2Z);
@@ -183,7 +183,7 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_D2Z ) {
   hc::am_free(odata);
 }
 
-TEST(hcfft_1D_transform_test, func_correct_1D_transform_Z2D ) {
+TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2D ) {
   hcfftHandle *plan = NULL;
   hcfftResult status  = hcfftPlan1d(plan, VECTOR_SIZE, HCFFT_Z2D);
   EXPECT_EQ(status, HCFFT_SUCCESS);
@@ -367,7 +367,7 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_Z2D ) {
   hc::am_free(odata);
 }
 
-TEST(hcfft_1D_transform_test, func_correct_1D_transform_Z2Z ) {
+TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2Z ) {
   hcfftHandle *plan = NULL;
   hcfftResult status  = hcfftPlan1d(plan, VECTOR_SIZE, HCFFT_Z2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
