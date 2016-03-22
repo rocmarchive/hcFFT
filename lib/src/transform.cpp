@@ -690,7 +690,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           {
             hcfftpadding(clInputBuffers, paddedInputBuffers, ((fftPlan->unpaddedLength[0] / 2) + 1) * 2, ((fftPlan->length[0] / 2) + 1) * 2, fftPlan->unpaddedLength[1], fftPlan->length[1], fftPlan->unpaddedLength[2], fftPlan->length[2]);
             status = hcfftEnqueueTransformInternal(plHandle, dir, paddedInputBuffers, paddedOutputBuffers, localIntBuffer);
-            hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, ((fftPlan->unpaddedLength[0] / 2) + 1) * 2, ((fftPlan->length[0] / 2) + 1) * 2, fftPlan->unpaddedLength[1], fftPlan->length[1], fftPlan->unpaddedLength[2], fftPlan->length[2]);
+            hcfftUnpadding(clOutputBuffers, paddedOutputBuffers, fftPlan->unpaddedLength[0], fftPlan->length[0], fftPlan->unpaddedLength[1], fftPlan->length[1], fftPlan->unpaddedLength[2], fftPlan->length[2]);
           }
           break;
         }
