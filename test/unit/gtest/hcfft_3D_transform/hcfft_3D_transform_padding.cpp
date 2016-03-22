@@ -169,8 +169,8 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_R2C ) {
   for(int k = 0 ; k < VECTOR_SIZE; k++) {
     for(int i = 0 ; i < VECTOR_SIZE; i++) {
       for(int j = 0 ; j < (1 + VECTOR_SIZE / 2); j++) {
-        EXPECT_NEAR(output[i * (1 + VECTOR_SIZE / 2) + j + k * VECTOR_SIZE * VECTOR_SIZE].x, Y[i * (1 + PADDED_VECTOR_SIZE / 2) * 2 + (2 * j) + k * PADDED_VECTOR_SIZE * PADDED_VECTOR_SIZE], 0.01);
-         EXPECT_NEAR(output[i * (1 + VECTOR_SIZE / 2) + j + k * VECTOR_SIZE * VECTOR_SIZE].y, Y[i * (1 + PADDED_VECTOR_SIZE / 2) * 2 + (2 * j ) + 1 + k * PADDED_VECTOR_SIZE * PADDED_VECTOR_SIZE], 0.01);
+        EXPECT_NEAR(output[i * (1 + VECTOR_SIZE / 2) + j + k * VECTOR_SIZE * (1 + VECTOR_SIZE / 2)].x, Y[i * (1 + PADDED_VECTOR_SIZE / 2) * 2 + (2 * j) + k * PADDED_VECTOR_SIZE * (1 + PADDED_VECTOR_SIZE / 2) * 2], 0.01);
+        EXPECT_NEAR(output[i * (1 + VECTOR_SIZE / 2) + j + k * VECTOR_SIZE * (1 + VECTOR_SIZE / 2)].y, Y[i * (1 + PADDED_VECTOR_SIZE / 2) * 2 + (2 * j ) + 1 + k * PADDED_VECTOR_SIZE * (1 + PADDED_VECTOR_SIZE / 2) * 2], 0.01);
       }
     }
   }
@@ -211,10 +211,13 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2R ) {
   int seed = 123456789;
   srand(seed);
   // Populate the input
-  for(int i = 0; i < Csize ; i++)
-  {
-    input[i].x = rand();
-    input[i].y = rand();
+  for(int k = 0 ; k < VECTOR_SIZE; k++) {
+    for(int i = 0 ; i < VECTOR_SIZE; i++) {
+      for(int j = 0 ; j < (1 + VECTOR_SIZE / 2); j++) {
+        input[i * (1 + VECTOR_SIZE / 2) + j + k * VECTOR_SIZE * (1 + VECTOR_SIZE / 2)].x = rand();
+        input[i * (1 + VECTOR_SIZE / 2) + j + k * VECTOR_SIZE * (1 + VECTOR_SIZE / 2)].y = rand();
+      }
+    }
   }
 
   std::vector<accelerator> accs = accelerator::get_all();
@@ -287,9 +290,13 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2R ) {
 
   X = (float *)calloc(realSize, sizeof(*X));
   Y = (float *)calloc(complexSize, sizeof(*Y));
-  for(int i = 0; i < Csize; i++) {
-          Y[2 * i] = input[i].x;
-          Y[2 * i + 1] = input[i].y;
+  for(int k = 0 ; k < VECTOR_SIZE; k++) {
+    for(int i = 0 ; i < VECTOR_SIZE; i++) {
+      for(int j = 0 ; j < (1 + VECTOR_SIZE / 2); j++) {
+        Y[i * (1 + PADDED_VECTOR_SIZE / 2) * 2 + (2 * j) + k * PADDED_VECTOR_SIZE * (1 + PADDED_VECTOR_SIZE / 2) * 2] = input[i * (1 + VECTOR_SIZE / 2) + j + k * VECTOR_SIZE * (1 + VECTOR_SIZE / 2)].x;
+        Y[i * (1 + PADDED_VECTOR_SIZE / 2) * 2 + (2 * j) + 1 + k * PADDED_VECTOR_SIZE * (1 + PADDED_VECTOR_SIZE / 2) * 2] = input[i * (1 + VECTOR_SIZE / 2) + j + k * VECTOR_SIZE * (1 + VECTOR_SIZE / 2)].y;
+      }
+    }
   }
 
   /* Prepare OpenCL memory objects and place data inside them. */
@@ -355,8 +362,12 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2R ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   //Compare the results of clFFT and HCFFT with 0.01 precision
-  for(int i = 0; i < Rsize; i++) {
-    EXPECT_NEAR(output[i], X[i], 0.01);
+  for(int k = 0; k < VECTOR_SIZE; k++) {
+    for(int i = 0 ; i < VECTOR_SIZE; i++) {
+      for(int j = 0 ; j < VECTOR_SIZE; j++) {
+        EXPECT_NEAR( X[i * PADDED_VECTOR_SIZE + j + k * PADDED_VECTOR_SIZE * PADDED_VECTOR_SIZE], output[i * VECTOR_SIZE + j + k * VECTOR_SIZE * VECTOR_SIZE], 0.01);
+      }
+    }
   }
 
   /* Release OpenCL memory objects. */
@@ -394,10 +405,16 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2C ) {
   int seed = 123456789;
   srand(seed);
   // Populate the input
-  for(int i = 0; i < hSize ; i++)
+  for(int k = 0; k < VECTOR_SIZE; k++)
   {
-    input[i].x = rand();
-    input[i].y = rand();
+    for(int i = 0; i < VECTOR_SIZE; i++)
+    {
+      for(int j = 0; j < VECTOR_SIZE; j++)
+      {
+        input[i * VECTOR_SIZE + j + k * VECTOR_SIZE * VECTOR_SIZE].x = rand();
+        input[i * VECTOR_SIZE + j + k * VECTOR_SIZE * VECTOR_SIZE].y = rand();
+      }
+    }
   }
 
   std::vector<accelerator> accs = accelerator::get_all();
@@ -468,9 +485,16 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2C ) {
 
   X = (float *)calloc(size, sizeof(*X));
   Y = (float *)calloc(size, sizeof(*Y));
-  for(int i = 0; i < hSize; i++) {
-          X[2 * i] = input[i].x;
-          X[2 * i + 1] = input[i].y;
+  for(int k = 0 ; k < VECTOR_SIZE; k++)
+  {
+    for(int i = 0 ; i < VECTOR_SIZE; i++)
+    {
+      for(int j = 0 ; j < VECTOR_SIZE; j++)
+      {
+        X[i * PADDED_VECTOR_SIZE * 2 + (2 * j) + k * PADDED_VECTOR_SIZE * PADDED_VECTOR_SIZE * 2] = input[i * VECTOR_SIZE + j + k * VECTOR_SIZE * VECTOR_SIZE].x;
+        X[i * PADDED_VECTOR_SIZE * 2 + (2 * j) + 1 + k * PADDED_VECTOR_SIZE * PADDED_VECTOR_SIZE * 2] = input[i * VECTOR_SIZE + j + k * VECTOR_SIZE * VECTOR_SIZE].y;
+      }
+    }
   }
 
   /* Prepare OpenCL memory objects and place data inside them. */
@@ -533,9 +557,16 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2C ) {
   EXPECT_EQ(err, CL_SUCCESS);
 
   //Compare the results of clFFT and HCFFT with 0.01 precision
-  for(int i = 0; i < hSize; i++) {
-    EXPECT_NEAR(output[i].x, Y[2 * i], 0.01);
-    EXPECT_NEAR(output[i].y, Y[2 * i + 1], 0.01);
+  for(int k = 0 ; k < VECTOR_SIZE; k++)
+  {
+    for(int i = 0 ; i < VECTOR_SIZE; i++)
+    {
+      for(int j = 0 ; j < VECTOR_SIZE; j++)
+      {
+        EXPECT_NEAR(output[i * VECTOR_SIZE + j + k * VECTOR_SIZE * VECTOR_SIZE].x, Y[i * PADDED_VECTOR_SIZE * 2 + (2 * j) + k * PADDED_VECTOR_SIZE * PADDED_VECTOR_SIZE * 2], 0.01);
+        EXPECT_NEAR(output[i * VECTOR_SIZE + j + k * VECTOR_SIZE * VECTOR_SIZE].y, Y[i * PADDED_VECTOR_SIZE * 2 + (2 * j) + 1 + k * PADDED_VECTOR_SIZE * PADDED_VECTOR_SIZE * 2], 0.01);
+      }
+    }
   }
 
   /* Release OpenCL memory objects. */
