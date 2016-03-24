@@ -47,7 +47,7 @@ bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision, std::vec
         string datatype = libFile.substr(13, 1);
         string libtype = libFile.substr(14,1);
 
-        if(!((direction == HCFFT_FORWARD && type == "Frwd") || (direction == HCFFT_BACKWARD && type == "Back"))) {
+        if(!((direction == HCFFT_FORWARD && type == "Frwd") || (direction == HCFFT_BACKWARD && type == "Back") || (direction == HCFFT_BOTH))) {
           continue;
         }
 
@@ -78,6 +78,7 @@ bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision, std::vec
 
         if( i == originalLength.size()) {
           soExist = true;
+          break;
         }
       }
     }
