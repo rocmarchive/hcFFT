@@ -20,7 +20,7 @@ if(EXISTS ${MCWHCCBUILD})
   find_path(HC++_BIN_DIR clang++
            HINTS ${MCWHCCBUILD}/compiler/bin)
   find_path(HC++_CONFIGURE_DIR hcc-config
-           HINTS ${MCWHCCBUILD}/build/Release/bin)
+           HINTS ${MCWHCCBUILD}/bin)
   include(FindPackageHandleStandardArgs)
   # handle the QUIETLY and REQUIRED arguments and set HC++_FOUND to TRUE
   # if all listed variables are TRUE

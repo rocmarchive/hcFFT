@@ -2,7 +2,7 @@
 # Preliminary version
 
 # CHECK FOR COMPILER PATH
-if [ ! -z $MCWHCCBUILD] 
+if [ ! -z $MCWHCCBUILD ]
 then
   if [ -x $MCWHCCBUILD/compiler/bin/clang++ ] 
   then

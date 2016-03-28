@@ -212,20 +212,20 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
     // Check if the default compiler path exists
     std::string execCmd; 
     char fname[256] = "/opt/hcc/bin/clang++";
-    if( access( fname, F_OK ) != -1 ) {
-      // compiler exists
-      // install_mode = true;
-      string Path = "/opt/hcc/bin/";
-      execCmd = Path + "/clang++ `" + Path + "/hcc-config --install --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
-    } 
-    else if ( access ( getenv ("MCWHCCBUILD"), F_OK ) != -1) {
+    if ( access ( getenv ("MCWHCCBUILD"), F_OK ) != -1) {
       // TODO: This path shall be removed. User shall build from default path
       // compiler doesn't exist in default path
       // check if user has specified compiler build path
       // build_mode = true;
       char* compilerPath = getenv ("MCWHCCBUILD");
-      std::string Path(compilerPath);
-      std::string execCmd = Path + "/compiler/bin/clang++ `" + Path + "/build/Release/bin/hcc-config --build --cxxflags --ldflags --shared` -lhc_am " + filename + " -o " + kernellib ;
+      string Path(compilerPath);
+      execCmd = Path + "/compiler/bin/clang++ `" + Path + "/bin/hcc-config --build --cxxflags --ldflags --shared` -lhc_am " + filename + " -o " + kernellib ;
+    }
+    else if( access( fname, F_OK ) != -1 ) {
+      // compiler exists
+      // install_mode = true;
+      string Path = "/opt/hcc/bin/";
+      execCmd = Path + "/clang++ `" + Path + "/hcc-config --install --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
     }
     else {
       // No compiler found
