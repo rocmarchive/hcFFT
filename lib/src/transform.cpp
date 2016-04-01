@@ -588,10 +588,18 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
     // For outofplace operation, we have the choice not to create intermediate buffer
     // input ->(col+Transpose) output ->(col) output
     fftPlan->intBuffer = hc::am_alloc(fftPlan->tmpBufSize * sizeof(float), fftPlan->acc , 0);
+    if(fftPlan->intBuffer == NULL)
+    {
+      return HCFFT_INVALID;
+    }
   }
 
   if( localIntBuffer == NULL && fftPlan->intBuffer != NULL ) {
     localIntBuffer = hc::am_alloc(fftPlan->tmpBufSize * sizeof(float), fftPlan->acc, 0);
+    if(localIntBuffer == NULL)
+    {
+      return HCFFT_INVALID;
+    }
     hc::am_copy(localIntBuffer, fftPlan->intBuffer, fftPlan->tmpBufSize * sizeof(float));
   }
 
@@ -615,7 +623,15 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           origcomplexsize *= fftPlan->unpaddedLength[i];
         }
         paddedInputBuffers = hc::am_alloc(realsize * sizeof(float), fftPlan->acc, 0);
+        if(paddedInputBuffers == NULL)
+        {
+          return HCFFT_INVALID;
+        }
         paddedOutputBuffers = hc::am_alloc(complexsize * sizeof(float), fftPlan->acc, 0);
+        if(paddedOutputBuffers == NULL)
+        {
+          return HCFFT_INVALID;
+        }
 
         switch(fftPlan->dimension) {
           case HCFFT_1D:
@@ -646,8 +662,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           }
           break;
         }
-        hc::am_free(paddedInputBuffers);
-        hc::am_free(paddedOutputBuffers);
+        if( hc::am_free(paddedInputBuffers) != AM_SUCCESS)
+         return HCFFT_INVALID;
+        if( hc::am_free(paddedOutputBuffers) != AM_SUCCESS)
+         return HCFFT_INVALID;
         break;
 
       case HCFFT_C2RZ2D:
@@ -664,7 +682,15 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           origcomplexsize *= fftPlan->unpaddedLength[i];
         }
         paddedInputBuffers = hc::am_alloc(complexsize * sizeof(float), fftPlan->acc, 0);
+        if(paddedInputBuffers == NULL)
+        {
+          return HCFFT_INVALID;
+        }
         paddedOutputBuffers = hc::am_alloc(realsize * sizeof(float), fftPlan->acc, 0);
+        if(paddedOutputBuffers == NULL)
+        {
+          return HCFFT_INVALID;
+        }
 
         switch(fftPlan->dimension) {
           case HCFFT_1D:
@@ -695,8 +721,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           }
           break;
         }
-        hc::am_free(paddedInputBuffers);
-        hc::am_free(paddedOutputBuffers);
+        if( hc::am_free(paddedInputBuffers) != AM_SUCCESS)
+          return HCFFT_INVALID;
+        if( hc::am_free(paddedOutputBuffers) != AM_SUCCESS)
+          return HCFFT_INVALID;
         break;
 
       case HCFFT_C2CZ2Z:
@@ -708,7 +736,16 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           origcomplexsize *= fftPlan->unpaddedLength[i];
         }
         paddedInputBuffers = hc::am_alloc(complexsize * sizeof(float), fftPlan->acc, 0);
+        if(paddedInputBuffers == NULL)
+        {
+          return HCFFT_INVALID;
+        }
+
         paddedOutputBuffers = hc::am_alloc(complexsize * sizeof(float), fftPlan->acc, 0);
+        if(paddedOutputBuffers == NULL)
+        {
+          return HCFFT_INVALID;
+        }
 
         switch(fftPlan->dimension) {
           case HCFFT_1D:
@@ -739,8 +776,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           }
             break;
         }
-        hc::am_free(paddedInputBuffers);
-        hc::am_free(paddedOutputBuffers);
+        if( hc::am_free(paddedInputBuffers) != AM_SUCCESS)
+          return HCFFT_INVALID;
+        if( hc::am_free(paddedOutputBuffers) != AM_SUCCESS)
+          return HCFFT_INVALID;
         break;
 
       default:
@@ -754,7 +793,8 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   }
 
   if( NULL != localIntBuffer ) {
-    hc::am_free(localIntBuffer);
+    if( hc::am_free(localIntBuffer) != AM_SUCCESS)
+          return HCFFT_INVALID;
     localIntBuffer = NULL;
   }
 
@@ -786,10 +826,18 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
 
   if( fftPlan->intBufferRC == NULL && fftPlan->tmpBufSizeRC > 0 ) {
     fftPlan->intBufferRC = hc::am_alloc(fftPlan->tmpBufSizeRC * sizeof(float), fftPlan->acc , 0);
+    if(fftPlan->intBufferRC == NULL)
+    {
+      return HCFFT_INVALID;
+    }
   }
 
   if( fftPlan->intBufferC2R == NULL && fftPlan->tmpBufSizeC2R > 0 ) {
     fftPlan->intBufferC2R = hc::am_alloc(fftPlan->tmpBufSizeC2R * sizeof(float), fftPlan->acc , 0);
+    if(fftPlan->intBufferC2R == NULL)
+    {
+      return HCFFT_INVALID;
+    }
   }
 
   //  The largest vector we can transform in a single pass
@@ -1064,7 +1112,6 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
                   if(fftPlan->planTX) {
                     //First row
                     hcfftEnqueueTransformInternal( fftPlan->planX, dir, clInputBuffers, clOutputBuffers, NULL );
-
                     if (fftPlan->location == HCFFT_INPLACE) {
                       //First transpose
                       hcfftEnqueueTransformInternal( fftPlan->planTX, dir, clInputBuffers, localIntBuffer, NULL );
@@ -1848,10 +1895,18 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
     // For outofplace operation, we have the choice not to create intermediate buffer
     // input ->(col+Transpose) output ->(col) output
     fftPlan->intBufferD = hc::am_alloc(fftPlan->tmpBufSize * sizeof(double), fftPlan->acc , 0);
+    if(fftPlan->intBufferD == NULL)
+    {
+      return HCFFT_INVALID;
+    }
   }
 
   if( localIntBuffer == NULL && fftPlan->intBufferD != NULL ) {
     localIntBuffer = hc::am_alloc(fftPlan->tmpBufSize * sizeof(double), fftPlan->acc, 0);
+    if(localIntBuffer == NULL)
+    {
+      return HCFFT_INVALID;
+    }
     hc::am_copy(localIntBuffer, fftPlan->intBufferD, fftPlan->tmpBufSize * sizeof(double));
   }
 
@@ -1875,7 +1930,15 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           origcomplexsize *= fftPlan->unpaddedLength[i];
         }
         paddedInputBuffers = hc::am_alloc(realsize * sizeof(double), fftPlan->acc, 0);
+        if(paddedInputBuffers == NULL)
+        {
+          return HCFFT_INVALID;
+        }
         paddedOutputBuffers = hc::am_alloc(complexsize * sizeof(double), fftPlan->acc, 0);
+        if(paddedOutputBuffers == NULL)
+        {
+          return HCFFT_INVALID;
+        }
 
         switch(fftPlan->dimension) {
           case HCFFT_1D:
@@ -1906,8 +1969,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           }
           break;
         }
-        hc::am_free(paddedInputBuffers);
-        hc::am_free(paddedOutputBuffers);
+        if( hc::am_free(paddedInputBuffers) != AM_SUCCESS)
+          return HCFFT_INVALID;
+        if( hc::am_free(paddedOutputBuffers) != AM_SUCCESS)
+          return HCFFT_INVALID;
         break;
 
       case HCFFT_C2RZ2D:
@@ -1924,7 +1989,16 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           origcomplexsize *= fftPlan->unpaddedLength[i];
         }
         paddedInputBuffers = hc::am_alloc(complexsize * sizeof(double), fftPlan->acc, 0);
+        if(paddedInputBuffers == NULL)
+        {
+          return HCFFT_INVALID;
+        }
+
         paddedOutputBuffers = hc::am_alloc(realsize * sizeof(double), fftPlan->acc, 0);
+        if(paddedOutputBuffers == NULL)
+        {
+          return HCFFT_INVALID;
+        }
 
         switch(fftPlan->dimension) {
           case HCFFT_1D:
@@ -1955,8 +2029,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           }
           break;
         }
-        hc::am_free(paddedInputBuffers);
-        hc::am_free(paddedOutputBuffers);
+        if( hc::am_free(paddedInputBuffers) != AM_SUCCESS)
+          return HCFFT_INVALID;
+        if( hc::am_free(paddedOutputBuffers) != AM_SUCCESS)
+          return HCFFT_INVALID;
         break;
 
       case HCFFT_C2CZ2Z:
@@ -1968,7 +2044,15 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           origcomplexsize *= fftPlan->unpaddedLength[i];
         }
         paddedInputBuffers = hc::am_alloc(complexsize * sizeof(double), fftPlan->acc, 0);
+        if(paddedInputBuffers == NULL)
+        {
+          return HCFFT_INVALID;
+        }
         paddedOutputBuffers = hc::am_alloc(complexsize * sizeof(double), fftPlan->acc, 0);
+        if(paddedOutputBuffers == NULL)
+        {
+          return HCFFT_INVALID;
+        }
 
         switch(fftPlan->dimension) {
           case HCFFT_1D:
@@ -1999,8 +2083,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
           }
           break;
         }
-        hc::am_free(paddedInputBuffers);
-        hc::am_free(paddedOutputBuffers);
+        if( hc::am_free(paddedInputBuffers) != AM_SUCCESS)
+          return HCFFT_INVALID;
+        if( hc::am_free(paddedOutputBuffers) != AM_SUCCESS)
+          return HCFFT_INVALID;
         break;
 
       default:
@@ -2014,7 +2100,8 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   }
 
   if( NULL != localIntBuffer ) {
-    hc::am_free(localIntBuffer);
+    if( hc::am_free(localIntBuffer) != AM_SUCCESS)
+      return HCFFT_INVALID;
     localIntBuffer = NULL;
   }
 
@@ -2047,10 +2134,18 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
 
   if( fftPlan->intBufferRCD == NULL && fftPlan->tmpBufSizeRC > 0 ) {
     fftPlan->intBufferRCD = hc::am_alloc(fftPlan->tmpBufSizeRC * sizeof(double), fftPlan->acc , 0);
+    if(fftPlan->intBufferRCD == NULL)
+    {
+      return HCFFT_INVALID;
+    }
   }
 
   if( fftPlan->intBufferC2RD == NULL && fftPlan->tmpBufSizeC2R > 0 ) {
     fftPlan->intBufferC2RD = hc::am_alloc(fftPlan->tmpBufSizeC2R * sizeof(double), fftPlan->acc , 0);
+    if(fftPlan->intBufferC2RD == NULL)
+    {
+      return HCFFT_INVALID;
+    }
   }
 
   //  The largest vector we can transform in a single pass
@@ -3057,32 +3152,38 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
 
   // release buffers, as these will be created only in EnqueueTransform
   if( NULL != fftPlan->intBuffer ) {
-    hc::am_free(fftPlan->intBuffer);
+    if( hc::am_free(fftPlan->intBuffer) != AM_SUCCESS)
+      return HCFFT_INVALID;
     fftPlan->intBuffer = NULL;
   }
 
   if( NULL != fftPlan->intBufferRC ) {
-    hc::am_free(fftPlan->intBufferRC);
+    if( hc::am_free(fftPlan->intBufferRC) != AM_SUCCESS)
+      return HCFFT_INVALID;
     fftPlan->intBufferRC = NULL;
   }
 
   if( NULL != fftPlan->intBufferC2R ) {
-    hc::am_free(fftPlan->intBufferC2R);
+    if( hc::am_free(fftPlan->intBufferC2R) != AM_SUCCESS)
+      return HCFFT_INVALID;
     fftPlan->intBufferC2R = NULL;
   }
 
   if( NULL != fftPlan->intBufferD ) {
-    hc::am_free(fftPlan->intBufferD);
+    if( hc::am_free(fftPlan->intBufferD) != AM_SUCCESS)
+      return HCFFT_INVALID;
     fftPlan->intBufferD = NULL;
   }
 
   if( NULL != fftPlan->intBufferRCD ) {
-    hc::am_free(fftPlan->intBufferRCD);
+    if( hc::am_free(fftPlan->intBufferRCD) != AM_SUCCESS)
+      return HCFFT_INVALID;
     fftPlan->intBufferRCD = NULL;
   }
 
   if( NULL != fftPlan->intBufferC2RD ) {
-    hc::am_free(fftPlan->intBufferC2RD);
+    if( hc::am_free(fftPlan->intBufferC2RD) != AM_SUCCESS)
+      return HCFFT_INVALID;
     fftPlan->intBufferC2RD = NULL;
   }
 
@@ -6679,7 +6780,13 @@ hcfftStatus FFTPlan::AllocateWriteBuffers () {
       float ConstantBufferParams[HCFFT_CB_SIZE];
       memset (& ConstantBufferParams, 0, sizeof (ConstantBufferParams));
       ConstantBufferParams[1] = std::max<uint> (1, uint(batchSize));
+
       const_buffer = hc::am_alloc(sizeof(float) * HCFFT_CB_SIZE, acc, 0);
+      if(const_buffer == NULL)
+      {
+        return HCFFT_INVALID;
+      }
+
       // Copy input contents to device from host
       hc::am_copy(const_buffer, ConstantBufferParams, HCFFT_CB_SIZE * sizeof(float));
     }
@@ -6691,6 +6798,10 @@ hcfftStatus FFTPlan::AllocateWriteBuffers () {
       memset (& ConstantBufferParams, 0, sizeof (ConstantBufferParams));
       ConstantBufferParams[1] = std::max<uint> (1, uint(batchSize));
       const_bufferD = hc::am_alloc(sizeof(double) * HCFFT_CB_SIZE, acc, 0);
+      if(const_bufferD == NULL)
+      {
+        return HCFFT_INVALID;
+      }
       // Copy input contents to device from host
       hc::am_copy(const_bufferD, ConstantBufferParams, HCFFT_CB_SIZE * sizeof(double));
     }
@@ -6705,42 +6816,50 @@ hcfftStatus FFTPlan::ReleaseBuffers () {
   hcfftStatus result = HCFFT_SUCCEEDS;
 
   if( NULL != const_buffer ) {
-    hc::am_free(const_buffer);
+    if( hc::am_free(const_buffer) != AM_SUCCESS)
+      return HCFFT_INVALID;
     const_buffer = NULL;
   }
 
   if( NULL != intBuffer ) {
-    hc::am_free(intBuffer);
+    if( hc::am_free(intBuffer) != AM_SUCCESS)
+      return HCFFT_INVALID;
     intBuffer = NULL;
   }
 
   if( NULL != intBufferRC ) {
-    hc::am_free(intBufferRC);
+    if( hc::am_free(intBufferRC) != AM_SUCCESS)
+      return HCFFT_INVALID;
     intBufferRC = NULL;
   }
 
   if( NULL != intBufferC2R ) {
-    hc::am_free(intBufferC2R);
+    if( hc::am_free(intBufferC2R) != AM_SUCCESS)
+      return HCFFT_INVALID;
     intBufferC2R = NULL;
   }
 
   if( NULL != const_bufferD ) {
-    hc::am_free(const_bufferD);
+    if( hc::am_free(const_bufferD) != AM_SUCCESS)
+      return HCFFT_INVALID;
     const_bufferD = NULL;
   }
 
   if( NULL != intBufferD ) {
-    hc::am_free(intBufferD);
+    if( hc::am_free(intBufferD) != AM_SUCCESS)
+      return HCFFT_INVALID;
     intBufferD = NULL;
   }
 
   if( NULL != intBufferRCD ) {
-    hc::am_free(intBufferRCD);
+    if( hc::am_free(intBufferRCD) != AM_SUCCESS)
+      return HCFFT_INVALID;
     intBufferRCD = NULL;
   }
 
   if( NULL != intBufferC2RD ) {
-    hc::am_free(intBufferC2RD);
+    if( hc::am_free(intBufferC2RD) != AM_SUCCESS)
+      return HCFFT_INVALID;
     intBufferC2RD = NULL;
   }
 
