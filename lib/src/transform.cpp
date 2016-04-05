@@ -587,7 +587,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
     // The intermediate buffer is always interleave and packed
     // For outofplace operation, we have the choice not to create intermediate buffer
     // input ->(col+Transpose) output ->(col) output
-    fftPlan->intBuffer = hc::am_alloc(fftPlan->tmpBufSize * sizeof(float), fftPlan->acc , 0);
+    fftPlan->intBuffer = hc::am_alloc(fftPlan->tmpBufSize, fftPlan->acc , 0);
     if(fftPlan->intBuffer == NULL)
     {
       return HCFFT_INVALID;
@@ -595,12 +595,12 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   }
 
   if( localIntBuffer == NULL && fftPlan->intBuffer != NULL ) {
-    localIntBuffer = hc::am_alloc(fftPlan->tmpBufSize * sizeof(float), fftPlan->acc, 0);
+    localIntBuffer = hc::am_alloc(fftPlan->tmpBufSize, fftPlan->acc, 0);
     if(localIntBuffer == NULL)
     {
       return HCFFT_INVALID;
     }
-    hc::am_copy(localIntBuffer, fftPlan->intBuffer, fftPlan->tmpBufSize * sizeof(float));
+    hc::am_copy(localIntBuffer, fftPlan->intBuffer, fftPlan->tmpBufSize);
   }
 
   if(fftPlan->isPadded)
@@ -825,7 +825,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   }
 
   if( fftPlan->intBufferRC == NULL && fftPlan->tmpBufSizeRC > 0 ) {
-    fftPlan->intBufferRC = hc::am_alloc(fftPlan->tmpBufSizeRC * sizeof(float), fftPlan->acc , 0);
+    fftPlan->intBufferRC = hc::am_alloc(fftPlan->tmpBufSizeRC, fftPlan->acc , 0);
     if(fftPlan->intBufferRC == NULL)
     {
       return HCFFT_INVALID;
@@ -833,7 +833,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   }
 
   if( fftPlan->intBufferC2R == NULL && fftPlan->tmpBufSizeC2R > 0 ) {
-    fftPlan->intBufferC2R = hc::am_alloc(fftPlan->tmpBufSizeC2R * sizeof(float), fftPlan->acc , 0);
+    fftPlan->intBufferC2R = hc::am_alloc(fftPlan->tmpBufSizeC2R, fftPlan->acc , 0);
     if(fftPlan->intBufferC2R == NULL)
     {
       return HCFFT_INVALID;
@@ -1894,7 +1894,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
     // The intermediate buffer is always interleave and packed
     // For outofplace operation, we have the choice not to create intermediate buffer
     // input ->(col+Transpose) output ->(col) output
-    fftPlan->intBufferD = hc::am_alloc(fftPlan->tmpBufSize * sizeof(double), fftPlan->acc , 0);
+    fftPlan->intBufferD = hc::am_alloc(fftPlan->tmpBufSize, fftPlan->acc , 0);
     if(fftPlan->intBufferD == NULL)
     {
       return HCFFT_INVALID;
@@ -1902,12 +1902,12 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   }
 
   if( localIntBuffer == NULL && fftPlan->intBufferD != NULL ) {
-    localIntBuffer = hc::am_alloc(fftPlan->tmpBufSize * sizeof(double), fftPlan->acc, 0);
+    localIntBuffer = hc::am_alloc(fftPlan->tmpBufSize, fftPlan->acc, 0);
     if(localIntBuffer == NULL)
     {
       return HCFFT_INVALID;
     }
-    hc::am_copy(localIntBuffer, fftPlan->intBufferD, fftPlan->tmpBufSize * sizeof(double));
+    hc::am_copy(localIntBuffer, fftPlan->intBufferD, fftPlan->tmpBufSize);
   }
 
   if(fftPlan->isPadded)
@@ -2133,7 +2133,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   }
 
   if( fftPlan->intBufferRCD == NULL && fftPlan->tmpBufSizeRC > 0 ) {
-    fftPlan->intBufferRCD = hc::am_alloc(fftPlan->tmpBufSizeRC * sizeof(double), fftPlan->acc , 0);
+    fftPlan->intBufferRCD = hc::am_alloc(fftPlan->tmpBufSizeRC, fftPlan->acc , 0);
     if(fftPlan->intBufferRCD == NULL)
     {
       return HCFFT_INVALID;
@@ -2141,7 +2141,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   }
 
   if( fftPlan->intBufferC2RD == NULL && fftPlan->tmpBufSizeC2R > 0 ) {
-    fftPlan->intBufferC2RD = hc::am_alloc(fftPlan->tmpBufSizeC2R * sizeof(double), fftPlan->acc , 0);
+    fftPlan->intBufferC2RD = hc::am_alloc(fftPlan->tmpBufSizeC2R, fftPlan->acc , 0);
     if(fftPlan->intBufferC2RD == NULL)
     {
       return HCFFT_INVALID;
