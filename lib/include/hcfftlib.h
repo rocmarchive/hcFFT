@@ -155,8 +155,7 @@ inline std::string SztToStr(size_t i) {
 }
 
 inline std::string hcHeader() {
-  return "#include \"hcfftlib.h\"\n"
-         "#include <hc.hpp>\n"
+  return "#include <hc.hpp>\n"
          "#include <hc_am.hpp>\n"
          "#include <stdio.h>\n"
          "#include <hc_short_vector.hpp>\n"
