@@ -514,6 +514,8 @@ class FFTPlan {
 
   hcfftStatus hcfftBakePlanInternal(hcfftPlanHandle plHandle);
 
+  hcfftStatus hcfftDestroyPlanBuffers(hcfftPlanHandle* plHandle);
+
   hcfftStatus hcfftDestroyPlan(hcfftPlanHandle* plHandle);
 
   hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, float* inputBuffers,
