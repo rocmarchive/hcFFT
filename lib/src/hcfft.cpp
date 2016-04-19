@@ -682,6 +682,11 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata
     return HCFFT_EXEC_FAILED;
   }
 
+  status = planObject.hcfftDestroyPlanBuffers(&plan);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
   return HCFFT_SUCCESS;
 }
 
@@ -713,6 +718,11 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal *idata, hcfftDoubleCo
   if (status != HCFFT_SUCCEEDS) {
     std::cout << " enqueuetransform failed "<<std::endl;
     return HCFFT_EXEC_FAILED;
+  }
+
+  status = planObject.hcfftDestroyPlanBuffers(&plan);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
   }
 
   return HCFFT_SUCCESS;
@@ -774,6 +784,11 @@ hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata
     return HCFFT_EXEC_FAILED;
   }
 
+  status = planObject.hcfftDestroyPlanBuffers(&plan);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
   return HCFFT_SUCCESS;
 }
 
@@ -802,6 +817,11 @@ hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubl
   status = planObject.hcfftEnqueueTransform(plan, dir, idataR, odata, NULL);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
+  }
+
+  status = planObject.hcfftDestroyPlanBuffers(&plan);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
   }
 
   return HCFFT_SUCCESS;
@@ -861,6 +881,11 @@ hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex *idata, hcfftComplex *od
     return HCFFT_EXEC_FAILED;
   }
 
+  status = planObject.hcfftDestroyPlanBuffers(&plan);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
   return HCFFT_SUCCESS;
 
 }
@@ -890,6 +915,11 @@ hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubl
   status = planObject.hcfftEnqueueTransform(plan, (hcfftDirection)direction, idataR, odataR, NULL);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
+  }
+
+  status = planObject.hcfftDestroyPlanBuffers(&plan);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
   }
 
   return HCFFT_SUCCESS;
