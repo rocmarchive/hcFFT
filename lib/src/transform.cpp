@@ -220,6 +220,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
       char* compilerPath = getenv ("MCWHCCBUILD");
       string Path(compilerPath);
       execCmd = Path + "/compiler/bin/clang++ `" + Path + "/bin/hcc-config --build --cxxflags --ldflags --shared` -lhc_am " + filename + " -o " + kernellib ;
+      free(compilerPath);
     }
     else if( access( fname, F_OK ) != -1 ) {
       // compiler exists
@@ -578,6 +579,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock(*planLock, _T( " hcfftEnqueueTransform" ) );
   countKernel = 0;
 
   float* localIntBuffer = clTmpBuffers;
@@ -1885,6 +1887,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock(*planLock, _T( " hcfftEnqueueTransform" ) );
   countKernel = 0;
 
   double* localIntBuffer = clTmpBuffers;
@@ -3103,36 +3106,37 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
 
 hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
   bakedPlanCount = 0;
+
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock(*planLock, _T( "hcfftBakePlan" ) );
+
   exist = checkIfsoExist(fftPlan->direction, fftPlan->precision, fftPlan->originalLength, fftPlan->hcfftlibtype);
   return hcfftBakePlanInternal(plHandle);
 }
 
 hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
+
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
   lockRAII* planLock = NULL;
   fftRepo.getPlan(plHandle, fftPlan, planLock);
-  scopedLock sLock( *planLock, _T( "hcfftBakePlan" ) );
+  scopedLock sLock( *planLock, _T( "hcfftBakePlanInternal" ) );
 
   // if we have already baked the plan and nothing has changed since, we're done here
   if( fftPlan->baked == true ) {
     return HCFFT_SUCCEEDS;
   }
-
   //find product of lengths
   size_t maxLengthInAnyDim = 1;
 
   switch(fftPlan->dimension) {
     case HCFFT_3D:
       maxLengthInAnyDim = maxLengthInAnyDim > fftPlan->length[2] ? maxLengthInAnyDim : fftPlan->length[2];
-
     case HCFFT_2D:
       maxLengthInAnyDim = maxLengthInAnyDim > fftPlan->length[1] ? maxLengthInAnyDim : fftPlan->length[1];
-
     case HCFFT_1D:
       maxLengthInAnyDim = maxLengthInAnyDim > fftPlan->length[0] ? maxLengthInAnyDim : fftPlan->length[0];
   }
@@ -5352,7 +5356,6 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
         fftPlan->baked = true;
         return  HCFFT_SUCCEEDS;
       }
-
     case HCFFT_3D: {
         if(fftPlan->ipLayout == HCFFT_REAL) {
           size_t length0 = fftPlan->length[ 0 ];
@@ -6062,6 +6065,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
   fftPlan->AllocateWriteBuffers ();
   //  Record that we baked the plan
   fftPlan->baked    = true;
+
   return  HCFFT_SUCCEEDS;
 }
 
@@ -6640,7 +6644,7 @@ hcfftStatus FFTPlan::hcfftGetPlanTransposeResult( const  hcfftPlanHandle plHandl
   FFTPlan* fftPlan  = NULL;
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " hcfftGetResultLocation" ) );
+  scopedLock sLock( *planLock, _T( " hcfftGetPlanTransposeResult" ) );
   *transposed = fftPlan->transposeType;
   return HCFFT_SUCCEEDS;
 }
@@ -6650,7 +6654,7 @@ hcfftStatus FFTPlan::hcfftSetPlanTransposeResult(  hcfftPlanHandle plHandle,  hc
   FFTPlan* fftPlan  = NULL;
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
-  scopedLock sLock( *planLock, _T( " hcfftSetResultLocation" ) );
+  scopedLock sLock( *planLock, _T( " hcfftSetPlanTransposeResult" ) );
   //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
   fftPlan->baked    = false;
   fftPlan->transposeType  = transposed;
@@ -6724,6 +6728,50 @@ hcfftStatus  FFTPlan::GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & 
       return HCFFT_ERROR;
   }
 }
+
+hcfftStatus FFTPlan::hcfftDestroyPlanBuffers( hcfftPlanHandle* plHandle ) {
+  FFTRepo& fftRepo  = FFTRepo::getInstance( );
+  FFTPlan* fftPlan  = NULL;
+  lockRAII* planLock  = NULL;
+  fftRepo.getPlan( *plHandle, fftPlan, planLock );
+
+  //  Recursively destroy subplans, that are used for higher dimensional FFT's
+  if( fftPlan->planX ) {
+    hcfftDestroyPlanBuffers( &fftPlan->planX );
+  }
+
+  if( fftPlan->planY ) {
+    hcfftDestroyPlanBuffers( &fftPlan->planY );
+  }
+
+  if( fftPlan->planZ ) {
+    hcfftDestroyPlanBuffers( &fftPlan->planZ );
+  }
+
+  if( fftPlan->planTX ) {
+    hcfftDestroyPlanBuffers( &fftPlan->planTX );
+  }
+
+  if( fftPlan->planTY ) {
+    hcfftDestroyPlanBuffers( &fftPlan->planTY );
+  }
+
+  if( fftPlan->planTZ ) {
+    hcfftDestroyPlanBuffers( &fftPlan->planTZ );
+  }
+
+  if( fftPlan->planRCcopy ) {
+    hcfftDestroyPlanBuffers( &fftPlan->planRCcopy );
+  }
+
+  if( fftPlan->planCopy ) {
+    hcfftDestroyPlanBuffers( &fftPlan->planCopy );
+  }
+
+  fftPlan->ReleaseBuffers();
+  return HCFFT_SUCCEEDS;
+}
+
 hcfftStatus FFTPlan::hcfftDestroyPlan( hcfftPlanHandle* plHandle ) {
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   FFTPlan* fftPlan  = NULL;
@@ -6771,22 +6819,22 @@ hcfftStatus FFTPlan::hcfftDestroyPlan( hcfftPlanHandle* plHandle ) {
 hcfftStatus FFTPlan::AllocateWriteBuffers () {
   hcfftStatus status = HCFFT_SUCCEEDS;
   assert(4 == sizeof(int));
+
   //  Construct the constant buffer and call clEnqueueWriteBuffer
   switch(precision)
   {
     case HCFFT_SINGLE:
     {
       assert (NULL == const_buffer);
+      ReleaseBuffers();
       float ConstantBufferParams[HCFFT_CB_SIZE];
       memset (& ConstantBufferParams, 0, sizeof (ConstantBufferParams));
       ConstantBufferParams[1] = std::max<uint> (1, uint(batchSize));
-
       const_buffer = hc::am_alloc(sizeof(float) * HCFFT_CB_SIZE, acc, 0);
       if(const_buffer == NULL)
       {
         return HCFFT_INVALID;
       }
-
       // Copy input contents to device from host
       hc::am_copy(const_buffer, ConstantBufferParams, HCFFT_CB_SIZE * sizeof(float));
     }
@@ -6794,6 +6842,7 @@ hcfftStatus FFTPlan::AllocateWriteBuffers () {
     case HCFFT_DOUBLE:
     {
       assert (NULL == const_bufferD);
+      ReleaseBuffers();
       double ConstantBufferParams[HCFFT_CB_SIZE];
       memset (& ConstantBufferParams, 0, sizeof (ConstantBufferParams));
       ConstantBufferParams[1] = std::max<uint> (1, uint(batchSize));
