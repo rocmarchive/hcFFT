@@ -443,9 +443,6 @@ class FFTPlan {
   bool  large2D;
   size_t  cacheSize;
 
-  float* const_buffer;
-  double* const_bufferD;
-
   // Real-Complex simple flag
   // if this is set we do real to-and-from full complex using simple algorithm
   // where imaginary of input is set to zero in forward and imaginary not written in backward
@@ -482,10 +479,10 @@ class FFTPlan {
     bLdsComplex(false), uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
     intBuffer( NULL ), intBufferD(NULL), tmpBufSizeRC(0), intBufferRC(NULL), intBufferRCD(NULL),
     tmpBufSizeC2R(0), intBufferC2RD(NULL), intBufferC2R(NULL), transflag(false),
-    transOutHorizontal(false), large1D(0), large2D(false), const_buffer(NULL), const_bufferD(NULL),
-    RCsimple(false), realSpecial(false), realSpecial_Nr(0), userPlan(false),
-    blockCompute(false), blockComputeType(BCT_C2C), hcfftlibtype(HCFFT_R2CD2Z) {
-    originalLength.clear();
+    transOutHorizontal(false), large1D(0), large2D(false), RCsimple(false), realSpecial(false),
+    realSpecial_Nr(0), userPlan(false), blockCompute(false), blockComputeType(BCT_C2C),
+    hcfftlibtype(HCFFT_R2CD2Z) {
+      originalLength.clear();
   };
 
   hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, hcfftPrecision precision, hcfftLibType libType);
@@ -513,8 +510,6 @@ class FFTPlan {
   hcfftStatus hcfftBakePlan(hcfftPlanHandle plHandle);
 
   hcfftStatus hcfftBakePlanInternal(hcfftPlanHandle plHandle);
-
-  hcfftStatus hcfftDestroyPlanBuffers(hcfftPlanHandle* plHandle);
 
   hcfftStatus hcfftDestroyPlan(hcfftPlanHandle* plHandle);
 
@@ -601,8 +596,6 @@ class FFTPlan {
   hcfftStatus GetWorkSizes (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
 
   hcfftStatus GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo, size_t count) const;
-
-  hcfftStatus AllocateWriteBuffers ();
 
   hcfftStatus ReleaseBuffers ();
 

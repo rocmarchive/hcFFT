@@ -1349,12 +1349,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   fftPlan->GetKernelGenKey( fftParams );
   std::string kernel;
   fftRepo.getProgramCode( fftPlan->gen, plHandle, fftParams, kernel);
-  /* constant buffer */
-  unsigned int uarg = 0;
 
-  if (!fftPlan->transflag && !(fftPlan->gen == Copy)) {
-    vectArr.insert(std::make_pair(uarg++, fftPlan->const_buffer));
-  }
+  unsigned int uarg = 0;
+  uint batch = std::max<uint> (1, uint(fftPlan->batchSize));
 
   //  Decode the relevant properties from the plan paramter to figure out how many input/output buffers we have
   switch( fftPlan->ipLayout ) {
@@ -1694,7 +1691,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   remove(filename.c_str());
 
   void* kernelHandle = NULL;
-  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, accelerator_view &acc_view, accelerator &acc);
+  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
   FUNC_FFTFwd* FFTcall = NULL;
 
   std::string pwd = getHomeDir();
@@ -1780,7 +1777,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
     }
   }
 
-  FFTcall(&vectArr, fftPlan->acc_view, fftPlan->acc);
+  FFTcall(&vectArr, batch, fftPlan->acc_view, fftPlan->acc);
   countKernel++;
   if(dlclose(kernelHandle)) {
     err = dlerror();
@@ -2659,12 +2656,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   fftPlan->GetKernelGenKey( fftParams );
   std::string kernel;
   fftRepo.getProgramCode( fftPlan->gen, plHandle, fftParams, kernel);
-  /* constant buffer */
-  unsigned int uarg = 0;
 
-  if (!fftPlan->transflag && !(fftPlan->gen == Copy)) {
-    vectArr.insert(std::make_pair(uarg++, fftPlan->const_bufferD));
-  }
+  unsigned int uarg = 0;
+  uint batch = std::max<uint> (1, uint(fftPlan->batchSize));
 
   //  Decode the relevant properties from the plan paramter to figure out how many input/output buffers we have
   switch( fftPlan->ipLayout ) {
@@ -3004,7 +2998,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   remove(filename.c_str());
 
   void* kernelHandle = NULL;
-  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, accelerator_view &acc_view, accelerator &acc);
+  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
   FUNC_FFTFwd* FFTcall = NULL;
 
   std::string pwd = getHomeDir();
@@ -3090,7 +3084,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
     }
   }
 
-  FFTcall(&vectArr, fftPlan->acc_view, fftPlan->acc);
+  FFTcall(&vectArr, batch, fftPlan->acc_view, fftPlan->acc);
   countKernel++;
   if(dlclose(kernelHandle)) {
     err = dlerror();
@@ -6060,8 +6054,6 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
   }
 
   CompileKernels( plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
-  //  Allocate resources
-  fftPlan->AllocateWriteBuffers ();
   //  Record that we baked the plan
   fftPlan->baked    = true;
 
@@ -6728,49 +6720,6 @@ hcfftStatus  FFTPlan::GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & 
   }
 }
 
-hcfftStatus FFTPlan::hcfftDestroyPlanBuffers( hcfftPlanHandle* plHandle ) {
-  FFTRepo& fftRepo  = FFTRepo::getInstance( );
-  FFTPlan* fftPlan  = NULL;
-  lockRAII* planLock  = NULL;
-  fftRepo.getPlan( *plHandle, fftPlan, planLock );
-
-  //  Recursively destroy subplans, that are used for higher dimensional FFT's
-  if( fftPlan->planX ) {
-    hcfftDestroyPlanBuffers( &fftPlan->planX );
-  }
-
-  if( fftPlan->planY ) {
-    hcfftDestroyPlanBuffers( &fftPlan->planY );
-  }
-
-  if( fftPlan->planZ ) {
-    hcfftDestroyPlanBuffers( &fftPlan->planZ );
-  }
-
-  if( fftPlan->planTX ) {
-    hcfftDestroyPlanBuffers( &fftPlan->planTX );
-  }
-
-  if( fftPlan->planTY ) {
-    hcfftDestroyPlanBuffers( &fftPlan->planTY );
-  }
-
-  if( fftPlan->planTZ ) {
-    hcfftDestroyPlanBuffers( &fftPlan->planTZ );
-  }
-
-  if( fftPlan->planRCcopy ) {
-    hcfftDestroyPlanBuffers( &fftPlan->planRCcopy );
-  }
-
-  if( fftPlan->planCopy ) {
-    hcfftDestroyPlanBuffers( &fftPlan->planCopy );
-  }
-
-  fftPlan->ReleaseBuffers();
-  return HCFFT_SUCCEEDS;
-}
-
 hcfftStatus FFTPlan::hcfftDestroyPlan( hcfftPlanHandle* plHandle ) {
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   FFTPlan* fftPlan  = NULL;
@@ -6815,59 +6764,8 @@ hcfftStatus FFTPlan::hcfftDestroyPlan( hcfftPlanHandle* plHandle ) {
   return HCFFT_SUCCEEDS;
 }
 
-hcfftStatus FFTPlan::AllocateWriteBuffers () {
-  hcfftStatus status = HCFFT_SUCCEEDS;
-  assert(4 == sizeof(int));
-
-  //  Construct the constant buffer and call clEnqueueWriteBuffer
-  switch(precision)
-  {
-    case HCFFT_SINGLE:
-    {
-      assert (NULL == const_buffer);
-      ReleaseBuffers();
-      float ConstantBufferParams[HCFFT_CB_SIZE];
-      memset (& ConstantBufferParams, 0, sizeof (ConstantBufferParams));
-      ConstantBufferParams[1] = std::max<uint> (1, uint(batchSize));
-      const_buffer = hc::am_alloc(sizeof(float) * HCFFT_CB_SIZE, acc, 0);
-      if(const_buffer == NULL)
-      {
-        return HCFFT_INVALID;
-      }
-      // Copy input contents to device from host
-      hc::am_copy(const_buffer, ConstantBufferParams, HCFFT_CB_SIZE * sizeof(float));
-    }
-    break;
-    case HCFFT_DOUBLE:
-    {
-      assert (NULL == const_bufferD);
-      ReleaseBuffers();
-      double ConstantBufferParams[HCFFT_CB_SIZE];
-      memset (& ConstantBufferParams, 0, sizeof (ConstantBufferParams));
-      ConstantBufferParams[1] = std::max<uint> (1, uint(batchSize));
-      const_bufferD = hc::am_alloc(sizeof(double) * HCFFT_CB_SIZE, acc, 0);
-      if(const_bufferD == NULL)
-      {
-        return HCFFT_INVALID;
-      }
-      // Copy input contents to device from host
-      hc::am_copy(const_bufferD, ConstantBufferParams, HCFFT_CB_SIZE * sizeof(double));
-    }
-    break;
-    default:
-      assert(false);
-  }
-  return status;
-}
-
 hcfftStatus FFTPlan::ReleaseBuffers () {
   hcfftStatus result = HCFFT_SUCCEEDS;
-
-  if( NULL != const_buffer ) {
-    if( hc::am_free(const_buffer) != AM_SUCCESS)
-      return HCFFT_INVALID;
-    const_buffer = NULL;
-  }
 
   if( NULL != intBuffer ) {
     if( hc::am_free(intBuffer) != AM_SUCCESS)
@@ -6885,12 +6783,6 @@ hcfftStatus FFTPlan::ReleaseBuffers () {
     if( hc::am_free(intBufferC2R) != AM_SUCCESS)
       return HCFFT_INVALID;
     intBufferC2R = NULL;
-  }
-
-  if( NULL != const_bufferD ) {
-    if( hc::am_free(const_bufferD) != AM_SUCCESS)
-      return HCFFT_INVALID;
-    const_bufferD = NULL;
   }
 
   if( NULL != intBufferD ) {

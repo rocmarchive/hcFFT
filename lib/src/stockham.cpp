@@ -3080,14 +3080,7 @@ class Kernel {
         str += SztToStr(count);
       }
 
-      str += "( std::map<int, void*> vectArr, accelerator_view &acc_view, accelerator &acc )\n\t{\n\t";
-      str += rType;
-      str += " *cb = static_cast<";
-      str += rType;
-      str += "*> (vectArr[";
-      str += SztToStr(arg);
-      str += "]);\n";
-      arg++;
+      str += "( std::map<int, void*> vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc )\n\t{\n\t";
 
       // Function attributes
       if(params.fft_placeness == HCFFT_INPLACE) {
@@ -3441,7 +3434,7 @@ class Kernel {
         i++;
       }
 
-      totalBatch += "cb[1])";
+      totalBatch += "batchSize)";
 
       // Conditional read-write ('rw') for arbitrary batch number
       if(r2c2r && !rcSimple) {

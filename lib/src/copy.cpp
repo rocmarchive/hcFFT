@@ -176,7 +176,7 @@ class CopyKernel {
     }
 
     str += SztToStr(count);
-    str += "(std::map<int, void*> vectArr, accelerator_view &acc_view, accelerator &acc)";
+    str += "(std::map<int, void*> vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc)";
     str += "{\n\t";
     int arg = 0;
 

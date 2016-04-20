@@ -88,7 +88,7 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
   uint arg = 0;
   // Declare and define the function
   hcKernWrite( transKernel, 0 ) << "extern \"C\"\n { void" << std::endl;
-  hcKernWrite( transKernel, 0 ) << funcName << "(  std::map<int, void*> vectArr, accelerator_view &acc_view, accelerator &acc) \n {";
+  hcKernWrite( transKernel, 0 ) << funcName << "(  std::map<int, void*> vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc) \n {";
 
   switch( params.fft_inputLayout ) {
     case HCFFT_COMPLEX_INTERLEAVED:
