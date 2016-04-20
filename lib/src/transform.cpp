@@ -220,7 +220,6 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
       char* compilerPath = getenv ("MCWHCCBUILD");
       string Path(compilerPath);
       execCmd = Path + "/compiler/bin/clang++ `" + Path + "/bin/hcc-config --build --cxxflags --ldflags --shared` -lhc_am " + filename + " -o " + kernellib ;
-      free(compilerPath);
     }
     else if( access( fname, F_OK ) != -1 ) {
       // compiler exists
