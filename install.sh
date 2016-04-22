@@ -80,6 +80,9 @@ fi
 export hcfft_install=$path
 set hcfft_install=$path
 
+export OPENCL_INCLUDE_PATH=$AMDAPPSDKROOT/include
+export OPENCL_LIBRARY_PATH=$AMDAPPSDKROOT/lib/x86_64/
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENCL_LIBRARY_PATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$hcfft_install/lib/hcfft
 export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$hcfft_install/include/hcfft
 
@@ -139,11 +142,11 @@ fi
 #$build_dir/test/src/fft 2 12
 
 if grep --quiet hcfft ~/.bashrc; then
-  echo
+  cd $current_work_dir
 else
   eval "echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH' >> ~/.bashrc"
+  cd $current_work_dir
+  exec bash
 fi
 
-cd $current_work_dir
-exec bash
 # TODO: ADD More options to perform benchmark and testing
