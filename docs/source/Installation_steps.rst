@@ -73,7 +73,7 @@ The following are the steps to use the library
 
         ``sudo dpkg -i hcc-0.9.16041-0be508d-ff03947-5a1009a-Linux.deb``
 
-Once done with the above steps the compiler headers, binaries and libraries gets installed under /opt system path as ``/opt/hcc`` .
+Once done with the above steps the compiler headers, binaries and libraries gets installed under /opt system path as ``/opt/rocm`` .
 
 1.4.3. Library Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

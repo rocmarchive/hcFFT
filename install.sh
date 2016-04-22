@@ -10,10 +10,10 @@ then
     cmake_cxx_compiler=$MCWHCCBUILD/compiler/bin/clang++
   fi
 
-elif [ -x "/opt/hcc/bin/clang++" ] 
+elif [ -x "/opt/rocm/hcc/bin/clang++" ]
 then
-  cmake_c_compiler=/opt/hcc/bin/clang
-  cmake_cxx_compiler=/opt/hcc/bin/clang++
+  cmake_c_compiler=/opt/rocm/hcc/bin/clang
+  cmake_cxx_compiler=/opt/rocm/hcc/bin/clang++
 else
   echo "Clang compiler not found"
   exit 1
@@ -32,7 +32,7 @@ cat <<-HELP
 ===================================================================================================================
 This script is invoked to install hcFFT library and test sources. Please provide the following arguments:
 
-  1) ${green}--path${reset}    Path to your hcfft installation.(default path is /opt/ROCm/ - needs sudo access)
+  1) ${green}--path${reset}    Path to your hcfft installation.(default path is /opt/rocm/ - needs sudo access)
   2) ${green}--test${reset}    Test to enable the library testing.
 
 ===================================================================================================================
@@ -42,7 +42,7 @@ Example:
 (1) ${green}./install.sh --path=/path/to/user/installation --test=on
        <library gets installed in /path/to/user/installation, testing = on>
 (2) ${green}./install.sh --test=on${reset} (sudo access needed)
-       <library gets installed in /opt/ROCm/, testing = on>
+       <library gets installed in /opt/rocm/, testing = on>
 
 ===================================================================================================================
 HELP
@@ -68,12 +68,12 @@ while [ $# -gt 0 ]; do
 done
 
 if [ -z $path ]; then
-    path="/opt/ROCm/"
+    path="/opt/rocm/"
 fi
 
-if [ "$path" = "/opt/ROCm/" ]; then
+if [ "$path" = "/opt/rocm/" ]; then
    set +e
-   sudo mkdir /opt/ROCm/
+   sudo mkdir /opt/rocm/
    set -e
 fi
 
@@ -98,7 +98,7 @@ cd $build_dir
 
 # Cmake and make libhcfft: Install hcFFT
 cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
-if [ "$path" = "/opt/ROCm/" ]; then
+if [ "$path" = "/opt/rocm/" ]; then
     sudo make install
 else
     make install

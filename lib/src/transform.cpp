@@ -211,7 +211,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
     WriteKernel( plHandle, gen, fftParams, filename, writeFlag);
     // Check if the default compiler path exists
     std::string execCmd; 
-    char fname[256] = "/opt/hcc/bin/clang++";
+    char fname[256] = "/opt/rocm/hcc/bin/clang++";
     if ( access ( getenv ("MCWHCCBUILD"), F_OK ) != -1) {
       // TODO: This path shall be removed. User shall build from default path
       // compiler doesn't exist in default path
@@ -224,7 +224,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
     else if( access( fname, F_OK ) != -1 ) {
       // compiler exists
       // install_mode = true;
-      string Path = "/opt/hcc/bin/";
+      string Path = "/opt/rocm/hcc/bin/";
       execCmd = Path + "/clang++ `" + Path + "/hcc-config --install --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
     }
     else {

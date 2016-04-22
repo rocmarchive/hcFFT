@@ -50,11 +50,11 @@ if(EXISTS ${MCWHCCBUILD})
 
 # Package built from sources
 # Compiler and configure file are two key factors to advance
-elseif(EXISTS /opt/hcc/bin/clang++)
+elseif(EXISTS /opt/rocm/hcc/bin/clang++)
   find_path(HC++_BIN_DIR clang++
-           HINTS /opt/hcc/bin)
+           HINTS /opt/rocm/hcc/bin)
   find_path(HC++_CONFIGURE_DIR hcc-config
-           HINTS /opt/hcc/bin)
+           HINTS /opt/rocm/hcc/bin)
   include(FindPackageHandleStandardArgs)
   # handle the QUIETLY and REQUIRED arguments and set HC++_FOUND to TRUE
   # if all listed variables are TRUE

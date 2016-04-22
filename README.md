@@ -101,4 +101,4 @@ int main(int argc, char *argv[])
    
      Assuming the library and compiler installation is followed as in [here](http://hcfft-documentation.readthedocs.org/en/latest/#installation-steps)
 
-          /opt/hcc/bin/clang++ `/opt/hcc/bin/hcc-config --cxxflags --ldflags` -lhc_am -lhcfft hcfft_1D_R2C.cpp
+          /opt/rocm/hcc/bin/clang++ `/opt/rocm/hcc/bin/hcc-config --cxxflags --ldflags` -lhc_am -lhcfft hcfft_1D_R2C.cpp
