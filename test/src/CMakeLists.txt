@@ -8,7 +8,8 @@ FIND_PACKAGE(HC++ 1.0 REQUIRED)
 
 #Setting a variable for source files
 SET (TESTSRCS
-    fft_test.cpp  
+    fft_test.cpp
+    fft_timer_test.cpp
     )
 
 IF(WIN32)
@@ -52,11 +53,13 @@ ELSE(WIN32)
   set (HCC_CXXFLAGS "${HCC_CXXFLAGS}")
   string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
   set (HCC_LDFLAGS "${HCC_LDFLAGS} -L $ENV{hcfft_install}/lib/hcfft")
+  SET (LINK "-lhcfft -lhc_am")
 
-  SET_PROPERTY(SOURCE ${TESTSRCS} APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS}")
-  STRING( REPLACE "_test.cpp" "" testname ${TESTSRCS} )
-  ADD_EXECUTABLE( bin/${testname} ${TESTSRCS} )
-  SET_PROPERTY(TARGET bin/${testname} APPEND_STRING PROPERTY LINK_FLAGS " ${HCC_LDFLAGS} ${LINK} -lhc_am")
-  TARGET_LINK_LIBRARIES(bin/${testname} hcfft)
+  FOREACH(test_file ${TESTSRCS})
+    SET_PROPERTY(SOURCE ${test_file} APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS}")
+    STRING( REPLACE "_test.cpp" "" testname ${test_file} )
+    ADD_EXECUTABLE( bin/${testname} ${test_file} )
+    SET_PROPERTY(TARGET bin/${testname} APPEND_STRING PROPERTY LINK_FLAGS " ${HCC_LDFLAGS} ${LINK}")
+  ENDFOREACH()
 
 ENDIF(WIN32)

@@ -34,7 +34,7 @@ This script is invoked to install hcFFT library and test sources. Please provide
 
   1) ${green}--path${reset}    Path to your hcfft installation.(default path is /opt/rocm/ - needs sudo access)
   2) ${green}--test${reset}    Test to enable the library testing.
-
+  3) ${green}--bench${reset}   Profile benchmark using chrono timer.
 ===================================================================================================================
 Usage: ./install.sh --path=/path/to/user/installation --test=on
 ===================================================================================================================
@@ -43,6 +43,8 @@ Example:
        <library gets installed in /path/to/user/installation, testing = on>
 (2) ${green}./install.sh --test=on${reset} (sudo access needed)
        <library gets installed in /opt/rocm/, testing = on>
+(3) ${green}./install.sh --bench=on
+       <library gets installed in /opt/rocm/, bench = on>
 
 ===================================================================================================================
 HELP
@@ -57,6 +59,9 @@ while [ $# -gt 0 ]; do
     --test=*)
       testing="${1#*=}"
       ;;
+    --bench=*)
+      bench="${1#*=}"
+      ;;
     --help) print_help;;
     *)
       printf "************************************************************\n"
@@ -66,6 +71,10 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+if [ -z $bench ]; then
+    bench="off"
+fi
 
 if [ -z $path ]; then
     path="/opt/rocm/"
@@ -136,6 +145,11 @@ elif ( [ "$testing" = "on" ] ); then
   cd $current_work_dir/test/unit/
 # Invoke test script
   ./test.sh
+fi
+
+if [ "$bench" = "on" ]; then #bench=on run chrono timer
+  cd $current_work_dir/test/FFT_benchmark_Convolution_Networks/
+  ./runme_chronotimer.sh
 fi
 
 # Simple test to confirm installation
