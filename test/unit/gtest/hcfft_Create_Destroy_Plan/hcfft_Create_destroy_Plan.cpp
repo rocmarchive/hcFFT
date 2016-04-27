@@ -1,5 +1,5 @@
 #include "hcfft.h"
-#include "gtest/gtest.h"
+#include "../gtest/gtest.h"
 
 #define VECTOR_SIZE 256
 
