@@ -1,5 +1,4 @@
 # collecting data from the KernelSummary file and writing it to another file
-from bs4 import BeautifulSoup
 import sys
 import csv
 import os

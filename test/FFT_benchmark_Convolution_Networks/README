@@ -8,7 +8,7 @@ Prerequisites
     dGPU: AMD R9 Fury X, R9 Fury, R9 Nano
     OS : Ubuntu 14.04 LTS
     Ubuntu Pack: libc6-dev-i386
-    Python 2.x or above with BeautifulSoup4
+    Python 2.x
     Profiler : Download from https://github.com/GPUOpen-Tools/CodeXL/releases
 
 To profile:
