@@ -20,7 +20,7 @@ if [ ! -d "$working_dir1" ]; then
   exit
 fi
 cd $working_dir1
-rm $working_dir1/gtestlog.txt
+rm -f $working_dir1/gtestlog.txt
 
 #Gtest functions
 unittest="$working_dir1/hcfft_Create_destroy_Plan"
@@ -38,7 +38,7 @@ else
   elif grep -q PASSED "$Log_file";
   then
     echo "${green}hcfft_Create_destroy_Plan             ----- [ PASSED ]${reset}"
-    rm $working_dir1/gtestlog.txt
+    rm -f Log_file
   fi
 fi
 
@@ -49,7 +49,7 @@ for i in 0 1 2
 do
   working_dir1="$current_work_dir/../../build/test/unit/gtest/${testdirectories[$i]}/bin/"
   cd $working_dir1
-  rm $working_dir1/gtestlog.txt
+  rm -f $working_dir1/gtestlog.txt
 
   #Gtest functions
   unittest="$working_dir1/${testdirectories[$i]}"
@@ -67,7 +67,7 @@ do
     elif grep -q PASSED "$Log_file";
     then
       echo "${green}${testdirectories[$i]}             ----- [ PASSED ]${reset}"
-      rm $working_dir1/gtestlog.txt
+      rm -f $working_dir1/gtestlog.txt
     fi
   fi
 
@@ -87,7 +87,7 @@ do
     elif grep -q PASSED "$Log_file";
     then
       echo "${green}${testdirectories[$i]}_double           ----- [ PASSED ]${reset}"
-      rm $working_dir1/gtestlog.txt
+      rm -f $working_dir1/gtestlog.txt
     fi
   fi
 
@@ -107,7 +107,7 @@ do
     elif grep -q PASSED "$Log_file";
     then
       echo "${green}${testdirectories[$i]}_padding           ----- [ PASSED ]${reset}"
-      rm $working_dir1/gtestlog.txt
+      rm -f $working_dir1/gtestlog.txt
     fi
   fi
 done
