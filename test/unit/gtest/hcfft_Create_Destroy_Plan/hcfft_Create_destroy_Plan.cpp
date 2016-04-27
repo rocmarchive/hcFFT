@@ -4,6 +4,7 @@
 #define VECTOR_SIZE 256
 
 TEST(hcfft_Create_Destroy_Plan, create_destroy_1D_plan_R2C ) {
+  putenv("GTEST_BREAK_ON_FAILURE=0");
   hcfftHandle *plan = NULL;
   hcfftResult status  = hcfftPlan1d(plan, VECTOR_SIZE, HCFFT_R2C);
   EXPECT_EQ(status, HCFFT_SUCCESS);
