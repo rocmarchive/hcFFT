@@ -39,13 +39,16 @@ This script is invoked to install hcFFT library and test sources. Please provide
 Usage: ./install.sh --path=/path/to/user/installation --test=on
 ===================================================================================================================
 Example:
-(1) ${green}./install.sh --path=/path/to/user/installation --test=on
+(1) ${green}./install.sh --path=/path/to/user/installation --test=on${reset}
        <library gets installed in /path/to/user/installation, testing = on>
 (2) ${green}./install.sh --test=on${reset} (sudo access needed)
        <library gets installed in /opt/rocm/, testing = on>
-(3) ${green}./install.sh --bench=on
+(3) ${green}./install.sh --bench=on${reset}
        <library gets installed in /opt/rocm/, bench = on>
 
+NOTE:
+${green} Please Export CLFFT_LIBRARY_PATH to point to clFFT library ${reset}
+ <export CLFFT_LIBRARY_PATH=/home/user/clFFT/build/library>
 ===================================================================================================================
 HELP
 exit 0
@@ -91,7 +94,6 @@ set hcfft_install=$path
 
 export OPENCL_INCLUDE_PATH=$AMDAPPSDKROOT/include
 export OPENCL_LIBRARY_PATH=$AMDAPPSDKROOT/lib/x86_64/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENCL_LIBRARY_PATH
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$hcfft_installlib/hcfft
 export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$hcfft_install/include/hcfft
 
