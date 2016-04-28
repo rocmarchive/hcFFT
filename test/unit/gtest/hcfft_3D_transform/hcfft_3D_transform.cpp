@@ -5,7 +5,7 @@
 #define VECTOR_SIZE 2
 
 TEST(hcfft_3D_transform_test, func_correct_3D_transform_R2C ) {
-  putenv("GTEST_BREAK_ON_FAILURE=0");
+  putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
   hcfftHandle *plan = NULL;
   hcfftResult status  = hcfftPlan3d(plan, VECTOR_SIZE, VECTOR_SIZE, VECTOR_SIZE, HCFFT_R2C);
   EXPECT_EQ(status, HCFFT_SUCCESS);

@@ -6,6 +6,7 @@
 #define PADDED_VECTOR_SIZE 80
 
 TEST(hcfft_1D_transform_padding_test, func_correct_1D_transform_padding_R2C ) {
+  putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
   // HCFFT work flow
   hcfftHandle *plan = NULL;
   hcfftResult status  = hcfftPlan1d(plan, VECTOR_SIZE, HCFFT_R2C);
