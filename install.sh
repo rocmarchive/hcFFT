@@ -160,7 +160,7 @@ fi
 if grep --quiet hcfft ~/.bashrc; then
   cd $current_work_dir
 else
-  eval "echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH' >> ~/.bashrc"
+  echo " Please update LD_LIBRARY_PATH "
   cd $current_work_dir
   exec bash
 fi
