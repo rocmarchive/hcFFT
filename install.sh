@@ -49,6 +49,8 @@ Example:
 NOTE:
 ${green} Please Export CLFFT_LIBRARY_PATH to point to clFFT library ${reset}
  <export CLFFT_LIBRARY_PATH=/home/user/clFFT/build/library>
+${green} Update AMDAPPSDKROOT ${reset}
+ <export AMDAPPSDKROOT=/home/user/AMDAPPSDKROOT>
 ===================================================================================================================
 HELP
 exit 0
@@ -128,6 +130,7 @@ mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_1D_transform/bin/
 mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_2D_transform/bin/
 mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_3D_transform/bin/
 mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_Create_Destroy_Plan/bin/
+mkdir -p $current_work_dir/build/test/FFT_benchmark_Convolution_Networks/Comparison_tests/bin/
 set -e
 
 make
@@ -156,13 +159,5 @@ fi
 
 # Simple test to confirm installation
 #$build_dir/test/src/fft 2 12
-
-if grep --quiet hcfft ~/.bashrc; then
-  cd $current_work_dir
-else
-  echo " Please update LD_LIBRARY_PATH "
-  cd $current_work_dir
-  exec bash
-fi
 
 # TODO: ADD More options to perform benchmark and testing

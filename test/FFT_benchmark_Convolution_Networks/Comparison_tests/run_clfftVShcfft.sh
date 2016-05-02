@@ -1,28 +1,27 @@
 #!/bin/bash -e
 
-#This script is invoked to profile FFT
+#This script is invoked to profile CLFFT & HCFFT
 
 #CURRENT_WORK_DIRECTORY
 CURRENTDIR=$PWD
-hcfftPath=$CURRENTDIR/../../
+hcfftPath=$CURRENTDIR/../../../
 if [ ! -d "$hcfftPath" ]; then
-  echo "Please run script[runme_chronotimer.sh] from hcfft/test/FFT_benchmark_Convolution_Networks"
+  echo "Please run script[run_clfftVShcfft.sh] from hcfft/test/FFT_benchmark_Convolution_Networks/Comparison_tests/"
   exit
 fi
 
 export HCFFT_PATH=$hcfftPath
-
 cd $CURRENTDIR
 
 #Path to FFT executable
-path2exe="$CURRENTDIR/../../build/test/src/bin/fft_timer"
+path2exe="$CURRENTDIR/../../../build/test/FFT_benchmark_Convolution_Networks/Comparison_tests/bin/clFFTvshcFFT-2D"
 workingdir="$CURRENTDIR"
 
 #Create Profile Data directory to store profile results
-profDir="$workingdir/fftbenchData"
+profDir="$workingdir/clfftvshcfftBenchData"
 mkdir -p $profDir
 
-echo -e "\n N1\t N2\t R2C Avg Time(ms)\t C2R Avg Time(ms)" >> $workingdir/Benchmark_fft.csv
+echo -e "\n N1\t N2\t HCFFT R2C Avg Time(ms)\t CLFFT R2C Avg Time(ms)\t HCFFT C2R Avg Time(ms)\t CLFFT C2R Avg Time(ms)\t HCFFT C2C Avg Time(ms)\t CLFFT C2C Avg Time(ms)" >> $workingdir/Benchmark_clfftvshcfft.csv
 
 #Start profiling fft
 while read line; do
@@ -43,8 +42,8 @@ while read line; do
    passarg=$path2outdir/$filename
 
 #Store profile timings in CSV using python script
-  if [ -f "$workingdir/extracttime_fft.py" ]; then
-    python $workingdir/extracttime_fft.py $passarg $N1value $N2value 
+  if [ -f "$workingdir/extracttime_clfftvshcfft.py" ]; then
+    python $workingdir/extracttime_clfftvshcfft.py $passarg $N1value $N2value 
   fi
   else
     echo $path2exe "doesnot exist" 
