@@ -27,11 +27,15 @@ SET (TESTSRCS
   endif(EXISTS ${MCWHCCBUILD})
 
 
+  SET(HCFFT_INCLUDE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../lib/include/")
+  SET(HCFFT_LIBRARY_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../build/lib/src")
+
   string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
-  set (HCC_CXXFLAGS "${HCC_CXXFLAGS}")
+  set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -I${HCFFT_INCLUDE_PATH}")
   string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
-  set (HCC_LDFLAGS "${HCC_LDFLAGS} -L $ENV{hcfft_install}/lib/hcfft")
-  SET (LINK " -lhcfft -lhc_am")
+  set (HCC_LDFLAGS "${HCC_LDFLAGS} -L${HCFFT_LIBRARY_PATH}")
+  SET (LINK "-lhcfft -lhc_am")
+
   FOREACH(test_file ${TESTSRCS})
     SET_PROPERTY(SOURCE ${test_file} APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS}")
     get_filename_component (name_without_extension ${test_file} NAME_WE)

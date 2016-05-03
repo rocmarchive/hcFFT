@@ -32,19 +32,14 @@ cat <<-HELP
 ===================================================================================================================
 This script is invoked to install hcFFT library and test sources. Please provide the following arguments:
 
-  1) ${green}--path${reset}    Path to your hcfft installation.(default path is /opt/rocm/ - needs sudo access)
-  2) ${green}--test${reset}    Test to enable the library testing.
-  3) ${green}--bench${reset}   Profile benchmark using chrono timer.
+  1) ${green}--test${reset}    Test to enable the library testing.
+  2) ${green}--bench${reset}   Profile benchmark using chrono timer.
 ===================================================================================================================
-Usage: ./install.sh --path=/path/to/user/installation --test=on
+Usage: ./install.sh --test=on
 ===================================================================================================================
 Example:
-(1) ${green}./install.sh --path=/path/to/user/installation --test=on${reset}
-       <library gets installed in /path/to/user/installation, testing = on>
-(2) ${green}./install.sh --test=on${reset} (sudo access needed)
-       <library gets installed in /opt/rocm/, testing = on>
-(3) ${green}./install.sh --bench=on${reset}
-       <library gets installed in /opt/rocm/, bench = on>
+(1) ${green}./install.sh --test=on${reset} (sudo access needed)
+(2) ${green}./install.sh --bench=on${reset}
 
 NOTE:
 ${green} Please Export CLFFT_LIBRARY_PATH to point to clFFT library ${reset}
@@ -58,9 +53,6 @@ exit 0
 
 while [ $# -gt 0 ]; do
   case "$1" in
-    --path=*)
-      path="${1#*=}"
-      ;;
     --test=*)
       testing="${1#*=}"
       ;;
@@ -80,19 +72,6 @@ done
 if [ -z $bench ]; then
     bench="off"
 fi
-
-if [ -z $path ]; then
-    path="/opt/rocm/"
-fi
-
-if [ "$path" = "/opt/rocm/" ]; then
-   set +e
-   sudo mkdir -p /opt/rocm/
-   set -e
-fi
-
-export hcfft_install=$path
-set hcfft_install=$path
 
 export OPENCL_INCLUDE_PATH=$AMDAPPSDKROOT/include
 export OPENCL_LIBRARY_PATH=$AMDAPPSDKROOT/lib/x86_64/
@@ -114,11 +93,8 @@ cd $build_dir
 
 # Cmake and make libhcfft: Install hcFFT
 cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
-if [ "$path" = "/opt/rocm/" ]; then
-    sudo make install
-else
-    make install
-fi
+make package
+make
 
 # Build Tests
 cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/

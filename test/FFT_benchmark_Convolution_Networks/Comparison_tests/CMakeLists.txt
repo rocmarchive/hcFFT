@@ -46,10 +46,13 @@ ELSE(WIN32)
                             OUTPUT_VARIABLE HCC_LDFLAGS)
   endif(EXISTS ${MCWHCCBUILD})
 
+  SET(HCFFT_INCLUDE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include/")
+  SET(HCFFT_LIBRARY_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../build/lib/src")
+
   string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
-  set (HCC_CXXFLAGS "${HCC_CXXFLAGS}")
+  set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -I${HCFFT_INCLUDE_PATH}")
   string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
-  set (HCC_LDFLAGS "${HCC_LDFLAGS} -L $ENV{hcfft_install}/lib/hcfft")
+  set (HCC_LDFLAGS "${HCC_LDFLAGS} -L${HCFFT_LIBRARY_PATH}")
   SET (LINK "-lhcfft -lhc_am")
 
   FOREACH(test_file ${TESTSRCS})
