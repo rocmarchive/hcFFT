@@ -4,15 +4,9 @@
 
 1.5.1. Testing hcFFT against clFFT:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    
-a) Automated testing:
 
-* ``cd ~/hcfft/test/unit/``
+* ``cd ~/hcfft/test/FFT_benchmark_Convolution_Networks/Comparison_tests``
      
-* ``./test.sh``
-     
-b) Manual testing:
+* ``./run_clfftVShcfft.sh``
 
-* ``cd ~/hcfft/test/build/linux/bin/``
-     
-* choose the appropriate named binary 
+It compares clFFT with hcFFT for input sizes in Input.txt and stores the output in Benchmark_clfftvshcfft.csv

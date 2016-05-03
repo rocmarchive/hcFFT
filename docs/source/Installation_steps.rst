@@ -59,7 +59,13 @@ The following are the steps to use the library
 
      a. Install pre-dependency packages
 
-        ``sudo apt-get install cmake git subversion g++ libstdc++-4.8-dev libdwarf-dev libelf-dev libtinfo-dev libc6-dev-i386 gcc-multilib llvm llvm-dev llvm-runtime libc++1 libc++-dev libc++abi1 libc++abi-dev re2c libncurses5-dev``
+::
+
+        sudo apt-get install cmake git subversion g++ libstdc++-4.8-dev libdwarf-dev libelf-dev
+        libtinfo-dev libc6-dev-i386 gcc-multilib llvm llvm-dev llvm-runtime libc++1 libc++-dev
+        libc++abi1 libc++abi-dev re2c libncurses5-dev
+
+|
 
      b. Download Compiler 
 
@@ -96,25 +102,46 @@ Once done with the above steps the compiler headers, binaries and libraries gets
 
        ``make && sudo make install``
 
-       ``export OPENCL_INCLUDE_PATH=/opt/AMDAPPSDK-x.y.z/include``
-
-       ``export OPENCL_LIBRARY_PATH=/opt/AMDAPPSDK-x.y.z/lib/x86_64``
+       ``export AMDAPPSDKROOT=/opt/AMDAPPSDK-x.y.z/``
 
        ``export CLFFT_LIBRARY_PATH=/home/user/clFFT/build/library``
 
-       ``export LD_LIBRARY_PATH=$CLFFT_LIBRARY_PATH:$OPENCL_LIBRARY_PATH:$LD_LIBRARY_PATH``
+       ``export LD_LIBRARY_PATH=$CLFFT_LIBRARY_PATH:$LD_LIBRARY_PATH``
 
 
     d. Install hcFFT library
 
-       ``./install.sh``
+       (1) Installation in /opt/rocm/ (sudo)
 
+            ``./install.sh``
 
-    e. Additionally to run the unit test along with installation invoke the following command
+            Additionally to run the unit test along with installation invoke the following command,
 
-       ``./install.sh test=ON``
+            ``./install.sh --test=on``
 
-Once done with the above steps the libhcfft.so and associated headers gets installed under system path.
+            To get performance scores,
+
+            ``./install.sh --bench=on``
+
+       .. note:: ``--test`` and ``--profile`` options could be used together as well.
+
+       (2) Installation in User Specific path
+
+           ``./install.sh --path=/path/to/user/installation/``
+
+           Additionally to run the unit test along with installation invoke the following command,
+
+           ``./install.sh --path=/path/to/user/installation/ --test=on``
+
+           To get performance scores,
+
+           ``./install.sh --path=/path/to/user/installation/ --bench=on``
+
+        .. note:: ``--test`` and ``--bench`` options could be used together as well.
+
+       .. note:: **To switch between the installation paths, please uninstall the library and start the installation again.**
+
+       Once done with the above steps the libhcfft.so and associated headers gets installed under either /opt/rocm path (needs sudo access) or User specific path.
 
 To uninstall the library, invoke the following series of commands
 
