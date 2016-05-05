@@ -4,13 +4,8 @@
 # CURRENT_WORK_DIRECTORY
 current_work_dir=$PWD
 
-# Remove system wide installed lib and headers
-sudo xargs rm < $current_work_dir/build/install_manifest.txt
-
 # Remove build
 sudo rm -rf $current_work_dir/build
-
-sed -i '/hcfft/ d' ~/.bashrc
 
 # Remove temporarly cached kernel shared objects and binaries
 sudo rm -rf $HOME/kernCache
