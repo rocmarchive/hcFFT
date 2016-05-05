@@ -136,16 +136,18 @@ void hcfft_2d_r2c(size_t N1, size_t N2)
   }
 
   elapsed_pfe.clear();
+  accs[1].get_default_view().wait();
+
   for(int i = 0; i < COUNT; i++)
   {
   starttimer = std::chrono::high_resolution_clock::now();
-
   status = plan.hcfftEnqueueTransform(planhandle, dir, ipDev, opDev, NULL);
   if(status != HCFFT_SUCCEEDS) {
     cout << " Transform error " << endl;
   }
-
+  accs[1].get_default_view().wait();
   endtimer = std::chrono::high_resolution_clock::now();
+
   std::chrono::duration<double> dur = endtimer - starttimer;
   if(i != 0)
     elapsed_pfe.push_back(dur);
@@ -278,6 +280,10 @@ void clfft_2d_r2c(size_t N1, size_t N2)
   err = clfftBakePlan(planHandle, 1, &queue, NULL, NULL);
   assert(err ==  CL_SUCCESS);
 
+  /* Wait for calculations to be finished. */
+  err = clFinish(queue);
+  assert(err ==  CL_SUCCESS);
+
   elapsed_pfe.clear();
   for(int i = 0; i < COUNT; i++)
   {
@@ -285,7 +291,11 @@ void clfft_2d_r2c(size_t N1, size_t N2)
 
   /* Execute the plan. */
   err = clfftEnqueueTransform(planHandle, CLFFT_FORWARD, 1, &queue, 0, NULL, NULL, &bufX, &bufY, NULL);
- assert(err ==  CL_SUCCESS);
+  assert(err ==  CL_SUCCESS);
+
+  /* Wait for calculations to be finished. */
+  err = clFinish(queue);
+  assert(err ==  CL_SUCCESS);
 
   endtimer = std::chrono::high_resolution_clock::now();
 
@@ -297,10 +307,6 @@ void clfft_2d_r2c(size_t N1, size_t N2)
   double Avg_time = average(elapsed_pfe);
   double time_in_ms = Avg_time * 1e3;
   cout << "CLFFT Kernel execution time R2C Transform for size "<< N1 << "x" << N2 << " in <ms>:" << time_in_ms <<endl;
-
-  /* Wait for calculations to be finished. */
-  err = clFinish(queue);
-  assert(err ==  CL_SUCCESS);
 
   /* Fetch results of calculations. */
   err = clEnqueueReadBuffer( queue, bufY, CL_TRUE, 0, complexSize * sizeof( *Y ), Y, 0, NULL, NULL );
@@ -436,6 +442,7 @@ void hcfft_2d_c2r(size_t N1, size_t N2)
     cout << " bake plan error " << endl;
   }
   elapsed_pfe.clear();
+  accs[1].get_default_view().wait();
 
   for(int i = 0 ; i < COUNT; i++)
   {
@@ -446,6 +453,7 @@ void hcfft_2d_c2r(size_t N1, size_t N2)
     cout << " Transform error " << endl;
   }
 
+  accs[1].get_default_view().wait();
   endtimer = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> dur = endtimer - starttimer;
   if(i != 0)
@@ -583,6 +591,10 @@ void clfft_2d_c2r(size_t N1, size_t N2)
   err = clfftBakePlan(planHandle, 1, &queue, NULL, NULL);
   assert(err == CL_SUCCESS);
 
+  /* Wait for calculations to be finished. */
+  err = clFinish(queue);
+  assert(err ==  CL_SUCCESS);
+
   elapsed_pfe.clear();
 
   for(int i = 0; i < COUNT; i++)
@@ -593,6 +605,10 @@ void clfft_2d_c2r(size_t N1, size_t N2)
   err = clfftEnqueueTransform(planHandle, CLFFT_BACKWARD, 1, &queue, 0, NULL, NULL, &bufY, &bufX, NULL);
   assert(err == CL_SUCCESS);
 
+  /* Wait for calculations to be finished. */
+  err = clFinish(queue);
+  assert(err ==  CL_SUCCESS);
+
   endtimer = std::chrono::high_resolution_clock::now();
 
   std::chrono::duration<double> dur = endtimer - starttimer;
@@ -602,10 +618,6 @@ void clfft_2d_c2r(size_t N1, size_t N2)
   double Avg_time = average(elapsed_pfe);
   double time_in_ms = Avg_time * 1e3;
   cout << "CLFFT Kernel execution time C2R Transform for size "<< N1 << "x" << N2 << " in <ms>:" << time_in_ms <<endl;
-
-  /* Wait for calculations to be finished. */
-  err = clFinish(queue);
-  assert(err == CL_SUCCESS);
 
   /* Fetch results of calculations. */
   err = clEnqueueReadBuffer( queue, bufX, CL_TRUE, 0, realSize * sizeof( *X ), X, 0, NULL, NULL );
@@ -737,6 +749,7 @@ void hcfft_2d_c2c(size_t N1, size_t N2)
   }
 
   elapsed_pfe.clear();
+  accs[1].get_default_view().wait();
   for(int i = 0; i < COUNT; i++)
   {
   starttimer = std::chrono::high_resolution_clock::now();
@@ -745,6 +758,7 @@ void hcfft_2d_c2c(size_t N1, size_t N2)
   if(status != HCFFT_SUCCEEDS) {
     cout << " Transform error " << endl;
   }
+  accs[1].get_default_view().wait();
 
   endtimer = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> dur = endtimer - starttimer;
@@ -878,6 +892,10 @@ void clfft_2d_c2c(size_t N1, size_t N2)
   err = clfftBakePlan(planHandle, 1, &queue, NULL, NULL);
   assert(err == CL_SUCCESS);
 
+  /* Wait for calculations to be finished. */
+  err = clFinish(queue);
+  assert(err ==  CL_SUCCESS);
+
   elapsed_pfe.clear();
 
   for(int i = 0; i < COUNT; i++)
@@ -887,6 +905,10 @@ void clfft_2d_c2c(size_t N1, size_t N2)
   /* Execute the plan. */
   err = clfftEnqueueTransform(planHandle, CLFFT_FORWARD, 1, &queue, 0, NULL, NULL, &bufX, &bufY, NULL);
   assert(err == CL_SUCCESS);
+
+  /* Wait for calculations to be finished. */
+  err = clFinish(queue);
+  assert(err ==  CL_SUCCESS);
 
   endtimer = std::chrono::high_resolution_clock::now();
 
@@ -898,10 +920,6 @@ void clfft_2d_c2c(size_t N1, size_t N2)
   double Avg_time = average(elapsed_pfe);
   double time_in_ms = Avg_time * 1e3;
   cout << "CLFFT Kernel execution time C2C Transform for size "<< N1 << "x" << N2 << " in <ms>:" << time_in_ms <<endl;
-
-  /* Wait for calculations to be finished. */
-  err = clFinish(queue);
-  assert(err == CL_SUCCESS);
 
   /* Fetch results of calculations. */
   err = clEnqueueReadBuffer( queue, bufY, CL_TRUE, 0, size * sizeof( *Y ), Y, 0, NULL, NULL );
@@ -939,5 +957,6 @@ int main(int argc, char* argv[])
   clfft_2d_c2r(N1, N2); 
 
   hcfft_2d_c2c(N1, N2);
-  clfft_2d_c2c(N1, N2); 
+  clfft_2d_c2c(N1, N2);
+
 }
