@@ -2217,7 +2217,7 @@ class Pass {
 
     passStr += "\n";
 
-    passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n\n\n";
+    if(!halfLds) passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n\n\n";
 
     // 3-step twiddle multiplies
     if(fft_3StepTwiddle && !tw3Done) {

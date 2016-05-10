@@ -514,12 +514,6 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 				break;
 			}
 
-			if(branchingInAny)
-			{
-				hcKernWrite( transKernel, 9 ) << "}" << std::endl;
-				hcKernWrite( transKernel, 9 ) << std::endl;
-			}
-
 			hcKernWrite( transKernel, 9 ) << "// Transpose of Tile data happens here" << std::endl;
 
 			// If requested, generate the Twiddle math to multiply constant values
@@ -527,6 +521,13 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 				genTwiddleMath( params, transKernel, dtComplex, fwd );
 
 			hcKernWrite( transKernel, 9 ) << "lds[ xInd ][ yInd ] = tmp; " << std::endl;
+
+			if(branchingInAny)
+			{
+				hcKernWrite( transKernel, 9 ) << "}" << std::endl;
+				hcKernWrite( transKernel, 9 ) << std::endl;
+			}
+
 			hcKernWrite( transKernel, 6 ) << "}" << std::endl;
 
 			if(branchingInAny)
