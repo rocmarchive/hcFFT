@@ -443,6 +443,9 @@ class FFTPlan {
   bool  large2D;
   size_t  cacheSize;
 
+  void* twiddles;
+  void* twiddleslarge;
+
   // Real-Complex simple flag
   // if this is set we do real to-and-from full complex using simple algorithm
   // where imaginary of input is set to zero in forward and imaginary not written in backward
@@ -478,9 +481,9 @@ class FFTPlan {
     planTX(0), planTY(0), planTZ(0), planRCcopy(0), planCopy(0), plHandle(0), plHandleOrigin(0),
     bLdsComplex(false), uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
     intBuffer( NULL ), intBufferD(NULL), tmpBufSizeRC(0), intBufferRC(NULL), intBufferRCD(NULL),
-    tmpBufSizeC2R(0), intBufferC2RD(NULL), intBufferC2R(NULL), transflag(false),
-    transOutHorizontal(false), large1D(0), large2D(false), RCsimple(false), realSpecial(false),
-    realSpecial_Nr(0), userPlan(false), blockCompute(false), blockComputeType(BCT_C2C),
+    tmpBufSizeC2R(0), intBufferC2RD(NULL), intBufferC2R(NULL), transflag(false), twiddles(NULL),
+    twiddleslarge(NULL), transOutHorizontal(false), large1D(0), large2D(false), RCsimple(false),
+    realSpecial(false),  realSpecial_Nr(0), userPlan(false), blockCompute(false), blockComputeType(BCT_C2C),
     hcfftlibtype(HCFFT_R2CD2Z) {
       originalLength.clear();
   };
@@ -587,7 +590,7 @@ class FFTPlan {
   hcfftStatus GetWorkSizesPvt (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
 
   template <hcfftGenerators G>
-  hcfftStatus GenerateKernelPvt (const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const;
+  hcfftStatus GenerateKernelPvt (const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const;
 
   hcfftStatus GetMax1DLength (size_t* longest ) const;
 
@@ -595,7 +598,7 @@ class FFTPlan {
 
   hcfftStatus GetWorkSizes (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
 
-  hcfftStatus GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo, size_t count) const;
+  hcfftStatus GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo, size_t count, bool exist) const;
 
   hcfftStatus ReleaseBuffers ();
 

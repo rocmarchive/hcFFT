@@ -868,7 +868,7 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Transpose> (std::vector<size_t> & globalWS,
 //  OpenCL does not take unicode strings as input, so this routine returns only ASCII strings
 //  Feed this generator the FFTPlan, and it returns the generated program as a string
 template<>
-hcfftStatus FFTPlan::GenerateKernelPvt<Transpose>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const {
+hcfftStatus FFTPlan::GenerateKernelPvt<Transpose>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const {
   FFTKernelGenKeyParams fftParams;
   this->GetKernelGenKeyPvt<Transpose>( fftParams );
 

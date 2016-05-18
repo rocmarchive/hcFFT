@@ -521,7 +521,7 @@ hcfftStatus FFTPlan::GetMax1DLengthPvt<Copy> (size_t* longest) const {
 using namespace CopyGenerator;
 
 template<>
-hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const {
+hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const {
   FFTKernelGenKeyParams params;
   this->GetKernelGenKeyPvt<Copy> (params);
   vector< size_t > gWorkSize;

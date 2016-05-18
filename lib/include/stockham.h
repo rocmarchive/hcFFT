@@ -188,11 +188,12 @@ inline std::string TwTableLargeFunc() {
 
 // Twiddle factors table for large N
 // used in 3-step algorithm
+template <typename T, Precision PR>
 class TwiddleTableLarge {
   size_t N; // length
   size_t X, Y;
   size_t tableSize;
-  double* wc, *ws; // cosine, sine arrays
+  T* wc; // cosine, sine arrays
 
  public:
   TwiddleTableLarge(size_t length) : N(length) {
@@ -200,19 +201,15 @@ class TwiddleTableLarge {
     Y = DivRoundingUp<size_t> (CeilPo2(N), ARBITRARY::TWIDDLE_DEE);
     tableSize = X * Y;
     // Allocate memory for the tables
-    wc = new double[tableSize];
-    ws = new double[tableSize];
+    wc = new T[tableSize];
   }
 
   ~TwiddleTableLarge() {
     // Free
     delete[] wc;
-    delete[] ws;
   }
 
-  template <Precision PR>
-  void TwiddleLargeAV(std::string &twStr) {
-    std::stringstream ss;
+  void TwiddleLargeAV(void **twiddleslarge, accelerator acc) {
     const double TWO_PI = -6.283185307179586476925286766559;
     // Generate the table
     size_t nt = 0;
@@ -227,57 +224,16 @@ class TwiddleTableLarge {
         double s = sin(phi * (double)j);
         //if (fabs(c) < 1.0E-12)  c = 0.0;
         //if (fabs(s) < 1.0E-12)  s = 0.0;
-        wc[nt]   = c;
-        ws[nt++] = s;
+        wc[nt].x   = c;
+        wc[nt++].y = s;
       }
     }
 
-    std::string sfx = FloatSuffix<PR>();
-    // Stringize the table
-    nt = 0;
-    ss << "\n\t";
-    ss << RegBaseType<PR>(2);
-    ss << " twiddlel ";
-    ss << "[" << Y* X << "] = {\n";
-
-    for (size_t iY = 0; iY < Y; ++iY) {
-      for (size_t iX = 0; iX < X; ++iX) {
-        char cv[64], sv[64];
-        sprintf(cv, "%036.34lf", wc[nt]);
-        sprintf(sv, "%036.34lf", ws[nt++]);
-        ss << RegBaseType<PR>(2);
-        ss << "(";
-        ss << cv;
-        ss << sfx;
-        ss << ", ";
-        ss << sv;
-        ss << sfx;
-        ss << ")";
-        ss << ", ";
-      }
-    }
-
-    ss << "};\n\n";
-    // Construct array view from twiddlel array
-    ss << RegBaseType<PR>(2);
-    ss << " *";
-    ss << TwTableLargeName();
-    ss << " = hc::am_alloc(sizeof(";
-    ss << RegBaseType<PR>(2);
-    ss << ") * ";
-    ss << SztToStr(Y * X);
-    ss << ", acc, 0);\n\t";
-    ss << "hc::am_copy(";
-    ss << TwTableLargeName();
-    ss << ", twiddlel, ";
-    ss << SztToStr(Y * X);
-    ss << " * sizeof(";
-    ss << RegBaseType<PR>(2);
-    ss << "));";
-    twStr += ss.str();
+    *twiddleslarge = hc::am_alloc(Y * X * sizeof(T), acc, 0);
+    hc::am_copy(*twiddleslarge, wc, Y * X * sizeof(T));
+    assert(*twiddleslarge != NULL);
   }
 
-  template <Precision PR>
   void GenerateTwiddleTable(std::string &twStr) {
     if(!Lfirst) {
       std::stringstream ss;

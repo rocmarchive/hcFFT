@@ -99,6 +99,7 @@ hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators g
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   std::string kernel;
   fftRepo.getProgramCode( gen, plHandle, fftParams, kernel);
+
   FILE* fp;
 
   std::string pwd = getHomeDir();
@@ -233,17 +234,17 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
       return HCFFT_INVALID;
     }
     system(execCmd.c_str());
-  }
 
-  // get a kernel object handle for a kernel with the given name
-  if(buildFwdKernel) {
-    std::string entryPoint;
-    fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, HCFFT_FORWARD, entryPoint);
-  }
+    // get a kernel object handle for a kernel with the given name
+    if(buildFwdKernel) {
+      std::string entryPoint;
+      fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, HCFFT_FORWARD, entryPoint);
+    }
 
-  if(buildBwdKernel) {
-    std::string entryPoint;
-    fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, HCFFT_BACKWARD, entryPoint);
+    if(buildBwdKernel) {
+      std::string entryPoint;
+      fftRepo.getProgramEntryPoint( gen, plHandle, fftParams, HCFFT_BACKWARD, entryPoint);
+    }
   }
 
   return HCFFT_SUCCEEDS;
@@ -1677,6 +1678,17 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
         //  Don't recognize output layout
         return HCFFT_ERROR;
       }
+  }
+
+  if(fftPlan->gen == Stockham) {
+    if(fftPlan->twiddles != NULL)
+    {
+      vectArr.insert(std::make_pair(uarg++, fftPlan->twiddles));
+    }
+    if(fftPlan->twiddleslarge)
+    {
+      vectArr.insert(std::make_pair(uarg++, fftPlan->twiddleslarge));
+    }
   }
 
   vector< size_t > gWorkSize;
@@ -3209,10 +3221,8 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
   }
 
   if(fftPlan->gen == Copy) {
-    if(!exist) {
-      fftPlan->GenerateKernel(plHandle, fftRepo, bakedPlanCount);
-      bakedPlanCount++;
-    }
+    fftPlan->GenerateKernel(plHandle, fftRepo, bakedPlanCount, exist);
+    bakedPlanCount++;
 
     CompileKernels(plHandle, fftPlan->gen, fftPlan, plHandleOrigin, exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
     fftPlan->baked = true;
@@ -4399,10 +4409,8 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
 
     case HCFFT_2D: {
         if (fftPlan->transflag) { //Transpose for 2D
-          if(!exist) {
-            fftPlan->GenerateKernel(plHandle, fftRepo, bakedPlanCount);
-            bakedPlanCount++;
-          }
+          fftPlan->GenerateKernel(plHandle, fftRepo, bakedPlanCount, exist);
+          bakedPlanCount++;
 
           CompileKernels(plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
           fftPlan->baked    = true;
@@ -6046,12 +6054,10 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
       }
   }
 
-  if(!exist) {
-    //  For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
-    fftPlan->GenerateKernel( plHandle, fftRepo, bakedPlanCount);
-    //  For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
-    bakedPlanCount++;
-  }
+  //  For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
+  fftPlan->GenerateKernel( plHandle, fftRepo, bakedPlanCount, exist);
+  //  For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
+  bakedPlanCount++;
 
   CompileKernels( plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
   //  Record that we baked the plan
@@ -6704,16 +6710,16 @@ hcfftStatus  FFTPlan::GetWorkSizes (std::vector<size_t> & globalws, std::vector<
   }
 }
 
-hcfftStatus  FFTPlan::GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo, size_t count) const {
+hcfftStatus  FFTPlan::GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo, size_t count, bool exist) const {
   switch(gen) {
     case Stockham:
-      return GenerateKernelPvt<Stockham>(plHandle, fftRepo, count);
+      return GenerateKernelPvt<Stockham>(plHandle, fftRepo, count, exist);
 
     case Copy:
-      return GenerateKernelPvt<Copy>(plHandle, fftRepo, count);
+      return GenerateKernelPvt<Copy>(plHandle, fftRepo, count, exist);
 
     case Transpose:
-      return GenerateKernelPvt<Transpose>(plHandle, fftRepo, count);
+      return GenerateKernelPvt<Transpose>(plHandle, fftRepo, count, exist);
 
     default:
       return HCFFT_ERROR;
@@ -6803,6 +6809,17 @@ hcfftStatus FFTPlan::ReleaseBuffers () {
     intBufferC2RD = NULL;
   }
 
+  if( NULL != twiddles ) {
+    if( hc::am_free(twiddles) != AM_SUCCESS)
+      return HCFFT_INVALID;
+    twiddles = NULL;
+  }
+
+  if( NULL != twiddleslarge ) {
+    if( hc::am_free(twiddleslarge) != AM_SUCCESS)
+      return HCFFT_INVALID;
+    twiddleslarge = NULL;
+  }
   return result;
 }
 

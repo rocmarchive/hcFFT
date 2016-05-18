@@ -303,26 +303,24 @@ void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGro
 }
 
 // Twiddle factors table
+template <class T>
 class TwiddleTable {
   size_t N; // length
-  double* wc, *ws; // cosine, sine arrays
+  T* wc; // cosine, sine arrays
 
  public:
   TwiddleTable(size_t length) : N(length) {
     // Allocate memory for the tables
     // We compute twiddle factors in double precision for both P_SINGLE and P_DOUBLE
-    wc = new double[N];
-    ws = new double[N];
+    wc = new T[N];
   }
 
   ~TwiddleTable() {
     // Free
     delete[] wc;
-    delete[] ws;
   }
 
-  template <Precision PR>
-  void GenerateTwiddleTable(const std::vector<size_t> &radices, std::string &twStr) {
+  void GenerateTwiddleTable(void **twiddles, accelerator acc, const std::vector<size_t> &radices) {
     const double TWO_PI = -6.283185307179586476925286766559;
     // Make sure the radices vector sums up to N
     size_t sz = 1;
@@ -351,31 +349,15 @@ class TwiddleTable {
           double s = sin(((double)j) * theta);
           //if (fabs(c) < 1.0E-12)  c = 0.0;
           //if (fabs(s) < 1.0E-12)  s = 0.0;
-          wc[nt]   = c;
-          ws[nt++] = s;
+          wc[nt].x   = c;
+          wc[nt++].y = s;
         }
       }
     }
 
-    std::string sfx = FloatSuffix<PR>();
-    // Stringize the table
-    std::stringstream ss;
-
-    for(size_t i = 0; i < (N - 1); i++) {
-      ss << RegBaseType<PR>(2);
-      ss << "(";
-      char cv[64], sv[64];
-      sprintf(cv, "%036.34lf", wc[i]);
-      sprintf(sv, "%036.34lf", ws[i]);
-      ss << cv;
-      ss << sfx;
-      ss << ", ";
-      ss << sv;
-      ss << sfx;
-      ss << "),\n";
-    }
-
-    twStr += ss.str();
+    *twiddles = (T*)hc::am_alloc( N * sizeof(T), acc, 0);
+    hc::am_copy(*twiddles, wc, N * sizeof(T));
+    assert(*twiddles != NULL);
   }
 };
 
@@ -1698,6 +1680,7 @@ class Pass {
     const std::string bufferInIm2  = (inReal || inInterleaved) ?   "bufIn2"  : "bufInIm2";
     const std::string bufferOutRe2 = (outReal || outInterleaved) ? "bufOut2" : "bufOutRe2";
     const std::string bufferOutIm2 = (outReal || outInterleaved) ? "bufOut2" : "bufOutIm2";
+    std::string twType = RegBaseType<PR>(2);
 
     // for real transforms we use only B1 butteflies (regC = 1)
     if(r2c || c2r) {
@@ -1933,14 +1916,14 @@ class Pass {
 
     if(length > 1) {
       passStr += ", ";
-      passStr += regB2Type;
+      passStr += twType;
       passStr += " *";
       passStr += TwTableName();
     }
 
     if(fft_3StepTwiddle) {
       passStr += ", ";
-      passStr += RegBaseType<PR>(2);
+      passStr += twType;
       passStr += " *";
       passStr += TwTableLargeName();
     }
@@ -2869,7 +2852,7 @@ class Kernel {
     }
   };
 
-  void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count) {
+  void GenerateKernel(void **twiddles, void **twiddleslarge, accelerator acc, const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count) {
     std::string twType = RegBaseType<PR>(2);
     std::string rType  = RegBaseType<PR>(1);
     std::string r2Type  = RegBaseType<PR>(2);
@@ -2980,11 +2963,25 @@ class Kernel {
       }
     }
 
-    TwiddleTableLarge twLarge(large1D);
+    if(PR == P_SINGLE)
+    {
+       TwiddleTableLarge<float_2, PR> twLarge(large1D);
 
-    // twiddle factors for 1d-large 3-step algorithm
-    if(params.fft_3StepTwiddle) {
-      twLarge.GenerateTwiddleTable<PR>(str);
+       // twiddle factors for 1d-large 3-step algorithm
+       if(params.fft_3StepTwiddle) {
+         twLarge.GenerateTwiddleTable(str);
+         twLarge.TwiddleLargeAV(twiddleslarge, acc);
+      }
+    }
+    else
+    {
+       TwiddleTableLarge<double_2, PR> twLarge(large1D);
+
+       // twiddle factors for 1d-large 3-step algorithm
+       if(params.fft_3StepTwiddle) {
+         twLarge.GenerateTwiddleTable(str);
+         twLarge.TwiddleLargeAV(twiddleslarge, acc);
+      }
     }
 
     // Generate passes
@@ -3253,39 +3250,47 @@ class Kernel {
       }
 
       // Twiddle table
-      if(length > 1) {
-        TwiddleTable twTable(length);
+      if(length > 1 ) {
         str += "\n\n";
-        str += twType;
-        str += " twiddlev";
-        str += "[";
-        str += SztToStr(length - 1);
-        str += "] = {\n";
-        twTable.GenerateTwiddleTable<PR>(radices, str);
-        str += "};\n\n";
-        // Construct array view from twiddle array
-        str += twType;
+        str += r2Type;
         str += " *";
         str += TwTableName();
-        str += " = hc::am_alloc(sizeof(";
-        str += twType;
-        str += ") * ";
-        str += SztToStr(length - 1);
-        str += ", acc, 0);";
-        str += "hc::am_copy(";
-        str += TwTableName();
-        str += ", twiddlev, sizeof(";
-        str += twType;
-        str += ") * ";
-        str += SztToStr(length - 1);
-        str += ");";
+        str += " = static_cast< ";
+        str += r2Type;
+        str += " *> (vectArr[";
+        str += SztToStr(arg);
+        str += "]);\n";
+        if(PR == P_SINGLE)
+        {
+          if ( d == 0 )
+          {
+            TwiddleTable<hc::short_vector::float_2> twTable(length);
+            twTable.GenerateTwiddleTable(twiddles, acc, radices);
+          }
+        }
+        else
+        {
+          if ( d == 0 )
+          {
+            TwiddleTable<hc::short_vector::double_2> twTable(length);
+            twTable.GenerateTwiddleTable(twiddles, acc, radices);
+          }
+        }
       }
 
       str += "\n";
 
       // twiddle factors for 1d-large 3-step algorithm
       if(params.fft_3StepTwiddle) {
-        twLarge.TwiddleLargeAV<PR>(str);
+        str += "\n\n";
+        str += r2Type;
+        str += " *";
+        str += TwTableName();
+        str += " = static_cast< ";
+        str += r2Type;
+        str += " *> (vectArr[";
+        str += SztToStr(arg);
+        str += "]);\n";
       }
 
       str += "\thc::extent<2> grdExt( ";
@@ -4039,18 +4044,6 @@ class Kernel {
 
       str += " }).wait();\n";
 
-      if(length > 1) {
-        str += "hc::am_free(";
-        str += TwTableName();
-        str += ");";
-      }
-
-      if(params.fft_3StepTwiddle) {
-         str += "hc::am_free(";
-        str += TwTableLargeName();
-        str += ");";
-      }
-
       str += "}}\n\n";
 
       if(r2c2r) {
@@ -4228,31 +4221,126 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS, 
 }
 
 template<>
-hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const {
+hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const {
   FFTKernelGenKeyParams params;
   this->GetKernelGenKeyPvt<Stockham> (params);
-  vector< size_t > gWorkSize;
-  vector< size_t > lWorkSize;
-  this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);
-  std::string programCode;
-  programCode = hcHeader();
-  Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
+  if(!exist)
+  {
+    vector< size_t > gWorkSize;
+    vector< size_t > lWorkSize;
+    this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);
+    std::string programCode;
+    programCode = hcHeader();
+    Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
 
-  switch(pr) {
-    case P_SINGLE: {
-        Kernel<P_SINGLE> kernel(params);
-        kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
-      }
-      break;
+    switch(pr) {
+      case P_SINGLE: {
+          Kernel<P_SINGLE> kernel(params);
+          kernel.GenerateKernel((void**)&twiddles, (void**)&twiddleslarge, acc, plHandle, programCode, gWorkSize, lWorkSize, count);
+        }
+        break;
 
-    case P_DOUBLE: {
-        Kernel<P_DOUBLE> kernel(params);
-        kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
-      }
-      break;
+      case P_DOUBLE: {
+          Kernel<P_DOUBLE> kernel(params);
+          kernel.GenerateKernel((void**)&twiddles, (void**)&twiddleslarge, acc, plHandle, programCode, gWorkSize, lWorkSize, count);
+          assert(twiddles != NULL);
+        }
+        break;
+     }
+
+    fftRepo.setProgramCode( Stockham, plHandle, params, programCode);
+    fftRepo.setProgramEntryPoints( Stockham, plHandle, params, "fft_fwd", "fft_back");
   }
+  else
+  {
+    size_t large1D = 0;
+    size_t length = params.fft_N[0];
+    size_t R = length;
+    const size_t* pRadices = NULL;
+    size_t nPasses;
 
-  fftRepo.setProgramCode( Stockham, plHandle, params, programCode);
-  fftRepo.setProgramEntryPoints( Stockham, plHandle, params, "fft_fwd", "fft_back");
+    if(params.fft_realSpecial) {
+      large1D = params.fft_N[0] * params.fft_realSpecial_Nr;
+    } else {
+      large1D = params.fft_N[0] * params.fft_N[1];
+    }
+
+    std::vector<size_t> radices;
+    KernelCoreSpecs<P_SINGLE> kcs;
+    kcs.GetRadices(length, nPasses, pRadices);
+
+    if((params.fft_MaxWorkGroupSize >= 256) && (pRadices != NULL))
+    {
+      for(size_t i = 0; i < nPasses; i++) {
+        size_t rad = pRadices[i];
+        R /= rad;
+        radices.push_back(rad);
+      }
+
+      assert(R == 1); // this has to be true for correct radix composition of the length
+    }
+    else
+    {
+      size_t numTrans = (params.fft_SIMD * params.fft_R) / length;
+      size_t cnPerWI = (numTrans * length) / params.fft_SIMD;
+
+      // Possible radices
+      size_t cRad[] = {10, 8, 7, 6, 5, 4, 3, 2, 1}; // Must be in descending order
+      size_t cRadSize = (sizeof(cRad) / sizeof(cRad[0]));
+
+      while(true) {
+        size_t rad;
+        assert(cRadSize >= 1);
+
+        for(size_t r = 0; r < cRadSize; r++) {
+          rad = cRad[r];
+
+          if((rad > cnPerWI) || (cnPerWI % rad)) {
+            continue;
+          }
+
+          if(!(R % rad)) {
+            break;
+          }
+        }
+
+        assert((cnPerWI % rad) == 0);
+        R /= rad;
+        radices.push_back(rad);
+        assert(R >= 1);
+
+        if(R == 1) {
+          break;
+        }
+      }
+    }
+
+    if(params.fft_precision == HCFFT_SINGLE)
+    {
+      // Twiddle table
+      if(length > 1) {
+        TwiddleTable<hc::short_vector::float_2> twTable(length);
+        twTable.GenerateTwiddleTable((void**)twiddles, acc, radices);
+      }
+
+      // twiddle factors for 1d-large 3-step algorithm
+      if(params.fft_3StepTwiddle && !twiddleslarge) {
+        TwiddleTableLarge<hc::short_vector::float_2, P_SINGLE> twLarge(large1D);
+        twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+      }
+    }
+    else
+      // Twiddle table
+      if(length > 1) {
+        TwiddleTable<hc::short_vector::double_2> twTable(length);
+        twTable.GenerateTwiddleTable((void**)twiddles, acc, radices);
+      }
+
+      // twiddle factors for 1d-large 3-step algorithm
+      if(params.fft_3StepTwiddle && !twiddleslarge) {
+        TwiddleTableLarge<hc::short_vector::double_2, P_DOUBLE> twLarge(large1D);
+        twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+      }
+  }
   return HCFFT_SUCCEEDS;
 }
