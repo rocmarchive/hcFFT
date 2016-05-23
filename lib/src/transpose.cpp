@@ -211,9 +211,9 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
   return HCFFT_SUCCEEDS;
 }
 
-static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernelGenKeyParams & params, std::string& strKernel, const tile& lwSize, const size_t reShapeFactor,
-                                       const size_t loopCount, const tile& blockSize, const size_t outRowPadding, vector< size_t > gWorkSize, vector< size_t > lWorkSize,
-                                       size_t count) {
+static hcfftStatus genTransposeKernel( void **twiddleslarge, accelerator acc, const hcfftPlanHandle plHandle, FFTKernelGenKeyParams & params, std::string& strKernel,
+                                       const tile& lwSize, const size_t reShapeFactor, const size_t loopCount, const tile& blockSize, const size_t outRowPadding,
+                                       vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count) {
   strKernel.reserve( 4096 );
   std::stringstream transKernel( std::stringstream::out );
   // These strings represent the various data types we read or write in the kernel, depending on how the plan
@@ -242,12 +242,15 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
   //  If twiddle computation has been requested, generate the lookup function
   if(params.fft_3StepTwiddle) {
     std::string str;
-    StockhamGenerator::TwiddleTableLarge twLarge(params.fft_N[0] * params.fft_N[1]);
 
     if(params.fft_precision == HCFFT_SINGLE) {
-      twLarge.GenerateTwiddleTable<StockhamGenerator::P_SINGLE>(str);
+    StockhamGenerator::TwiddleTableLarge<hc::short_vector::float_2, StockhamGenerator::P_SINGLE> twLarge(params.fft_N[0] * params.fft_N[1]);
+    twLarge.GenerateTwiddleTable(str);
+    twLarge.TwiddleLargeAV(twiddleslarge, acc);
     } else {
-      twLarge.GenerateTwiddleTable<StockhamGenerator::P_DOUBLE>(str);
+      StockhamGenerator::TwiddleTableLarge<hc::short_vector::double_2, StockhamGenerator::P_DOUBLE> twLarge(params.fft_N[0] * params.fft_N[1]);
+      twLarge.GenerateTwiddleTable(str);
+      twLarge.TwiddleLargeAV(twiddleslarge, acc);
     }
 
     hcKernWrite( transKernel, 0 ) << str << std::endl;
@@ -872,37 +875,66 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Transpose>(const hcfftPlanHandle plHandle
   FFTKernelGenKeyParams fftParams;
   this->GetKernelGenKeyPvt<Transpose>( fftParams );
 
-  switch( fftParams.fft_precision ) {
-    case HCFFT_SINGLE:
-      loopCount = 16;
-      break;
+  if(!exist)
+  {
+    switch( fftParams.fft_precision ) {
+      case HCFFT_SINGLE:
+        loopCount = 16;
+        break;
 
-    case HCFFT_DOUBLE:
-      // Double precisions need about half the amount of LDS space as singles do
-      loopCount = 8;
-      break;
+      case HCFFT_DOUBLE:
+        // Double precisions need about half the amount of LDS space as singles do
+        loopCount = 8;
+        break;
 
-    default:
-      return HCFFT_INVALID;
-      break;
+      default:
+        return HCFFT_INVALID;
+        break;
+    }
+
+    blockSize.x = lwSize.x * reShapeFactor;
+    blockSize.y = lwSize.y / reShapeFactor * loopCount;
+    vector< size_t > gWorkSize;
+    vector< size_t > lWorkSize;
+    this->GetWorkSizesPvt<Transpose> (gWorkSize, lWorkSize);
+    std::string programCode;
+    programCode = hcHeader();
+    genTransposeKernel((void**)&twiddleslarge, acc, plHandle, fftParams, programCode, lwSize, reShapeFactor, loopCount, blockSize, outRowPadding, gWorkSize, lWorkSize, count);
+    fftRepo.setProgramCode(Transpose, plHandle, fftParams, programCode);
+
+    // Note:  See genFunctionPrototype( )
+    if( fftParams.fft_3StepTwiddle ) {
+      fftRepo.setProgramEntryPoints( Transpose, plHandle, fftParams, "transpose_tw_fwd", "transpose_tw_back");
+    } else {
+      fftRepo.setProgramEntryPoints( Transpose, plHandle, fftParams, "transpose", "transpose");
+    }
   }
+  else
+  {
+    size_t large1D = 0;
 
-  blockSize.x = lwSize.x * reShapeFactor;
-  blockSize.y = lwSize.y / reShapeFactor * loopCount;
-  vector< size_t > gWorkSize;
-  vector< size_t > lWorkSize;
-  this->GetWorkSizesPvt<Transpose> (gWorkSize, lWorkSize);
-  std::string programCode;
-  programCode = hcHeader();
-  genTransposeKernel( plHandle, fftParams, programCode, lwSize, reShapeFactor, loopCount, blockSize, outRowPadding, gWorkSize, lWorkSize, count);
-  fftRepo.setProgramCode(Transpose, plHandle, fftParams, programCode);
+    if(fftParams.fft_realSpecial) {
+      large1D = fftParams.fft_N[0] * fftParams.fft_realSpecial_Nr;
+    } else {
+      large1D = fftParams.fft_N[0] * fftParams.fft_N[1];
+    }
 
-  // Note:  See genFunctionPrototype( )
-  if( fftParams.fft_3StepTwiddle ) {
-    fftRepo.setProgramEntryPoints( Transpose, plHandle, fftParams, "transpose_tw_fwd", "transpose_tw_back");
-  } else {
-    fftRepo.setProgramEntryPoints( Transpose, plHandle, fftParams, "transpose", "transpose");
+    if(fftParams.fft_precision == HCFFT_SINGLE)
+    {
+      // twiddle factors for 1d-large 3-step algorithm
+      if(fftParams.fft_3StepTwiddle && !twiddleslarge) {
+        StockhamGenerator::TwiddleTableLarge<hc::short_vector::float_2, StockhamGenerator::P_SINGLE> twLarge(large1D);
+        twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+      }
+    }
+    else
+    {
+      // twiddle factors for 1d-large 3-step algorithm
+      if(fftParams.fft_3StepTwiddle && !twiddleslarge) {
+        StockhamGenerator::TwiddleTableLarge<hc::short_vector::double_2, StockhamGenerator::P_DOUBLE> twLarge(large1D);
+        twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+      }
+    }
   }
-
   return HCFFT_SUCCEEDS;
 }

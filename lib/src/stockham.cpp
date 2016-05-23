@@ -4330,6 +4330,7 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
       }
     }
     else
+    {
       // Twiddle table
       if(length > 1) {
         TwiddleTable<hc::short_vector::double_2> twTable(length);
@@ -4341,6 +4342,7 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
         TwiddleTableLarge<hc::short_vector::double_2, P_DOUBLE> twLarge(large1D);
         twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
       }
+    }
   }
   return HCFFT_SUCCEEDS;
 }
