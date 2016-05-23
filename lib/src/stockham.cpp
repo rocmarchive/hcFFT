@@ -4320,7 +4320,7 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
       // Twiddle table
       if(length > 1) {
         TwiddleTable<hc::short_vector::float_2> twTable(length);
-        twTable.GenerateTwiddleTable((void**)twiddles, acc, radices);
+        twTable.GenerateTwiddleTable((void**)&twiddles, acc, radices);
       }
 
       // twiddle factors for 1d-large 3-step algorithm
@@ -4334,7 +4334,7 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
       // Twiddle table
       if(length > 1) {
         TwiddleTable<hc::short_vector::double_2> twTable(length);
-        twTable.GenerateTwiddleTable((void**)twiddles, acc, radices);
+        twTable.GenerateTwiddleTable((void**)&twiddles, acc, radices);
       }
 
       // twiddle factors for 1d-large 3-step algorithm
