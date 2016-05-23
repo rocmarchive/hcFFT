@@ -10,6 +10,7 @@ static std::string kernellib, filename;
 static size_t beforeCompile = 99999999;
 static size_t countKernel,bakedPlanCount;
 static bool exist;
+void* kernelHandle = NULL;
 
 bool has_suffix(const string& s, const string& suffix) {
   return (s.size() >= suffix.size()) && equal(suffix.rbegin(), suffix.rend(), s.rbegin());
@@ -582,6 +583,13 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   scopedLock sLock(*planLock, _T( " hcfftEnqueueTransform" ) );
   countKernel = 0;
 
+  kernelHandle = dlopen(kernellib.c_str(), RTLD_NOW);
+
+  if(!kernelHandle) {
+    std::cout << "Failed to load Kernel: " << kernellib.c_str() << std::endl;
+    return HCFFT_ERROR;
+  }
+
   float* localIntBuffer = clTmpBuffers;
   // we do not check the user provided buffer at this release
   if( clTmpBuffers == NULL && fftPlan->tmpBufSize > 0 && fftPlan->intBuffer == NULL) {
@@ -793,6 +801,13 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   {
     status = hcfftEnqueueTransformInternal(plHandle, dir, clInputBuffers, clOutputBuffers, localIntBuffer);
   }
+
+  if(dlclose(kernelHandle)) {
+    char *err = dlerror();
+    std::cout << " Failed to close KernHandle "<<err;
+    exit(1);
+  }
+  kernelHandle = NULL;
 
   if( NULL != localIntBuffer ) {
     if( hc::am_free(localIntBuffer) != AM_SUCCESS)
@@ -1702,19 +1717,10 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   BUG_CHECK (gWorkSize.size() == lWorkSize.size());
   remove(filename.c_str());
 
-  void* kernelHandle = NULL;
   typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
   FUNC_FFTFwd* FFTcall = NULL;
 
   std::string pwd = getHomeDir();
-
-  char* err = (char*) calloc(128, 2);
-  kernelHandle = dlopen(kernellib.c_str(), RTLD_NOW);
-
-  if(!kernelHandle) {
-    std::cout << "Failed to load Kernel: " << kernellib.c_str() << std::endl;
-    return HCFFT_ERROR;
-  }
 
   if(fftPlan->gen == Copy) {
     bool h2c = ((fftPlan->ipLayout == HCFFT_HERMITIAN_PLANAR) ||
@@ -1734,7 +1740,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
       std::cout << "Loading copy() fails " << std::endl;
     }
 
-    err = dlerror();
+    char *err = dlerror();
 
     if (err) {
       std::cout << "failed to locate copy(): " << err;
@@ -1750,7 +1756,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
         std::cout << "Loading fft_fwd fails " << std::endl;
       }
 
-      err = dlerror();
+      char *err = dlerror();
 
       if (err) {
         std::cout << "failed to locate fft_fwd(): " << err;
@@ -1765,7 +1771,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
         std::cout << "Loading fft_back fails " << std::endl;
       }
 
-      err = dlerror();
+      char *err = dlerror();
 
       if (err) {
         std::cout << "failed to locate fft_back(): " << err;
@@ -1781,7 +1787,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
       std::cout << "Loading transpose fails " << std::endl;
     }
 
-    err = dlerror();
+    char *err = dlerror();
 
     if (err) {
       std::cout << "failed to locate transpose(): " << err;
@@ -1791,13 +1797,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
 
   FFTcall(&vectArr, batch, fftPlan->acc_view, fftPlan->acc);
   countKernel++;
-  if(dlclose(kernelHandle)) {
-    err = dlerror();
-    std::cout << " Failed to close KernHandle "<<err;
-    exit(1);
-  }
-  kernelHandle = NULL;
-  free(err);
+
   FFTcall = NULL;
   return status;
 }
@@ -1897,6 +1897,13 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   fftRepo.getPlan( plHandle, fftPlan, planLock );
   scopedLock sLock(*planLock, _T( " hcfftEnqueueTransform" ) );
   countKernel = 0;
+
+  kernelHandle = dlopen(kernellib.c_str(), RTLD_NOW);
+
+  if(!kernelHandle) {
+    std::cout << "Failed to load Kernel: " << kernellib.c_str() << std::endl;
+    return HCFFT_ERROR;
+  }
 
   double* localIntBuffer = clTmpBuffers;
   // we do not check the user provided buffer at this release
@@ -2109,6 +2116,13 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   {
     status = hcfftEnqueueTransformInternal(plHandle, dir, clInputBuffers, clOutputBuffers, localIntBuffer);
   }
+
+  if(dlclose(kernelHandle)) {
+    char *err = dlerror();
+    std::cout << " Failed to close KernHandle "<<err;
+    exit(1);
+  }
+  kernelHandle = NULL;
 
   if( NULL != localIntBuffer ) {
     if( hc::am_free(localIntBuffer) != AM_SUCCESS)
@@ -3009,19 +3023,8 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   BUG_CHECK (gWorkSize.size() == lWorkSize.size());
   remove(filename.c_str());
 
-  void* kernelHandle = NULL;
   typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
   FUNC_FFTFwd* FFTcall = NULL;
-
-  std::string pwd = getHomeDir();
-
-  char* err = (char*) calloc(128, 2);
-  kernelHandle = dlopen(kernellib.c_str(), RTLD_NOW);
-
-  if(!kernelHandle) {
-    std::cout << "Failed to load Kernel: " << kernellib.c_str() << std::endl;
-    return HCFFT_ERROR;
-  }
 
   if(fftPlan->gen == Copy) {
     bool h2c = ((fftPlan->ipLayout == HCFFT_HERMITIAN_PLANAR) ||
@@ -3041,7 +3044,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
       std::cout << "Loading copy() fails " << std::endl;
     }
 
-    err = dlerror();
+    char *err = dlerror();
 
     if (err) {
       std::cout << "failed to locate copy(): " << err;
@@ -3057,7 +3060,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
         std::cout << "Loading fft_fwd fails " << std::endl;
       }
 
-      err = dlerror();
+      char *err = dlerror();
 
       if (err) {
         std::cout << "failed to locate fft_fwd(): " << err;
@@ -3072,7 +3075,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
         std::cout << "Loading fft_back fails " << std::endl;
       }
 
-      err = dlerror();
+      char *err = dlerror();
 
       if (err) {
         std::cout << "failed to locate fft_back(): " << err;
@@ -3088,7 +3091,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
       std::cout << "Loading transpose fails " << std::endl;
     }
 
-    err = dlerror();
+    char *err = dlerror();
 
     if (err) {
       std::cout << "failed to locate transpose(): " << err;
@@ -3098,13 +3101,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
 
   FFTcall(&vectArr, batch, fftPlan->acc_view, fftPlan->acc);
   countKernel++;
-  if(dlclose(kernelHandle)) {
-    err = dlerror();
-    std::cout << " Failed to close KernHandle "<<err;
-    exit(1);
-  }
-  kernelHandle = NULL;
-  free(err);
+
   FFTcall = NULL;
   return status;
 }
@@ -3117,6 +3114,10 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
   scopedLock sLock(*planLock, _T( "hcfftBakePlan" ) );
+
+  if( fftPlan->baked == true ) {
+    return HCFFT_SUCCEEDS;
+  }
 
   exist = checkIfsoExist(fftPlan->direction, fftPlan->precision, fftPlan->originalLength, fftPlan->hcfftlibtype);
   return hcfftBakePlanInternal(plHandle);
