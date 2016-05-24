@@ -8,7 +8,7 @@ lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
 size_t FFTRepo::planCount = 1;
 static std::string kernellib, filename;
 static size_t beforeCompile = 99999999;
-static size_t countKernel,bakedPlanCount;
+static size_t bakedPlanCount;
 static bool exist;
 void* kernelHandle = NULL;
 
@@ -581,7 +581,6 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
   scopedLock sLock(*planLock, _T( " hcfftEnqueueTransform" ) );
-  countKernel = 0;
 
   kernelHandle = dlopen(kernellib.c_str(), RTLD_NOW);
 
@@ -802,6 +801,12 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
     status = hcfftEnqueueTransformInternal(plHandle, dir, clInputBuffers, clOutputBuffers, localIntBuffer);
   }
 
+  if( NULL != localIntBuffer ) {
+    if( hc::am_free(localIntBuffer) != AM_SUCCESS)
+          return HCFFT_INVALID;
+    localIntBuffer = NULL;
+  }
+
   if(dlclose(kernelHandle)) {
     char *err = dlerror();
     std::cout << " Failed to close KernHandle "<<err;
@@ -809,11 +814,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   }
   kernelHandle = NULL;
 
-  if( NULL != localIntBuffer ) {
-    if( hc::am_free(localIntBuffer) != AM_SUCCESS)
-          return HCFFT_INVALID;
-    localIntBuffer = NULL;
-  }
+  remove(filename.c_str());
 
   return status;
 }
@@ -1715,90 +1716,9 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   }
 
   BUG_CHECK (gWorkSize.size() == lWorkSize.size());
-  remove(filename.c_str());
 
-  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
-  FUNC_FFTFwd* FFTcall = NULL;
+  fftPlan->kernelPtr(&vectArr, batch, fftPlan->acc_view, fftPlan->acc);
 
-  std::string pwd = getHomeDir();
-
-  if(fftPlan->gen == Copy) {
-    bool h2c = ((fftPlan->ipLayout == HCFFT_HERMITIAN_PLANAR) ||
-                (fftPlan->ipLayout == HCFFT_HERMITIAN_INTERLEAVED) ) ? true : false;
-    std::string funcName = "copy_";
-
-    if(h2c) {
-      funcName += "h2c";
-    } else {
-      funcName += "c2h";
-    }
-
-    funcName +=  std::to_string(countKernel);
-    FFTcall = (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
-
-    if (!FFTcall) {
-      std::cout << "Loading copy() fails " << std::endl;
-    }
-
-    char *err = dlerror();
-
-    if (err) {
-      std::cout << "failed to locate copy(): " << err;
-      exit(1);
-    }
-  } else if(fftPlan->gen == Stockham) {
-    if(dir == HCFFT_FORWARD) {
-      std::string funcName = "fft_fwd";
-      funcName +=  std::to_string(countKernel);
-      FFTcall = (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
-
-      if (!FFTcall) {
-        std::cout << "Loading fft_fwd fails " << std::endl;
-      }
-
-      char *err = dlerror();
-
-      if (err) {
-        std::cout << "failed to locate fft_fwd(): " << err;
-        exit(1);
-      }
-    } else if(dir == HCFFT_BACKWARD) {
-      std::string funcName = "fft_back";
-      funcName +=  std::to_string(countKernel);
-      FFTcall = (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
-
-      if (!FFTcall) {
-        std::cout << "Loading fft_back fails " << std::endl;
-      }
-
-      char *err = dlerror();
-
-      if (err) {
-        std::cout << "failed to locate fft_back(): " << err;
-        exit(1);
-      }
-    }
-  } else if(fftPlan->gen == Transpose) {
-    std::string funcName = "transpose";
-    funcName +=  std::to_string(countKernel);
-    FFTcall = (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
-
-    if (!FFTcall) {
-      std::cout << "Loading transpose fails " << std::endl;
-    }
-
-    char *err = dlerror();
-
-    if (err) {
-      std::cout << "failed to locate transpose(): " << err;
-      exit(1);
-    }
-  }
-
-  FFTcall(&vectArr, batch, fftPlan->acc_view, fftPlan->acc);
-  countKernel++;
-
-  FFTcall = NULL;
   return status;
 }
 
@@ -1896,7 +1816,6 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
   scopedLock sLock(*planLock, _T( " hcfftEnqueueTransform" ) );
-  countKernel = 0;
 
   kernelHandle = dlopen(kernellib.c_str(), RTLD_NOW);
 
@@ -3021,7 +2940,15 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   }
 
   BUG_CHECK (gWorkSize.size() == lWorkSize.size());
-  remove(filename.c_str());
+
+  fftPlan->kernelPtr(&vectArr, batch, fftPlan->acc_view, fftPlan->acc);
+
+  return status;
+}
+
+hcfftStatus loadSymbols(FFTPlan* fftPlan, hcfftDirection dir)
+{
+  hcfftStatus status = HCFFT_INVALID;
 
   typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
   FUNC_FFTFwd* FFTcall = NULL;
@@ -3037,38 +2964,40 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
       funcName += "c2h";
     }
 
-    funcName +=  std::to_string(countKernel);
+    funcName +=  std::to_string(fftPlan->id);
     FFTcall = (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
 
     if (!FFTcall) {
       std::cout << "Loading copy() fails " << std::endl;
+      return status;
     }
 
     char *err = dlerror();
 
     if (err) {
       std::cout << "failed to locate copy(): " << err;
-      exit(1);
+      return status;
     }
   } else if(fftPlan->gen == Stockham) {
     if(dir == HCFFT_FORWARD) {
       std::string funcName = "fft_fwd";
-      funcName +=  std::to_string(countKernel);
+      funcName +=  std::to_string(fftPlan->id);
       FFTcall = (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
 
       if (!FFTcall) {
         std::cout << "Loading fft_fwd fails " << std::endl;
+        return status;
       }
 
       char *err = dlerror();
 
       if (err) {
         std::cout << "failed to locate fft_fwd(): " << err;
-        exit(1);
+        return status;
       }
     } else if(dir == HCFFT_BACKWARD) {
       std::string funcName = "fft_back";
-      funcName +=  std::to_string(countKernel);
+      funcName +=  std::to_string(fftPlan->id);
       FFTcall = (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
 
       if (!FFTcall) {
@@ -3079,12 +3008,12 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
 
       if (err) {
         std::cout << "failed to locate fft_back(): " << err;
-        exit(1);
+        return status;
       }
     }
   } else if(fftPlan->gen == Transpose) {
     std::string funcName = "transpose";
-    funcName +=  std::to_string(countKernel);
+    funcName +=  std::to_string(fftPlan->id);
     FFTcall = (FUNC_FFTFwd*) dlsym(kernelHandle, funcName.c_str());
 
     if (!FFTcall) {
@@ -3095,15 +3024,11 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
 
     if (err) {
       std::cout << "failed to locate transpose(): " << err;
-      exit(1);
+      return status;
     }
   }
-
-  FFTcall(&vectArr, batch, fftPlan->acc_view, fftPlan->acc);
-  countKernel++;
-
-  FFTcall = NULL;
-  return status;
+  fftPlan->kernelPtr = FFTcall;
+  return HCFFT_SUCCEEDS;
 }
 
 hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
@@ -3120,7 +3045,71 @@ hcfftStatus FFTPlan::hcfftBakePlan(hcfftPlanHandle plHandle) {
   }
 
   exist = checkIfsoExist(fftPlan->direction, fftPlan->precision, fftPlan->originalLength, fftPlan->hcfftlibtype);
-  return hcfftBakePlanInternal(plHandle);
+  hcfftStatus status = hcfftBakePlanInternal(plHandle);
+
+  kernelHandle = dlopen(kernellib.c_str(), RTLD_NOW);
+  if(!kernelHandle) {
+    std::cout << "Failed to load Kernel: " << kernellib.c_str() << std::endl;
+    return HCFFT_ERROR;
+  }
+
+  if(fftPlan->planX)
+  {
+  FFTPlan* tempfftPlan = NULL;
+  fftRepo.getPlan( fftPlan->planX, tempfftPlan, planLock );
+  loadSymbols(tempfftPlan, fftPlan->direction);
+  }
+  if(fftPlan->planY)
+  {
+  FFTPlan* tempfftPlan = NULL;
+  fftRepo.getPlan( fftPlan->planY, tempfftPlan, planLock );
+  loadSymbols(tempfftPlan, fftPlan->direction);
+  }
+  if(fftPlan->planZ)
+  {
+  FFTPlan* tempfftPlan = NULL;
+  fftRepo.getPlan( fftPlan->planZ, tempfftPlan, planLock );
+  loadSymbols(tempfftPlan, fftPlan->direction);
+  }
+  if(fftPlan->planTX)
+  {
+  FFTPlan* tempfftPlan = NULL;
+  fftRepo.getPlan( fftPlan->planTX, tempfftPlan, planLock );
+  loadSymbols(tempfftPlan, fftPlan->direction);
+  }
+  if(fftPlan->planTY)
+  {
+  FFTPlan* tempfftPlan = NULL;
+  fftRepo.getPlan( fftPlan->planTY, tempfftPlan, planLock );
+  loadSymbols(tempfftPlan, fftPlan->direction);
+  }
+  if(fftPlan->planTZ)
+  {
+  FFTPlan* tempfftPlan = NULL;
+  fftRepo.getPlan( fftPlan->planTZ, tempfftPlan, planLock );
+  loadSymbols(tempfftPlan, fftPlan->direction);
+  }
+  if(fftPlan->planRCcopy)
+  {
+  FFTPlan* tempfftPlan = NULL;
+  fftRepo.getPlan( fftPlan->planRCcopy, tempfftPlan, planLock );
+  loadSymbols(tempfftPlan, fftPlan->direction);
+  }
+  if(fftPlan->planCopy)
+  {
+  FFTPlan* tempfftPlan = NULL;
+  fftRepo.getPlan( fftPlan->planCopy, tempfftPlan, planLock );
+  loadSymbols(tempfftPlan, fftPlan->direction);
+  }
+
+  if(dlclose(kernelHandle)) {
+    char *err = dlerror();
+    std::cout << " Failed to close KernHandle "<<err;
+    exit(1);
+  }
+  kernelHandle = NULL;
+
+  return status;
 }
 
 hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
@@ -3223,6 +3212,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
 
   if(fftPlan->gen == Copy) {
     fftPlan->GenerateKernel(plHandle, fftRepo, bakedPlanCount, exist);
+    fftPlan->id = bakedPlanCount;
     bakedPlanCount++;
 
     CompileKernels(plHandle, fftPlan->gen, fftPlan, plHandleOrigin, exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
@@ -4411,6 +4401,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
     case HCFFT_2D: {
         if (fftPlan->transflag) { //Transpose for 2D
           fftPlan->GenerateKernel(plHandle, fftRepo, bakedPlanCount, exist);
+          fftPlan->id = bakedPlanCount;
           bakedPlanCount++;
 
           CompileKernels(plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
@@ -6057,6 +6048,8 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
 
   //  For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
   fftPlan->GenerateKernel( plHandle, fftRepo, bakedPlanCount, exist);
+  fftPlan->id = bakedPlanCount;
+
   //  For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
   bakedPlanCount++;
 
@@ -6732,6 +6725,9 @@ hcfftStatus FFTPlan::hcfftDestroyPlan( hcfftPlanHandle* plHandle ) {
   FFTPlan* fftPlan  = NULL;
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( *plHandle, fftPlan, planLock );
+
+  if( fftPlan->kernelPtr)
+    fftPlan->kernelPtr = NULL;
 
   //  Recursively destroy subplans, that are used for higher dimensional FFT's
   if( fftPlan->planX ) {
