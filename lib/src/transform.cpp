@@ -3012,6 +3012,17 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
       }
   }
 
+  if(fftPlan->gen == Stockham) {
+    if(fftPlan->twiddles != NULL)
+    {
+      vectArr.insert(std::make_pair(uarg++, fftPlan->twiddles));
+    }
+    if(fftPlan->twiddleslarge)
+    {
+      vectArr.insert(std::make_pair(uarg++, fftPlan->twiddleslarge));
+    }
+  }
+
   vector< size_t > gWorkSize;
   vector< size_t > lWorkSize;
   hcfftStatus result = fftPlan->GetWorkSizes (gWorkSize, lWorkSize);

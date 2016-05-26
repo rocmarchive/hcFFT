@@ -3285,7 +3285,7 @@ class Kernel {
         str += "\n\n";
         str += r2Type;
         str += " *";
-        str += TwTableName();
+        str += TwTableLargeName();
         str += " = static_cast< ";
         str += r2Type;
         str += " *> (vectArr[";
