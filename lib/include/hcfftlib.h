@@ -375,6 +375,10 @@ class FFTRepo;
 
 class FFTPlan {
  public:
+
+  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
+  FUNC_FFTFwd* kernelPtr;
+
   accelerator acc;
   accelerator_view acc_view = accelerator().get_default_view();
   hcfftDim dimension;
@@ -395,6 +399,7 @@ class FFTPlan {
   double forwardScale;
   double backwardScale;
   bool  twiddleFront;
+  unsigned id;
 
   bool isPadded;
   bool baked;
@@ -476,7 +481,7 @@ class FFTPlan {
   FFTPlan() : dimension (HCFFT_1D), ipLayout (HCFFT_COMPLEX_INTERLEAVED),
     opLayout (HCFFT_COMPLEX_INTERLEAVED), direction(HCFFT_FORWARD), location (HCFFT_INPLACE),
     transposeType (HCFFT_NOTRANSPOSE), precision (HCFFT_SINGLE),
-    batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0),
+    batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0), id(0),
     twiddleFront(false), isPadded(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
     planTX(0), planTY(0), planTZ(0), planRCcopy(0), planCopy(0), plHandle(0), plHandleOrigin(0),
     bLdsComplex(false), uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
