@@ -6533,6 +6533,26 @@ hcfftStatus FFTPlan::hcfftSetPlanDistance(  hcfftPlanHandle plHandle, size_t iDi
   return HCFFT_SUCCEEDS;
 }
 
+hcfftStatus FFTPlan::hcfftGetPlanDirection( const  hcfftPlanHandle plHandle, hcfftDirection* dir) {
+  FFTRepo& fftRepo  = FFTRepo::getInstance( );
+  FFTPlan* fftPlan  = NULL;
+  lockRAII* planLock  = NULL;
+  fftRepo.getPlan( plHandle, fftPlan, planLock );
+  scopedLock sLock( *planLock, _T( " hcfftGetPlanDirection" ) );
+  *dir = fftPlan->direction;
+  return HCFFT_SUCCEEDS;
+}
+
+hcfftStatus FFTPlan::hcfftSetPlanDirection(  hcfftPlanHandle plHandle, hcfftDirection dir) {
+  FFTRepo& fftRepo = FFTRepo::getInstance( );
+  FFTPlan* fftPlan = NULL;
+  lockRAII* planLock = NULL;
+  fftRepo.getPlan(plHandle, fftPlan, planLock );
+  scopedLock sLock(*planLock, _T( " hcfftSetPlanDirection" ) );
+  fftPlan->direction = dir;
+  return HCFFT_SUCCEEDS;
+}
+
 hcfftStatus FFTPlan::hcfftGetLayout( const  hcfftPlanHandle plHandle,  hcfftIpLayout* iLayout,  hcfftOpLayout* oLayout ) {
   FFTRepo& fftRepo = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;

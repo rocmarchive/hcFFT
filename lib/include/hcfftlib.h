@@ -571,6 +571,10 @@ class FFTPlan {
 
   hcfftStatus hcfftSetPlanDistance(hcfftPlanHandle plHandle, size_t iDist, size_t oDist );
 
+  hcfftStatus hcfftGetPlanDirection(const hcfftPlanHandle plHandle, hcfftDirection* dir);
+
+  hcfftStatus hcfftSetPlanDirection(hcfftPlanHandle plHandle, hcfftDirection dir);
+
   hcfftStatus hcfftGetLayout(const hcfftPlanHandle plHandle, hcfftIpLayout* iLayout, hcfftOpLayout* oLayout );
 
   hcfftStatus hcfftSetLayout(hcfftPlanHandle plHandle, hcfftIpLayout iLayout, hcfftOpLayout oLayout );
