@@ -8,9 +8,11 @@
 #include "lock.h"
 #include <dirent.h>
 #include <hc.hpp>
+#include <cmath>
 #include <hc_short_vector.hpp>
 #include "hc_am.hpp"
 #include <sys/stat.h>
+#include <fstream>
 
 using namespace hc;
 using namespace hc::short_vector;

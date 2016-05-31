@@ -388,7 +388,6 @@ hcfftStatus hcfftCreateDefaultPlanInternal (hcfftPlanHandle* plHandle, hcfftDim 
 hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hcfftDim dim,
     const size_t* clLengths, hcfftDirection dir, hcfftPrecision precision,
     hcfftLibType libType) {
-
   size_t *modifiedLengths = (size_t*)calloc(dim, sizeof(size_t));
 
   for(int i = 0 ; i < dim ; i++)
@@ -3161,6 +3160,18 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
   }
 
   // release buffers, as these will be created only in EnqueueTransform
+  if( NULL != fftPlan->twiddles ) {
+    if( hc::am_free(fftPlan->twiddles) != AM_SUCCESS)
+      return HCFFT_INVALID;
+    fftPlan->twiddles = NULL;
+  }
+
+  if( NULL != fftPlan->twiddleslarge ) {
+    if( hc::am_free(fftPlan->twiddleslarge) != AM_SUCCESS)
+      return HCFFT_INVALID;
+    fftPlan->twiddleslarge = NULL;
+  }
+
   if( NULL != fftPlan->intBuffer ) {
     if( hc::am_free(fftPlan->intBuffer) != AM_SUCCESS)
       return HCFFT_INVALID;
@@ -6087,8 +6098,6 @@ hcfftStatus FFTPlan::hcfftSetPlanPrecision(  hcfftPlanHandle plHandle,  hcfftPre
   lockRAII* planLock = NULL;
   fftRepo.getPlan(plHandle, fftPlan, planLock );
   scopedLock sLock(*planLock, _T( " hcfftSetPlanPrecision" ) );
-  //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
-  fftPlan->baked = false;
   fftPlan->precision = precision;
   return HCFFT_SUCCEEDS;
 }
@@ -6115,8 +6124,6 @@ hcfftStatus FFTPlan::hcfftSetPlanScale(  hcfftPlanHandle plHandle,  hcfftDirecti
   lockRAII* planLock = NULL;
   fftRepo.getPlan(plHandle, fftPlan, planLock );
   scopedLock sLock(*planLock, _T( " hcfftSetPlanScale" ) );
-  //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
-  fftPlan->baked = false;
 
   if( dir == HCFFT_FORWARD) {
     fftPlan->forwardScale = scale;
@@ -6143,8 +6150,6 @@ hcfftStatus FFTPlan::hcfftSetPlanBatchSize( hcfftPlanHandle plHandle, size_t bat
   lockRAII* planLock = NULL;
   fftRepo.getPlan(plHandle, fftPlan, planLock );
   scopedLock sLock(*planLock, _T( " hcfftSetPlanBatchSize" ) );
-  //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
-  fftPlan->baked = false;
   fftPlan->batchSize = batchsize;
   return HCFFT_SUCCEEDS;
 }
@@ -6216,8 +6221,6 @@ hcfftStatus FFTPlan::hcfftSetPlanDim(  hcfftPlanHandle plHandle, const  hcfftDim
       break;
   }
 
-  //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
-  fftPlan->baked = false;
   fftPlan->dimension = dim;
   return HCFFT_SUCCEEDS;
 }
@@ -6326,8 +6329,6 @@ hcfftStatus FFTPlan::hcfftSetPlanLength(  hcfftPlanHandle plHandle, const  hcfft
   }
 
   fftPlan->dimension = dim;
-  //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
-  fftPlan->baked = false;
   return HCFFT_SUCCEEDS;
 }
 
@@ -6419,8 +6420,6 @@ hcfftStatus FFTPlan::hcfftSetPlanInStride(  hcfftPlanHandle plHandle, const  hcf
       break;
   }
 
-  //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
-  fftPlan->baked = false;
   return HCFFT_SUCCEEDS;
 }
 
@@ -6509,8 +6508,6 @@ hcfftStatus FFTPlan::hcfftSetPlanOutStride(  hcfftPlanHandle plHandle, const  hc
       break;
   }
 
-  //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
-  fftPlan->baked  = false;
   return HCFFT_SUCCEEDS;
 }
 
@@ -6531,8 +6528,6 @@ hcfftStatus FFTPlan::hcfftSetPlanDistance(  hcfftPlanHandle plHandle, size_t iDi
   lockRAII* planLock = NULL;
   fftRepo.getPlan(plHandle, fftPlan, planLock );
   scopedLock sLock(*planLock, _T( " hcfftSetPlanDistance" ) );
-  //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
-  fftPlan->baked = false;
   fftPlan->iDist = iDist;
   fftPlan->oDist = oDist;
   return HCFFT_SUCCEEDS;
@@ -6612,8 +6607,6 @@ hcfftStatus FFTPlan::hcfftSetLayout(  hcfftPlanHandle plHandle,  hcfftIpLayout i
       break;
   }
 
-  //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
-  fftPlan->baked  = false;
   fftPlan->ipLayout = iLayout;
   fftPlan->opLayout = oLayout;
   return HCFFT_SUCCEEDS;
@@ -6635,8 +6628,6 @@ hcfftStatus FFTPlan::hcfftSetResultLocation(  hcfftPlanHandle plHandle,  hcfftRe
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
   scopedLock sLock( *planLock, _T( " hcfftSetResultLocation" ) );
-  //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
-  fftPlan->baked    = false;
   fftPlan->location = placeness;
   return HCFFT_SUCCEEDS;
 }
@@ -6657,8 +6648,6 @@ hcfftStatus FFTPlan::hcfftSetPlanTransposeResult(  hcfftPlanHandle plHandle,  hc
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( plHandle, fftPlan, planLock );
   scopedLock sLock( *planLock, _T( " hcfftSetPlanTransposeResult" ) );
-  //  If we modify the state of the plan, we assume that we can't trust any pre-calculated contents anymore
-  fftPlan->baked    = false;
   fftPlan->transposeType  = transposed;
   return HCFFT_SUCCEEDS;
 }
