@@ -74,6 +74,7 @@ if [ -z $bench ]; then
 fi
 
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$hcfft_installlib/hcfft
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CLFFT_LIBRARY_PATH
 export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$hcfft_install/include/hcfft
 
 set +e
