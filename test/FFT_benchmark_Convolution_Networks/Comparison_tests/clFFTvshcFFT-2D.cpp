@@ -735,15 +735,13 @@ void hcfft_2d_c2c(size_t N1, size_t N2)
     cout<<"hcfftSetPlanDistance error "<<endl;
   }
 
-  /*---------------------R2C--------------------------------------*/
-  status = plan.hcfftSetLayout(planhandle, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
-
+  /*---------------------C2C--------------------------------------*/
+  status = plan.hcfftSetLayout(planhandle, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
   if(status != HCFFT_SUCCEEDS) {
     cout << " set layout error " << endl;
   }
 
   status = plan.hcfftBakePlan(planhandle);
-
   if(status != HCFFT_SUCCEEDS) {
     cout << " bake plan error " << endl;
   }
