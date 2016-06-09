@@ -17,13 +17,19 @@ a) Install clFFT library:
 
        ``export AMDAPPSDKROOT=/opt/AMDAPPSDK-x.y.z/``
 
-b) Automated testing:
+b) Set Variables:
+
+       ``export CLFFT_LIBRARY_PATH=/path/to/clFFT/build/library/``
+
+       ``export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/path/to/hcFFT/library[libhcfft.so]``
+
+c) Automated testing:
 
        ``cd ~/hcfft/``
 
        ``./build.sh --test=on``
 
-c) Manual testing:
+d) Manual testing:
 
        ``cd ~/hcfft/build/test/src/bin/``
 
