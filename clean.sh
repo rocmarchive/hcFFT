@@ -5,10 +5,10 @@
 current_work_dir=$PWD
 
 # Remove build
-sudo rm -rf $current_work_dir/build
+rm -rf $current_work_dir/build
 
 # Remove temporarly cached kernel shared objects and binaries
-sudo rm -rf $HOME/kernCache
+rm -rf $HOME/kernCache
 
 # TODO: ADD More options
 
