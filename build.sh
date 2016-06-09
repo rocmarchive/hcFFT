@@ -73,8 +73,6 @@ if [ -z $bench ]; then
     bench="off"
 fi
 
-export OPENCL_INCLUDE_PATH=$AMDAPPSDKROOT/include
-export OPENCL_LIBRARY_PATH=$AMDAPPSDKROOT/lib/x86_64/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$hcfft_installlib/hcfft
 export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$hcfft_install/include/hcfft
 
@@ -82,7 +80,6 @@ set +e
 # MAKE BUILD DIR
 mkdir -p $current_work_dir/build
 mkdir -p $current_work_dir/build/lib
-mkdir -p $current_work_dir/build/test
 set -e
 
 # SET BUILD DIR
@@ -96,24 +93,6 @@ cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compi
 make package
 make
 
-# Build Tests
-cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
-
-set +e
-mkdir -p $current_work_dir/build/test/examples/bin/
-mkdir -p $current_work_dir/build/test/src/bin/
-mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_1D_transform/bin/
-mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_2D_transform/bin/
-mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_3D_transform/bin/
-mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_Create_Destroy_Plan/bin/
-mkdir -p $current_work_dir/build/test/FFT_benchmark_Convolution_Networks/Comparison_tests/bin/
-set -e
-
-make
-#red=`tput setaf 1`
-#green=`tput setaf 2`
-#reset=`tput sgr0`
-
 # KERNEL CACHE DIR
 mkdir -p $HOME/kernCache
 
@@ -122,6 +101,24 @@ if ( [ -z $testing ] ) || ( [ "$testing" = "off" ] ); then
   echo "${green}HCFFT Installation Completed!${reset}"
 # Test=ON (Build and test the library)
 elif ( [ "$testing" = "on" ] ); then
+  export OPENCL_INCLUDE_PATH=$AMDAPPSDKROOT/include
+  export OPENCL_LIBRARY_PATH=$AMDAPPSDKROOT/lib/x86_64/
+
+  set +e
+  mkdir -p $current_work_dir/build/test
+  mkdir -p $current_work_dir/build/test/examples/bin/
+  mkdir -p $current_work_dir/build/test/src/bin/
+  mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_1D_transform/bin/
+  mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_2D_transform/bin/
+  mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_3D_transform/bin/
+  mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_Create_Destroy_Plan/bin/
+  mkdir -p $current_work_dir/build/test/FFT_benchmark_Convolution_Networks/Comparison_tests/bin/
+  set -e
+
+  # Build Tests
+  cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
+  make
+
   chmod +x $current_work_dir/test/unit/test.sh
   cd $current_work_dir/test/unit/
 # Invoke test script
