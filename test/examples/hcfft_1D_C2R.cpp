@@ -2,7 +2,7 @@
 
 int main(int argc, char *argv[])
 {
-  int N = atoi(argv[1]);
+  int N = argc > 1 ? atoi(argv[1]) : 1024;
 
   // HCFFT work flow
   hcfftHandle *plan = NULL;

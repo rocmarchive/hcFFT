@@ -42,8 +42,8 @@ int main(int argc, char* argv[]) {
   hcfftPlanHandle planhandle;
   hcfftPrecision precision = HCFFT_SINGLE;
   size_t N1, N2;
-  N1 = atoi(argv[1]);
-  N2 = atoi(argv[2]);
+  N1 = argc > 1 ? atoi(argv[1]) : 1024;
+  N2 = argc > 2 ? atoi(argv[2]) : 1024;
   length[0] = N1;
   length[1] = N2;
 

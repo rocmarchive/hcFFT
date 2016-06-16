@@ -945,8 +945,9 @@ void clfft_2d_c2c(size_t N1, size_t N2)
 int main(int argc, char* argv[])
 {
   size_t N1, N2;
-  N1 = atoi(argv[1]);
-  N2 = atoi(argv[2]);
+
+  N1 = argc > 1 ? atoi(argv[1]) : 1024;
+  N2 = argc > 2 ? atoi(argv[2]) : 1024;
 
   hcfft_2d_r2c(N1, N2);
   clfft_2d_r2c(N1, N2); 

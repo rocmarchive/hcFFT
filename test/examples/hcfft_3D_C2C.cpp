@@ -2,10 +2,10 @@
 
 int main(int argc, char *argv[])
 {
-  int N1 = atoi(argv[1]);
-  int N2 = atoi(argv[2]);
-  int N3 = atoi(argv[3]);
-
+  int N1 = argc > 1 ? atoi(argv[1]) : 1024;
+  int N2 = argc > 2 ? atoi(argv[2]) : 1024;
+  int N3 = argc > 3 ? atoi(argv[3]) : 1024;
+      
   hcfftHandle *plan = NULL;
   hcfftResult status  = hcfftPlan3d(plan, N1, N2, N3, HCFFT_C2C);
   assert(status == HCFFT_SUCCESS);

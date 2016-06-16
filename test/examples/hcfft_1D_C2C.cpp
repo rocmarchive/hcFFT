@@ -2,7 +2,7 @@
 
 int main(int argc, char *argv[])
 {
-  int N = atoi(argv[1]);
+  int N = argc > 1 ? atoi(argv[1]) : 1024;
   hcfftHandle *plan = NULL;
   hcfftResult status  = hcfftPlan1d(plan, N, HCFFT_C2C);
   assert(status == HCFFT_SUCCESS);
