@@ -8,11 +8,9 @@
 #include "lock.h"
 #include <dirent.h>
 #include <hc.hpp>
-#include <cmath>
 #include <hc_short_vector.hpp>
 #include "hc_am.hpp"
 #include <sys/stat.h>
-#include <fstream>
 
 using namespace hc;
 using namespace hc::short_vector;
@@ -381,6 +379,11 @@ class FFTPlan {
   typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
   FUNC_FFTFwd* kernelPtr;
 
+  std::string kernellib;
+  std::string filename;
+
+  bool exist;
+
   accelerator acc;
   accelerator_view acc_view = accelerator().get_default_view();
   hcfftDim dimension;
@@ -401,10 +404,10 @@ class FFTPlan {
   double forwardScale;
   double backwardScale;
   bool  twiddleFront;
-  unsigned id;
 
   bool isPadded;
   bool baked;
+  bool transformed;
   hcfftGenerators gen;
 
   //  Hardware Limits
@@ -443,15 +446,15 @@ class FFTPlan {
   float* intBufferC2R;
   double* intBufferC2RD;
 
+  void* twiddles;
+  void* twiddleslarge;
+
   bool transflag;
   bool transOutHorizontal;
 
   size_t  large1D;
   bool  large2D;
   size_t  cacheSize;
-
-  void* twiddles;
-  void* twiddleslarge;
 
   // Real-Complex simple flag
   // if this is set we do real to-and-from full complex using simple algorithm
@@ -483,15 +486,15 @@ class FFTPlan {
   FFTPlan() : dimension (HCFFT_1D), ipLayout (HCFFT_COMPLEX_INTERLEAVED),
     opLayout (HCFFT_COMPLEX_INTERLEAVED), direction(HCFFT_FORWARD), location (HCFFT_INPLACE),
     transposeType (HCFFT_NOTRANSPOSE), precision (HCFFT_SINGLE),
-    batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0), id(0),
+    batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0),
     twiddleFront(false), isPadded(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
     planTX(0), planTY(0), planTZ(0), planRCcopy(0), planCopy(0), plHandle(0), plHandleOrigin(0),
     bLdsComplex(false), uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
     intBuffer( NULL ), intBufferD(NULL), tmpBufSizeRC(0), intBufferRC(NULL), intBufferRCD(NULL),
-    tmpBufSizeC2R(0), intBufferC2RD(NULL), intBufferC2R(NULL), transflag(false), twiddles(NULL),
-    twiddleslarge(NULL), transOutHorizontal(false), large1D(0), large2D(false), RCsimple(false),
-    realSpecial(false),  realSpecial_Nr(0), userPlan(false), blockCompute(false), blockComputeType(BCT_C2C),
-    hcfftlibtype(HCFFT_R2CD2Z) {
+    tmpBufSizeC2R(0), intBufferC2RD(NULL), intBufferC2R(NULL), transflag(false),
+    twiddles(NULL), twiddleslarge(NULL), transOutHorizontal(false), large1D(0), large2D(false),
+    RCsimple(false), realSpecial(false), realSpecial_Nr(0), userPlan(false), blockCompute(false),
+    blockComputeType(BCT_C2C), hcfftlibtype(HCFFT_R2CD2Z), exist(false), transformed(false) {
       originalLength.clear();
   };
 
@@ -570,10 +573,6 @@ class FFTPlan {
   hcfftStatus hcfftGetPlanDistance(const hcfftPlanHandle plHandle, size_t* iDist, size_t* oDist );
 
   hcfftStatus hcfftSetPlanDistance(hcfftPlanHandle plHandle, size_t iDist, size_t oDist );
-
-  hcfftStatus hcfftGetPlanDirection(const hcfftPlanHandle plHandle, hcfftDirection* dir);
-
-  hcfftStatus hcfftSetPlanDirection(hcfftPlanHandle plHandle, hcfftDirection dir);
 
   hcfftStatus hcfftGetLayout(const hcfftPlanHandle plHandle, hcfftIpLayout* iLayout, hcfftOpLayout* oLayout );
 

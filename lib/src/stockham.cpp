@@ -357,7 +357,6 @@ class TwiddleTable {
 
     *twiddles = (T*)hc::am_alloc( N * sizeof(T), acc, 0);
     hc::am_copy(*twiddles, wc, N * sizeof(T));
-    assert(*twiddles != NULL);
   }
 };
 
@@ -4243,7 +4242,6 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
       case P_DOUBLE: {
           Kernel<P_DOUBLE> kernel(params);
           kernel.GenerateKernel((void**)&twiddles, (void**)&twiddleslarge, acc, plHandle, programCode, gWorkSize, lWorkSize, count);
-          assert(twiddles != NULL);
         }
         break;
      }

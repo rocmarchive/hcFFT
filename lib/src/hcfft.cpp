@@ -851,11 +851,6 @@ hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex *idata, hcfftComplex *od
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftSetPlanDirection(plan, (hcfftDirection)direction);
-  if(status != HCFFT_SUCCEEDS) {
-    return HCFFT_SETUP_FAILED;
-  }
-
   status = planObject.hcfftBakePlan(plan);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
@@ -883,11 +878,6 @@ hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubl
   hcfftDoubleReal *odataR = (hcfftDoubleReal*)odata;
 
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
-  if(status != HCFFT_SUCCEEDS) {
-    return HCFFT_SETUP_FAILED;
-  }
-
-  status = planObject.hcfftSetPlanDirection(plan, (hcfftDirection)direction);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
