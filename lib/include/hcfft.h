@@ -10,8 +10,6 @@ typedef double_2 hcfftDoubleComplex;
 
 /* hcfft API Specification */
 
-/* Reference: http://docs.nvidia.com/cuda/hcfft/index.html#hcfft-api-reference */
-
 // Typedef changes
 typedef hcfftPlanHandle hcfftHandle; 
 
