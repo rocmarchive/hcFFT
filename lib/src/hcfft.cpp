@@ -6,9 +6,9 @@ FFTPlan planObject;
 /* Function hcfftXtSetGPUs()
 Returns GPUs are to be used with the plan
 */
-hcfftResult hcfftXtSetGPUs(accelerator &acc)
+hcfftResult hcfftXtSetGPUs(hc::accelerator &acc)
 {
-  std::vector<accelerator> accs = accelerator::get_all();
+  std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   if(accs.size() == 0) {
     std::wcout << "There is no acclerator!\n";
     // Since this case is to test on GPU device, skip if there is CPU only
@@ -22,7 +22,7 @@ hcfftResult hcfftXtSetGPUs(accelerator &acc)
 /* Function hcfftSetStream()
 Associate FFT Plan with an accelerator_view
 */
-hcfftResult hcfftSetStream(hcfftHandle *&plan, accelerator_view &acc_view) {
+hcfftResult hcfftSetStream(hcfftHandle *&plan, hc::accelerator_view &acc_view) {
   hcfftStatus status = planObject.hcfftSetAcclView(*plan, acc_view);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
@@ -158,7 +158,7 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
   if(res != HCFFT_SUCCESS)
     return HCFFT_ALLOC_FAILED;
 
-  accelerator acc;
+  hc::accelerator acc;
   res = hcfftXtSetGPUs(acc);
   if(res != HCFFT_SUCCESS)
     return HCFFT_SETUP_FAILED;
@@ -326,7 +326,7 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
   if(res != HCFFT_SUCCESS)
     return HCFFT_ALLOC_FAILED;
 
-  accelerator acc;
+  hc::accelerator acc;
   res = hcfftXtSetGPUs(acc);
   if(res != HCFFT_SUCCESS)
     return HCFFT_SETUP_FAILED;
@@ -504,7 +504,7 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
   if(res != HCFFT_SUCCESS)
     return HCFFT_ALLOC_FAILED;
 
-  accelerator acc;
+  hc::accelerator acc;
   res = hcfftXtSetGPUs(acc);
   if(res != HCFFT_SUCCESS)
     return HCFFT_SETUP_FAILED;

@@ -4,9 +4,9 @@
 #include "hcfftlib.h"
 
 typedef float hcfftReal;
-typedef float_2 hcfftComplex;
+typedef hc::short_vector::float_2 hcfftComplex;
 typedef double hcfftDoubleReal;
-typedef double_2 hcfftDoubleComplex;
+typedef hc::short_vector::double_2 hcfftDoubleComplex;
 
 /* hcfft API Specification */
 
@@ -49,7 +49,7 @@ hcfftResult hcfftCreate(hcfftHandle *&plan);
 /* Function hcfftSetStream()
 Associate FFT Plan with an accelerator_view
 */
-hcfftResult hcfftSetStream(hcfftHandle *&plan, accelerator_view &acc_view);
+hcfftResult hcfftSetStream(hcfftHandle *&plan, hc::accelerator_view &acc_view);
 
 /*hcFFT Basic Plans*/
 

@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
     input[i].y = rand();
   }
 
-  std::vector<accelerator> accs = accelerator::get_all();
+  std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
   hcfftComplex *idata = hc::am_alloc(hSize * sizeof(hcfftComplex), accs[1], 0);

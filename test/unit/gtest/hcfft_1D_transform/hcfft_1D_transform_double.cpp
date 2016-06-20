@@ -21,7 +21,7 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_D2Z ) {
   }
   hcfftDoubleComplex *output = (hcfftDoubleComplex*)calloc(Csize, sizeof(hcfftDoubleComplex));
 
-  std::vector<accelerator> accs = accelerator::get_all();
+  std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
   hcfftDoubleReal *idata = hc::am_alloc(Rsize * sizeof(hcfftDoubleReal), accs[1], 0);
@@ -201,7 +201,7 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2D ) {
   }
   hcfftDoubleReal *output = (hcfftDoubleReal*)calloc(Rsize, sizeof(hcfftDoubleReal));
 
-  std::vector<accelerator> accs = accelerator::get_all();
+  std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
   hcfftDoubleComplex *idata = hc::am_alloc(Csize * sizeof(hcfftDoubleComplex), accs[1], 0);
@@ -384,7 +384,7 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2Z ) {
     input[i].y = rand();
   }
 
-  std::vector<accelerator> accs = accelerator::get_all();
+  std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
   hcfftDoubleComplex *idata = hc::am_alloc(hSize * sizeof(hcfftDoubleComplex), accs[1], 0);

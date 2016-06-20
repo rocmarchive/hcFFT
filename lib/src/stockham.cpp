@@ -2869,7 +2869,7 @@ class Kernel {
     }
   };
 
-  void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count) {
+  void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize, size_t count) {
     std::string twType = RegBaseType<PR>(2);
     std::string rType  = RegBaseType<PR>(1);
     std::string r2Type  = RegBaseType<PR>(2);
@@ -4231,8 +4231,8 @@ template<>
 hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const {
   FFTKernelGenKeyParams params;
   this->GetKernelGenKeyPvt<Stockham> (params);
-  vector< size_t > gWorkSize;
-  vector< size_t > lWorkSize;
+  std::vector< size_t > gWorkSize;
+  std::vector< size_t > lWorkSize;
   this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);
   std::string programCode;
   programCode = hcHeader();

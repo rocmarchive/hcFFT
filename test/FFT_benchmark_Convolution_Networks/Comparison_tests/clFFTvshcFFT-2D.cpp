@@ -13,6 +13,8 @@
 #include "clFFT.h"
 #include <thread>
 
+using namespace std;
+using namespace hc;
 #define COUNT 100
 
 template <typename T>

@@ -1,6 +1,5 @@
 #include <pthread.h>
 #include <sstream>
-using namespace std;
 
 #if defined( __GNUC__ )
 typedef char TCHAR;
@@ -23,8 +22,8 @@ template< bool debugPrint >
 class lockRAII {
   pthread_mutex_t mutex;
   pthread_mutexattr_t mAttr;
-  string  mutexName;
-  stringstream  tstream;
+  std::string  mutexName;
+  std::stringstream  tstream;
 
   //  Does not make sense to create a copy of a lock object; private method
   lockRAII( const lockRAII& rhs ): mutexName( rhs.mutexName ) {
@@ -39,7 +38,7 @@ class lockRAII {
     pthread_mutex_init( &mutex, &mAttr );
   }
 
-  lockRAII( const string& name ): mutexName( name ) {
+  lockRAII( const std::string& name ): mutexName( name ) {
     tstream << std::hex << std::showbase;
     pthread_mutexattr_init( &mAttr );
     pthread_mutexattr_settype( &mAttr, PTHREAD_MUTEX_RECURSIVE );
@@ -51,11 +50,11 @@ class lockRAII {
     pthread_mutexattr_destroy( &mAttr );
   }
 
-  string& getName( ) {
+  std::string& getName( ) {
     return mutexName;
   }
 
-  void setName( const string& name ) {
+  void setName( const std::string& name ) {
     mutexName = name;
   }
 
@@ -92,11 +91,11 @@ class lockRAII {
 template< bool debugPrint >
 class scopedLock {
   lockRAII< debugPrint >* sLock;
-  string sLockName;
-  stringstream tstream;
+  std::string sLockName;
+  std::stringstream tstream;
 
  public:
-  scopedLock( lockRAII< debugPrint >& lock, const string& name ): sLock( &lock ), sLockName( name ) {
+  scopedLock( lockRAII< debugPrint >& lock, const std::string& name ): sLock( &lock ), sLockName( name ) {
     if( debugPrint ) {
       tstream.str( _T( "" ) );
       tstream << _T( "Entering scopedLock( " ) << sLockName << _T( " )" ) << std::endl << std::endl;

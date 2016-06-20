@@ -29,7 +29,7 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_R2C ) {
 
   hcfftComplex *output = (hcfftComplex*)calloc(Csize, sizeof(hcfftComplex));
 
-  std::vector<accelerator> accs = accelerator::get_all();
+  std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
   hcfftReal *idata = hc::am_alloc(Rsize * sizeof(hcfftReal), accs[1], 0);
@@ -221,7 +221,7 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2R ) {
     }
   }
 
-  std::vector<accelerator> accs = accelerator::get_all();
+  std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
   hcfftComplex *idata = hc::am_alloc(Csize * sizeof(hcfftComplex), accs[1], 0);
@@ -418,7 +418,7 @@ TEST(hcfft_3D_transform_padding_test, func_correct_3D_transform_padding_C2C ) {
     }
   }
 
-  std::vector<accelerator> accs = accelerator::get_all();
+  std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
   hcfftComplex *idata = hc::am_alloc(hSize * sizeof(hcfftComplex), accs[1], 0);

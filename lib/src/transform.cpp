@@ -11,7 +11,7 @@ static size_t beforeCompile = 99999999;
 static size_t countKernel,bakedPlanCount;
 static bool exist;
 
-bool has_suffix(const string& s, const string& suffix) {
+bool has_suffix(const std::string& s, const std::string& suffix) {
   return (s.size() >= suffix.size()) && equal(suffix.rbegin(), suffix.rend(), s.rbegin());
 }
 
@@ -28,7 +28,7 @@ bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision, std::vec
   if (d) {
     while ((dir = readdir(d)) != NULL) {
       if(has_suffix(dir->d_name, ".so")) {
-        string libFile(dir->d_name);
+        std::string libFile(dir->d_name);
 
         if(libFile.substr(0, 9) != "libkernel") {
           continue;
@@ -42,10 +42,10 @@ bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision, std::vec
         }
 
         size_t firstocc = libFile.find_first_of("_");
-        string type = libFile.substr(9, 4);
+        std::string type = libFile.substr(9, 4);
 
-        string datatype = libFile.substr(13, 1);
-        string libtype = libFile.substr(14,1);
+        std::string datatype = libFile.substr(13, 1);
+        std::string libtype = libFile.substr(14,1);
 
         if(!((direction == HCFFT_FORWARD && type == "Frwd") || (direction == HCFFT_BACKWARD && type == "Back") || (direction == HCFFT_BOTH))) {
           continue;
@@ -95,7 +95,7 @@ bool checkIfsoExist(hcfftDirection direction, hcfftPrecision precision, std::vec
 /*----------------------------------------------------FFTPlan-----------------------------------------------------------------------------*/
 
 //  Read the kernels that this plan uses from file, and store into the plan
-hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators gen, const FFTKernelGenKeyParams& fftParams, string filename, bool writeFlag) {
+hcfftStatus WriteKernel( const hcfftPlanHandle plHandle, const hcfftGenerators gen, const FFTKernelGenKeyParams& fftParams, std::string filename, bool writeFlag) {
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   std::string kernel;
   fftRepo.getProgramCode( gen, plHandle, fftParams, kernel);
@@ -154,7 +154,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
   bool buildFwdKernel = (gen == Stockham || gen == Transpose) ? ((!real_transform) || r2c_transform) : (r2c_transform || c2h) || (!(h2c || c2h));
   bool buildBwdKernel = (gen == Stockham || gen == Transpose) ? ((!real_transform) || c2r_transform) : (c2r_transform || h2c) || (!(h2c || c2h));
   bool writeFlag = false;
-  string type;
+  std::string type;
 
   if(buildFwdKernel) {
     type = "Frwd";
@@ -218,13 +218,13 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
       // check if user has specified compiler build path
       // build_mode = true;
       char* compilerPath = getenv ("MCWHCCBUILD");
-      string Path(compilerPath);
+      std::string Path(compilerPath);
       execCmd = Path + "/compiler/bin/clang++ `" + Path + "/bin/hcc-config --build --cxxflags --ldflags --shared` -lhc_am " + filename + " -o " + kernellib ;
     }
     else if( access( fname, F_OK ) != -1 ) {
       // compiler exists
       // install_mode = true;
-      string Path = "/opt/rocm/hcc/bin/";
+      std::string Path = "/opt/rocm/hcc/bin/";
       execCmd = Path + "/clang++ `" + Path + "/hcc-config --install --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
     }
     else {
@@ -458,7 +458,7 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
   return ret;
 }
 
-hcfftStatus FFTPlan::hcfftSetAcclView( hcfftPlanHandle plHandle, accelerator_view acc_view)
+hcfftStatus FFTPlan::hcfftSetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view acc_view)
 {
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
@@ -472,7 +472,7 @@ hcfftStatus FFTPlan::hcfftSetAcclView( hcfftPlanHandle plHandle, accelerator_vie
   return HCFFT_SUCCEEDS;
 }
 
-hcfftStatus FFTPlan::hcfftGetAcclView( hcfftPlanHandle plHandle, accelerator_view *acc_view)
+hcfftStatus FFTPlan::hcfftGetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view *acc_view)
 {
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
@@ -1679,8 +1679,8 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
       }
   }
 
-  vector< size_t > gWorkSize;
-  vector< size_t > lWorkSize;
+  std::vector< size_t > gWorkSize;
+  std::vector< size_t > lWorkSize;
   hcfftStatus result = fftPlan->GetWorkSizes (gWorkSize, lWorkSize);
 
   if (HCFFT_ERROR == result) {
@@ -1691,7 +1691,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   remove(filename.c_str());
 
   void* kernelHandle = NULL;
-  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
+  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, hc::accelerator_view &acc_view, hc::accelerator &acc);
   FUNC_FFTFwd* FFTcall = NULL;
 
   std::string pwd = getHomeDir();
@@ -2986,8 +2986,8 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
       }
   }
 
-  vector< size_t > gWorkSize;
-  vector< size_t > lWorkSize;
+  std::vector< size_t > gWorkSize;
+  std::vector< size_t > lWorkSize;
   hcfftStatus result = fftPlan->GetWorkSizes (gWorkSize, lWorkSize);
 
   if (HCFFT_ERROR == result) {
@@ -2998,7 +2998,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
   remove(filename.c_str());
 
   void* kernelHandle = NULL;
-  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
+  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, hc::accelerator_view &acc_view, hc::accelerator &acc);
   FUNC_FFTFwd* FFTcall = NULL;
 
   std::string pwd = getHomeDir();
@@ -6822,7 +6822,7 @@ hcfftStatus FFTRepo::createPlan( hcfftPlanHandle* plHandle, FFTPlan*& fftPlan ) 
   //  The lifetime of the lock is the same as the lifetime of the plan
   lockRAII* lockPlan  = new lockRAII;
   //  Add and remember the fftPlan in our map
-  repoPlans[ planCount ] = make_pair( fftPlan, lockPlan );
+  repoPlans[ planCount ] = std::make_pair( fftPlan, lockPlan );
   //  Assign the user handle the plan count (unique identifier), and bump the count for the next plan
   *plHandle = planCount++;
   return  HCFFT_SUCCEEDS;

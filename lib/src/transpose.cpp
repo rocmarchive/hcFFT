@@ -212,7 +212,7 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
 }
 
 static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernelGenKeyParams & params, std::string& strKernel, const tile& lwSize, const size_t reShapeFactor,
-                                       const size_t loopCount, const tile& blockSize, const size_t outRowPadding, vector< size_t > gWorkSize, vector< size_t > lWorkSize,
+                                       const size_t loopCount, const tile& blockSize, const size_t outRowPadding, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize,
                                        size_t count) {
   strKernel.reserve( 4096 );
   std::stringstream transKernel( std::stringstream::out );
@@ -889,8 +889,8 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Transpose>(const hcfftPlanHandle plHandle
 
   blockSize.x = lwSize.x * reShapeFactor;
   blockSize.y = lwSize.y / reShapeFactor * loopCount;
-  vector< size_t > gWorkSize;
-  vector< size_t > lWorkSize;
+  std::vector< size_t > gWorkSize;
+  std::vector< size_t > lWorkSize;
   this->GetWorkSizesPvt<Transpose> (gWorkSize, lWorkSize);
   std::string programCode;
   programCode = hcHeader();

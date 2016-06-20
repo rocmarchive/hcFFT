@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
 
   hcfftComplex *output = (hcfftComplex*)calloc(Csize, sizeof(hcfftComplex));
 
-  std::vector<accelerator> accs = accelerator::get_all();
+  std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
   hcfftReal *idata = hc::am_alloc(Rsize * sizeof(hcfftReal), accs[1], 0);

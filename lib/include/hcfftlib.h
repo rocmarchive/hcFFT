@@ -12,9 +12,6 @@
 #include "hc_am.hpp"
 #include <sys/stat.h>
 
-using namespace hc;
-using namespace hc::short_vector;
-
 #define HCFFT_CB_NY 0
 #define HCFFT_CB_NZ 1
 #define HCFFT_CB_NW 2
@@ -375,8 +372,8 @@ class FFTRepo;
 
 class FFTPlan {
  public:
-  accelerator acc;
-  accelerator_view acc_view = accelerator().get_default_view();
+  hc::accelerator acc;
+  hc::accelerator_view acc_view = hc::accelerator().get_default_view();
   hcfftDim dimension;
   hcfftIpLayout ipLayout;
   hcfftOpLayout opLayout;
@@ -525,9 +522,9 @@ class FFTPlan {
   hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, double* inputBuffers,
                                             double* outputBuffers, double* tmpBuffer);
 
-  hcfftStatus hcfftSetAcclView( hcfftPlanHandle plHandle, accelerator_view accl_view);
+  hcfftStatus hcfftSetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view accl_view);
 
-  hcfftStatus hcfftGetAcclView( hcfftPlanHandle plHandle, accelerator_view *accl_view);
+  hcfftStatus hcfftGetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view *accl_view);
 
   hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 
@@ -610,8 +607,8 @@ class FFTRepo {
   //  A lock object is created for each plan, such that any getter/setter can lock the 'plan' object before
   //  reading/writing its values.  The lock object is kept seperate from the plan object so that the lock
   //  object can be held the entire time a plan is getting destroyed in hcfftDestroyPlan.
-  typedef pair< FFTPlan*, lockRAII* > repoPlansValue;
-  typedef map< hcfftPlanHandle, repoPlansValue > repoPlansType;
+  typedef std::pair< FFTPlan*, lockRAII* > repoPlansValue;
+  typedef std::map< hcfftPlanHandle, repoPlansValue > repoPlansType;
   repoPlansType repoPlans;
 
   //  Structure containing all the data we need to remember for a specific invokation of a kernel

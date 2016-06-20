@@ -150,7 +150,7 @@ class CopyKernel {
     assert(params.fft_placeness == HCFFT_OUTOFPLACE);
   }
 
-  void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count) {
+  void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize, size_t count) {
     std::string rType  = RegBaseType<PR>(1);
     std::string r2Type  = RegBaseType<PR>(2);
     bool inIlvd; // Input is interleaved format
@@ -524,8 +524,8 @@ template<>
 hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const {
   FFTKernelGenKeyParams params;
   this->GetKernelGenKeyPvt<Copy> (params);
-  vector< size_t > gWorkSize;
-  vector< size_t > lWorkSize;
+  std::vector< size_t > gWorkSize;
+  std::vector< size_t > lWorkSize;
   this->GetWorkSizesPvt<Copy> (gWorkSize, lWorkSize);
   bool h2c, c2h;
   h2c = ( (params.fft_inputLayout == HCFFT_HERMITIAN_PLANAR) || (params.fft_inputLayout == HCFFT_HERMITIAN_INTERLEAVED) );

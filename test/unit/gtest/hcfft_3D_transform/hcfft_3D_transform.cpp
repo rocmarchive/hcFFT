@@ -21,7 +21,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_R2C ) {
 
   hcfftComplex *output = (hcfftComplex*)calloc(Csize, sizeof(hcfftComplex));
 
-  std::vector<accelerator> accs = accelerator::get_all();
+  std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
   hcfftReal *idata = hc::am_alloc(Rsize * sizeof(hcfftReal), accs[1], 0);
@@ -200,7 +200,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2R ) {
     input[i].y = rand();
   }
 
-  std::vector<accelerator> accs = accelerator::get_all();
+  std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
   hcfftComplex *idata = hc::am_alloc(Csize * sizeof(hcfftComplex), accs[1], 0);
@@ -383,7 +383,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2C ) {
     input[i].y = rand();
   }
 
-  std::vector<accelerator> accs = accelerator::get_all();
+  std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
 
   hcfftComplex *idata = hc::am_alloc(hSize * sizeof(hcfftComplex), accs[1], 0);

@@ -6,8 +6,6 @@
 #include <map>
 #include "hcfftlib.h"
 
-using namespace std;
-
 static bool Lfirst;
 
 namespace StockhamGenerator {
