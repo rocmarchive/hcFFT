@@ -357,6 +357,7 @@ class TwiddleTable {
 
     *twiddles = (T*)hc::am_alloc( N * sizeof(T), acc, 0);
     hc::am_copy(*twiddles, wc, N * sizeof(T));
+    assert(twiddles != NULL);
   }
 };
 
@@ -3259,6 +3260,7 @@ class Kernel {
         str += " *> (vectArr[";
         str += SztToStr(arg);
         str += "]);\n";
+        arg++;
         if(PR == P_SINGLE)
         {
           if ( d == 0 )
@@ -3290,6 +3292,7 @@ class Kernel {
         str += " *> (vectArr[";
         str += SztToStr(arg);
         str += "]);\n";
+        arg++;
       }
 
       str += "\thc::extent<2> grdExt( ";

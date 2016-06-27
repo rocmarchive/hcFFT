@@ -346,7 +346,6 @@ hcfftStatus hcfftCreateDefaultPlanInternal (hcfftPlanHandle* plHandle, hcfftDim 
   lockRAII* planLock  = NULL;
   fftRepo.getPlan( *plHandle, fftPlan, planLock );
   planLock->setName( tstream.str( ) );
-
   switch( dimension ) {
     case HCFFT_1D: {
         fftPlan->length.push_back( lenX );
@@ -1704,7 +1703,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
     {
       vectArr.insert(std::make_pair(uarg++, fftPlan->twiddles));
     }
-    if(fftPlan->twiddleslarge)
+    if(fftPlan->twiddleslarge != NULL)
     {
       vectArr.insert(std::make_pair(uarg++, fftPlan->twiddleslarge));
     }
@@ -2145,7 +2144,6 @@ hcfftStatus FFTPlan::hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirect
 
 hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, double* clInputBuffers,
     double* clOutputBuffers, double* localIntBuffer) {
-
   hcfftStatus status = HCFFT_SUCCEEDS;
   std::map<int, void*> vectArr;
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
@@ -3130,7 +3128,6 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
 
   fftPlan->kernelPtr(&vectArr, batch, fftPlan->acc_view, fftPlan->acc);
   countKernel++;
-
   return status;
 }
 
@@ -3268,7 +3265,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
   if(fftPlan->gen == Copy) {
     fftPlan->GenerateKernel(plHandle, fftRepo, bakedPlanCount, fftPlan->exist);
     bakedPlanCount++;
-    CompileKernels(plHandle, fftPlan->gen, fftPlan, plHandleOrigin, fftPlan->exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
+    CompileKernels(plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, fftPlan->exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
     fftPlan->baked = true;
     return HCFFT_SUCCEEDS;
   }
@@ -3544,7 +3541,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             trans1Plan->originalLength  = fftPlan->originalLength;
             trans1Plan->acc  = fftPlan->acc;
             trans1Plan->exist  = fftPlan->exist;
-
+            trans1Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
             hcfftBakePlanInternal(fftPlan->planTX);
             //Row transform
             //tmp->output
@@ -3576,6 +3573,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             row1Plan->originalLength  = fftPlan->originalLength;
             row1Plan->acc  = fftPlan->acc;
             row1Plan->exist  = fftPlan->exist;
+            row1Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
             hcfftBakePlanInternal(fftPlan->planX);
             //Transpose 2
@@ -3605,6 +3603,8 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             trans2Plan->originalLength  = fftPlan->originalLength;
             trans2Plan->acc  = fftPlan->acc;
             trans2Plan->exist  = fftPlan->exist;
+            trans2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
+
             hcfftBakePlanInternal(fftPlan->planTY);
             //Row transform 2
             //tmp->tmp
@@ -3634,6 +3634,8 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             row2Plan->originalLength  = fftPlan->originalLength;
             row2Plan->acc  = fftPlan->acc;
             row2Plan->exist  = fftPlan->exist;
+            row2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
+
             hcfftBakePlanInternal(fftPlan->planY);
             //Transpose 3
             //tmp --> output
@@ -3661,6 +3663,8 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             trans3Plan->originalLength  = fftPlan->originalLength;
             trans3Plan->acc  = fftPlan->acc;
             trans3Plan->exist  = fftPlan->exist;
+            trans3Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
+
             hcfftBakePlanInternal(fftPlan->planTZ);
             fftPlan->transflag = true;
             fftPlan->baked = true;
@@ -3734,6 +3738,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             trans1Plan->originalLength  = fftPlan->originalLength;
             trans1Plan->acc  = fftPlan->acc;
             trans1Plan->exist  = fftPlan->exist;
+            trans1Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
             hcfftBakePlanInternal(fftPlan->planTX);
             //Row transform
             //tmp->output
@@ -3765,6 +3770,8 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             row1Plan->originalLength  = fftPlan->originalLength;
             row1Plan->acc  = fftPlan->acc;
             row1Plan->exist  = fftPlan->exist;
+            row1Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
+
             hcfftBakePlanInternal(fftPlan->planX);
             //Transpose 2
             //Output --> tmp buffer
@@ -3798,6 +3805,8 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             trans2Plan->originalLength  = fftPlan->originalLength;
             trans2Plan->acc  = fftPlan->acc;
             trans2Plan->exist  = fftPlan->exist;
+            trans2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
+
             hcfftBakePlanInternal(fftPlan->planTY);
             //Row transform 2
             //tmp->tmp
@@ -3831,6 +3840,8 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             row2Plan->originalLength  = fftPlan->originalLength;
             row2Plan->acc  = fftPlan->acc;
             row2Plan->exist  = fftPlan->exist;
+            row2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
+
             hcfftBakePlanInternal(fftPlan->planY);
             //Transpose 3
             //tmp --> output
@@ -3869,6 +3880,8 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             trans3Plan->originalLength  = fftPlan->originalLength;
             trans3Plan->acc  = fftPlan->acc;
             trans3Plan->exist  = fftPlan->exist;
+            trans3Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
+
             hcfftBakePlanInternal(fftPlan->planTZ);
             fftPlan->transflag = true;
             fftPlan->baked = true;
@@ -3927,6 +3940,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             colTPlan->originalLength  = fftPlan->originalLength;
             colTPlan->acc  = fftPlan->acc;
             colTPlan->exist  = fftPlan->exist;
+            colTPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
             hcfftBakePlanInternal(fftPlan->planX);
             //another column FFT, size clLengths[0], batch clLengths[1], output without transpose
@@ -3966,43 +3980,50 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             col2Plan->originalLength  = fftPlan->originalLength;
             col2Plan->acc  = fftPlan->acc;
             col2Plan->exist  = fftPlan->exist;
+            col2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
             hcfftBakePlanInternal(fftPlan->planY);
-            // copy plan to get back to hermitian
-            hcfftCreateDefaultPlanInternal( &fftPlan->planRCcopy, HCFFT_1D,  &fftPlan->length[0]);
-            FFTPlan* copyPlan = NULL;
-            lockRAII* copyLock  = NULL;
-            fftRepo.getPlan( fftPlan->planRCcopy, copyPlan, copyLock );
-            // This is second column fft, intermediate buffer is packed and interleaved
-            // we need to pass clLengths[1] and instride size to kernel, so kernel can tell the difference
-            // common part for both passes
-            copyPlan->location     = HCFFT_OUTOFPLACE;
-            copyPlan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
-            copyPlan->opLayout  = fftPlan->opLayout;
-            copyPlan->precision     = fftPlan->precision;
-            copyPlan->forwardScale  = 1.0f;
-            copyPlan->backwardScale = 1.0f;
-            copyPlan->tmpBufSize    = 0;
-            copyPlan->batchSize     = fftPlan->batchSize;
-            copyPlan->gen     = Copy;
-            copyPlan->envelope    = fftPlan->envelope;
-            copyPlan->inStride[0]  = 1;
-            copyPlan->iDist        = fftPlan->length[0];
-            copyPlan->outStride[0] = fftPlan->outStride[0];
-            copyPlan->oDist         = fftPlan->oDist;
-            copyPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
-            copyPlan->originalLength  = fftPlan->originalLength;
 
-            for (size_t index = 1; index < fftPlan->length.size(); index++) {
-              copyPlan->length.push_back(fftPlan->length[index]);
-              copyPlan->inStride.push_back(copyPlan->inStride[index - 1] * fftPlan->length[index - 1]);
-              copyPlan->iDist   *= fftPlan->length[index];
-              copyPlan->outStride.push_back(fftPlan->outStride[index]);
+            if ( (fftPlan->opLayout == HCFFT_HERMITIAN_INTERLEAVED) ||
+						  (fftPlan->opLayout == HCFFT_HERMITIAN_PLANAR) )
+            {
+              // copy plan to get back to hermitian
+              hcfftCreateDefaultPlanInternal( &fftPlan->planRCcopy, HCFFT_1D,  &fftPlan->length[0]);
+              FFTPlan* copyPlan = NULL;
+              lockRAII* copyLock  = NULL;
+              fftRepo.getPlan( fftPlan->planRCcopy, copyPlan, copyLock );
+              // This is second column fft, intermediate buffer is packed and interleaved
+              // we need to pass clLengths[1] and instride size to kernel, so kernel can tell the difference
+              // common part for both passes
+              copyPlan->location     = HCFFT_OUTOFPLACE;
+              copyPlan->ipLayout   = HCFFT_COMPLEX_INTERLEAVED;
+              copyPlan->opLayout  = fftPlan->opLayout;
+              copyPlan->precision     = fftPlan->precision;
+              copyPlan->forwardScale  = 1.0f;
+              copyPlan->backwardScale = 1.0f;
+              copyPlan->tmpBufSize    = 0;
+              copyPlan->batchSize     = fftPlan->batchSize;
+              copyPlan->gen     = Copy;
+              copyPlan->envelope    = fftPlan->envelope;
+              copyPlan->inStride[0]  = 1;
+              copyPlan->iDist        = fftPlan->length[0];
+              copyPlan->outStride[0] = fftPlan->outStride[0];
+              copyPlan->oDist         = fftPlan->oDist;
+              copyPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+              copyPlan->originalLength  = fftPlan->originalLength;
+
+              for (size_t index = 1; index < fftPlan->length.size(); index++) {
+                copyPlan->length.push_back(fftPlan->length[index]);
+                copyPlan->inStride.push_back(copyPlan->inStride[index - 1] * fftPlan->length[index - 1]);
+                copyPlan->iDist   *= fftPlan->length[index];
+                copyPlan->outStride.push_back(fftPlan->outStride[index]);
+              }
+              copyPlan->acc  = fftPlan->acc;
+              copyPlan->exist  = fftPlan->exist;
+              copyPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
+
+              hcfftBakePlanInternal(fftPlan->planRCcopy);
             }
-            copyPlan->acc  = fftPlan->acc;
-            copyPlan->exist  = fftPlan->exist;
-
-            hcfftBakePlanInternal(fftPlan->planRCcopy);
           } else if(fftPlan->opLayout == HCFFT_REAL) {
             if (fftPlan->tmpBufSizeRC == 0 ) {
               fftPlan->tmpBufSizeRC = length0 * length1 *
@@ -4013,41 +4034,46 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
               }
             }
 
-            // copy plan to from hermitian to full complex
-            hcfftCreateDefaultPlanInternal( &fftPlan->planRCcopy, HCFFT_1D,  &fftPlan->length[0] );
-            FFTPlan* copyPlan = NULL;
-            lockRAII* copyLock  = NULL;
-            fftRepo.getPlan( fftPlan->planRCcopy, copyPlan, copyLock );
-            // This is second column fft, intermediate buffer is packed and interleaved
-            // we need to pass clLengths[1] and instride size to kernel, so kernel can tell the difference
-            // common part for both passes
-            copyPlan->location     = HCFFT_OUTOFPLACE;
-            copyPlan->ipLayout   = fftPlan->ipLayout;
-            copyPlan->opLayout  = HCFFT_COMPLEX_INTERLEAVED;
-            copyPlan->precision     = fftPlan->precision;
-            copyPlan->forwardScale  = 1.0f;
-            copyPlan->backwardScale = 1.0f;
-            copyPlan->tmpBufSize    = 0;
-            copyPlan->batchSize     = fftPlan->batchSize;
-            copyPlan->gen     = Copy;
-            copyPlan->envelope    = fftPlan->envelope;
-            copyPlan->inStride[0]  = fftPlan->inStride[0];
-            copyPlan->iDist        = fftPlan->iDist;
-            copyPlan->outStride[0]  = 1;
-            copyPlan->oDist        = fftPlan->length[0];
+            if ((fftPlan->ipLayout == HCFFT_HERMITIAN_INTERLEAVED) ||
+               (fftPlan->ipLayout == HCFFT_HERMITIAN_PLANAR))
+            {
+              // copy plan to from hermitian to full complex
+              hcfftCreateDefaultPlanInternal( &fftPlan->planRCcopy, HCFFT_1D,  &fftPlan->length[0] );
+              FFTPlan* copyPlan = NULL;
+              lockRAII* copyLock  = NULL;
+              fftRepo.getPlan( fftPlan->planRCcopy, copyPlan, copyLock );
+              // This is second column fft, intermediate buffer is packed and interleaved
+              // we need to pass clLengths[1] and instride size to kernel, so kernel can tell the difference
+              // common part for both passes
+              copyPlan->location     = HCFFT_OUTOFPLACE;
+              copyPlan->ipLayout   = fftPlan->ipLayout;
+              copyPlan->opLayout  = HCFFT_COMPLEX_INTERLEAVED;
+              copyPlan->precision     = fftPlan->precision;
+              copyPlan->forwardScale  = 1.0f;
+              copyPlan->backwardScale = 1.0f;
+              copyPlan->tmpBufSize    = 0;
+              copyPlan->batchSize     = fftPlan->batchSize;
+              copyPlan->gen     = Copy;
+              copyPlan->envelope    = fftPlan->envelope;
+              copyPlan->inStride[0]  = fftPlan->inStride[0];
+              copyPlan->iDist        = fftPlan->iDist;
+              copyPlan->outStride[0]  = 1;
+              copyPlan->oDist        = fftPlan->length[0];
 
-            for (size_t index = 1; index < fftPlan->length.size(); index++) {
-              copyPlan->length.push_back(fftPlan->length[index]);
-              copyPlan->outStride.push_back(copyPlan->outStride[index - 1] * fftPlan->length[index - 1]);
-              copyPlan->oDist   *= fftPlan->length[index];
-              copyPlan->inStride.push_back(fftPlan->inStride[index]);
+              for (size_t index = 1; index < fftPlan->length.size(); index++) {
+                copyPlan->length.push_back(fftPlan->length[index]);
+                copyPlan->outStride.push_back(copyPlan->outStride[index - 1] * fftPlan->length[index - 1]);
+                copyPlan->oDist   *= fftPlan->length[index];
+                copyPlan->inStride.push_back(fftPlan->inStride[index]);
+              }
+              copyPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
+              copyPlan->originalLength  = fftPlan->originalLength;
+              copyPlan->acc  = fftPlan->acc;
+              copyPlan->exist  = fftPlan->exist;
+              copyPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
+
+              hcfftBakePlanInternal(fftPlan->planRCcopy);
             }
-            copyPlan->hcfftlibtype  = fftPlan->hcfftlibtype;
-            copyPlan->originalLength  = fftPlan->originalLength;
-            copyPlan->acc  = fftPlan->acc;
-            copyPlan->exist  = fftPlan->exist;
-
-            hcfftBakePlanInternal(fftPlan->planRCcopy);
             // column FFT, size clLengths[1], batch clLengths[0], with length[0] twiddle factor multiplication
             // transposed output
             hcfftCreateDefaultPlanInternal( &fftPlan->planX, HCFFT_1D, &clLengths[1] );
@@ -4091,6 +4117,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             colTPlan->originalLength  = fftPlan->originalLength;
             colTPlan->acc  = fftPlan->acc;
             colTPlan->exist  = fftPlan->exist;
+            colTPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
             hcfftBakePlanInternal(fftPlan->planX);
             //another column FFT, size clLengths[0], batch clLengths[1], output without transpose
@@ -4130,6 +4157,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             col2Plan->originalLength  = fftPlan->originalLength;
             col2Plan->acc  = fftPlan->acc;
             col2Plan->exist  = fftPlan->exist;
+            col2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
             hcfftBakePlanInternal(fftPlan->planY);
           } else {
@@ -4179,6 +4207,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
               trans1Plan->originalLength  = fftPlan->originalLength;
               trans1Plan->acc  = fftPlan->acc;
               trans1Plan->exist  = fftPlan->exist;
+              trans1Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
               hcfftBakePlanInternal(fftPlan->planTX);
               // row FFT
@@ -4216,6 +4245,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
               rowPlan->originalLength  = fftPlan->originalLength;
               rowPlan->acc  = fftPlan->acc;
               rowPlan->exist  = fftPlan->exist;
+              rowPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
               hcfftBakePlanInternal(fftPlan->planX);
               //column FFT
@@ -4256,6 +4286,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
               col2Plan->originalLength  = fftPlan->originalLength;
               col2Plan->acc  = fftPlan->acc;
               col2Plan->exist  = fftPlan->exist;
+              col2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
               hcfftBakePlanInternal(fftPlan->planY);
               // copy plan to get results back to packed output
@@ -4291,6 +4322,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
               copyPlan->originalLength  = fftPlan->originalLength;
               copyPlan->acc  = fftPlan->acc;
               copyPlan->exist  = fftPlan->exist;
+              copyPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
               hcfftBakePlanInternal(fftPlan->planCopy);
             } else {
@@ -4352,6 +4384,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
               colTPlan->originalLength  = fftPlan->originalLength;
               colTPlan->acc  = fftPlan->acc;
               colTPlan->exist  = fftPlan->exist;
+              colTPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
               hcfftBakePlanInternal(fftPlan->planX);
               //another column FFT, size clLengths[0], batch clLengths[1], output without transpose
@@ -4426,6 +4459,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
               col2Plan->originalLength  = fftPlan->originalLength;
               col2Plan->acc  = fftPlan->acc;
               col2Plan->exist  = fftPlan->exist;
+              col2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
               hcfftBakePlanInternal(fftPlan->planY);
 
@@ -4462,6 +4496,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
                 trans3Plan->originalLength  = fftPlan->originalLength;
                 trans3Plan->acc  = fftPlan->acc;
                 trans3Plan->exist  = fftPlan->exist;
+                trans3Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
                 hcfftBakePlanInternal(fftPlan->planTZ);
               }
@@ -4571,6 +4606,8 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
           rowPlan->originalLength  = fftPlan->originalLength;
           rowPlan->acc  = fftPlan->acc;
           rowPlan->exist  = fftPlan->exist;
+          rowPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
+
           hcfftBakePlanInternal(fftPlan->planX);
           //Create transpose plan for first transpose
           //x=y: inplace. x!=y inplace: in->tmp, outofplace out->tmp
@@ -4618,6 +4655,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
           transPlanX->originalLength  = fftPlan->originalLength;
           transPlanX->acc  = fftPlan->acc;
           transPlanX->exist  = fftPlan->exist;
+          transPlanX->plHandleOrigin  = fftPlan->plHandleOrigin;
 
           hcfftBakePlanInternal(fftPlan->planTX);
           //create second row plan
@@ -4671,6 +4709,8 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
           colPlan->originalLength  = fftPlan->originalLength;
           colPlan->acc  = fftPlan->acc;
           colPlan->exist  = fftPlan->exist;
+          colPlan->plHandleOrigin  = fftPlan->plHandleOrigin;
+
           hcfftBakePlanInternal(fftPlan->planY);
 
           if (fftPlan->transposeType == HCFFT_TRANSPOSED) {
@@ -4715,6 +4755,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
           transPlanY->originalLength  = fftPlan->originalLength;
           transPlanY->acc  = fftPlan->acc;
           transPlanY->exist  = fftPlan->exist;
+          transPlanY->plHandleOrigin  = fftPlan->plHandleOrigin;
 
           hcfftBakePlanInternal(fftPlan->planTY);
           fftPlan->baked = true;
