@@ -91,4 +91,24 @@ do
     fi
   fi
 
+  #Gtest functions
+  unittest="$working_dir1/${testdirectories[$i]}_padding"
+
+  runcmd1="$unittest >> gtestlog.txt"
+  eval $runcmd1
+
+  Log_file="$working_dir1/gtestlog.txt"
+  if [ ! -s "$Log_file" ]; then
+    echo "${red}GTEST IS NOT WORKING....${reset}"
+  else
+    if grep -q FAILED "$Log_file";
+    then
+      echo "${red}${testdirectories[$i]}_padding             ----- [ FAILED ]${reset}"
+    elif grep -q PASSED "$Log_file";
+    then
+      echo "${green}${testdirectories[$i]}_padding           ----- [ PASSED ]${reset}"
+      rm -f $working_dir1/gtestlog.txt
+    fi
+  fi
+
 done
