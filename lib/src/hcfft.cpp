@@ -667,7 +667,16 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata
   hcfftDirection dir = HCFFT_FORWARD;
   hcfftReal *odataR = (hcfftReal*)odata;
 
+  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  if(idata == odataR)
+    loc = HCFFT_INPLACE;
+
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetResultLocation(plan, loc);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
@@ -697,21 +706,27 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal *idata, hcfftDoubleCo
   hcfftDirection dir = HCFFT_FORWARD;
   hcfftDoubleReal *odataR = (hcfftDoubleReal*)odata;
 
+  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  if(idata == odataR)
+    loc = HCFFT_INPLACE;
+
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
   if(status != HCFFT_SUCCEEDS) {
-    std::cout << " set layout failed "<<std::endl;
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetResultLocation(plan, loc);
+  if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftBakePlan(plan);
   if(status != HCFFT_SUCCEEDS) {
-    std::cout << " bake plan failed "<<std::endl;
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftEnqueueTransform(plan, dir, idata, odataR, NULL);
   if (status != HCFFT_SUCCEEDS) {
-    std::cout << " enqueuetransform failed "<<std::endl;
     return HCFFT_EXEC_FAILED;
   }
 
@@ -759,7 +774,16 @@ hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata
   hcfftDirection dir = HCFFT_BACKWARD;
   hcfftReal *idataR = (hcfftReal*)idata;
 
+  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  if(idataR == odata)
+    loc = HCFFT_INPLACE;
+
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetResultLocation(plan, loc);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
@@ -789,7 +813,16 @@ hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubl
   hcfftDirection dir = HCFFT_BACKWARD;
   hcfftDoubleReal *idataR = (hcfftDoubleReal*)idata;
 
+  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  if(idataR == odata)
+    loc = HCFFT_INPLACE;
+
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetResultLocation(plan, loc);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
@@ -846,7 +879,16 @@ hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex *idata, hcfftComplex *od
   hcfftReal *idataR = (hcfftReal*)idata;
   hcfftReal *odataR = (hcfftReal*)odata;
 
+  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  if(idataR == odataR)
+    loc = HCFFT_INPLACE;
+
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetResultLocation(plan, loc);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
@@ -877,7 +919,16 @@ hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubl
   hcfftDoubleReal *idataR = (hcfftDoubleReal*)idata;
   hcfftDoubleReal *odataR = (hcfftDoubleReal*)odata;
 
+  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  if(idataR == odataR)
+    loc = HCFFT_INPLACE;
+
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetResultLocation(plan, loc);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
