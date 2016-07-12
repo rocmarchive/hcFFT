@@ -2975,7 +2975,6 @@ class Kernel {
     if(PR == P_SINGLE)
     {
        TwiddleTableLarge<float_2, PR> twLarge(large1D);
-
        // twiddle factors for 1d-large 3-step algorithm
        if(params.fft_3StepTwiddle) {
          twLarge.GenerateTwiddleTable(str);
@@ -3544,22 +3543,23 @@ class Kernel {
 					  str += "lwbInRe = gbInRe + iOffset;\n\t";
 					  str += "lwbInIm = gbInIm + iOffset;\n\t";
 		      }
-        }
 
-	      if(outInterleaved || outReal)
-	      {
-	        if(!rcSimple) {	str += "lwbOut2 = gbOut + oOffset2;\n\t"; }
-	        str += "lwbOut = gbOut + oOffset;\n";
-	      }
-	      else
-	      {
-		      if(!rcSimple) {	str += "lwbOutRe2 = gbOutRe + oOffset2;\n\t"; }
-		      if(!rcSimple) {	str += "lwbOutIm2 = gbOutIm + oOffset2;\n\t"; }
-						      str += "lwbOutRe = gbOutRe + oOffset;\n\t";
-							      str += "lwbOutIm = gbOutIm + oOffset;\n";
-	      }
-        str += "\n";
-	    } else {
+          if(outInterleaved || outReal)
+	        {
+	          if(!rcSimple) {	str += "lwbOut2 = gbOut + oOffset2;\n\t"; }
+	          str += "lwbOut = gbOut + oOffset;\n";
+	        }
+	        else
+	        {
+		        if(!rcSimple) {	str += "lwbOutRe2 = gbOutRe + oOffset2;\n\t"; }
+		        if(!rcSimple) {	str += "lwbOutIm2 = gbOutIm + oOffset2;\n\t"; }
+						str += "lwbOutRe = gbOutRe + oOffset;\n\t";
+						str += "lwbOutIm = gbOutIm + oOffset;\n";
+	        }
+          str += "\n";
+	    }
+      }
+      else {
         if(params.fft_placeness == HCFFT_INPLACE) {
           if(blockCompute) {
             str += OffsetCalcBlock("ioOffset", true);
