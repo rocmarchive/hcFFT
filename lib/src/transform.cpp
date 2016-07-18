@@ -3123,12 +3123,9 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
   size_t maxLengthInAnyDim = 1;
 
   switch(fftPlan->dimension) {
-    case HCFFT_3D:
-      maxLengthInAnyDim = maxLengthInAnyDim > fftPlan->length[2] ? maxLengthInAnyDim : fftPlan->length[2];
-    case HCFFT_2D:
-      maxLengthInAnyDim = maxLengthInAnyDim > fftPlan->length[1] ? maxLengthInAnyDim : fftPlan->length[1];
-    case HCFFT_1D:
-      maxLengthInAnyDim = maxLengthInAnyDim > fftPlan->length[0] ? maxLengthInAnyDim : fftPlan->length[0];
+    case HCFFT_3D: maxLengthInAnyDim *= fftPlan->length[2];
+    case HCFFT_2D: maxLengthInAnyDim *= fftPlan->length[1];
+    case HCFFT_1D: maxLengthInAnyDim *= fftPlan->length[0];
   }
 
   bool rc = (fftPlan->ipLayout == HCFFT_REAL) || (fftPlan->opLayout == HCFFT_REAL);
