@@ -465,7 +465,6 @@ class FFTPlan {
   hcfftPrecision precision;
   void* input;
   void* output;
-  std::vector< size_t > unpaddedLength;
   std::vector< size_t > length;
   std::vector< size_t > inStride, outStride;
   size_t batchSize;
@@ -475,7 +474,6 @@ class FFTPlan {
   double backwardScale;
   bool  twiddleFront;
 
-  bool isPadded;
   bool baked;
   bool transformed;
   hcfftGenerators gen;
@@ -571,7 +569,7 @@ class FFTPlan {
     opLayout (HCFFT_COMPLEX_INTERLEAVED), direction(HCFFT_FORWARD), location (HCFFT_INPLACE),
     transposeType (HCFFT_NOTRANSPOSE), precision (HCFFT_SINGLE),
     batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0),
-    twiddleFront(false), isPadded(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
+    twiddleFront(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
     planTX(0), planTY(0), planTZ(0), planRCcopy(0), planCopy(0), plHandle(0), plHandleOrigin(0),
     bLdsComplex(false), uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
     intBuffer( NULL ), intBufferD(NULL), tmpBufSizeRC(0), intBufferRC(NULL), intBufferRCD(NULL),
@@ -585,26 +583,6 @@ class FFTPlan {
   };
 
   hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, hcfftPrecision precision, hcfftLibType libType);
-
-  hcfftStatus hcfftpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
-
-  hcfftStatus hcfftpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
-                           size_t z_size, size_t z_pad_size);
-
-  hcfftStatus hcfftUnpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
-
-  hcfftStatus hcfftUnpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
-                             size_t z_size, size_t z_pad_size);
-
-  hcfftStatus hcfftpadding(double *input, double *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
-
-  hcfftStatus hcfftpadding(double *input, double *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
-                           size_t z_size, size_t z_pad_size);
-
-  hcfftStatus hcfftUnpadding(double *input, double *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
-
-  hcfftStatus hcfftUnpadding(double *input, double *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
-                             size_t z_size, size_t z_pad_size);
 
   hcfftStatus hcfftBakePlan(hcfftPlanHandle plHandle);
 

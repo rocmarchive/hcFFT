@@ -45,36 +45,6 @@ hcfftResult hcfftCreate(hcfftHandle *&plan) {
   }
 }
 
-/* Function checkLength()
-Check if given size is a multiple of 2,3,5 or 7.
-If not, returns the next integer that satisfies it.
-*/
-int checkLength(int x)
-{
-  size_t baseRadix[] = {7, 5, 3, 2}; // list only supported primes
-  size_t baseRadixSize = sizeof(baseRadix) / sizeof(baseRadix[0]);
-
-  do
-  {
-  int len = x;
-  for(size_t r = 0; r < baseRadixSize; r++) {
-    size_t rad = baseRadix[r];
-
-    while(!(len % rad)) {
-      len /= rad;
-    }
-  }
-
-  if( len != 1)
-    ++x;
-  else
-    break;
-
-  }while(1);
-
-  return x;
-}
-
 /******************************************************************************************************************
  * <i>  Function hcfftPlan1d()
    Description:
@@ -164,8 +134,6 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
     return HCFFT_SETUP_FAILED;
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
-
-  nx = checkLength(length[0]);
 
   switch (libType) {
     case HCFFT_R2CD2Z:
@@ -332,9 +300,6 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
     return HCFFT_SETUP_FAILED;
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
-
-  nx = checkLength(length[0]);
-  ny = checkLength(length[1]);
 
   switch (libType) {
     case HCFFT_R2CD2Z:
@@ -510,10 +475,6 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
     return HCFFT_SETUP_FAILED;
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
-
-  nx = checkLength(length[0]);
-  ny = checkLength(length[1]);
-  nz = checkLength(length[2]);
 
   switch (libType) {
     case HCFFT_R2CD2Z:
