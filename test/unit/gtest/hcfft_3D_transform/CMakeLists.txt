@@ -6,7 +6,7 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../../../
 # Find HCC compiler
 FIND_PACKAGE(HC++ 1.0 REQUIRED)
 
-file(GLOB HCSRCS hcfft_3D_transform.cpp hcfft_3D_transform_double.cpp hcfft_3D_transform_padding.cpp)
+file(GLOB HCSRCS hcfft_3D_transform.cpp hcfft_3D_transform_double.cpp)
 
 # Choice to take compilation flags from source or package
 if(EXISTS ${MCWHCCBUILD})
