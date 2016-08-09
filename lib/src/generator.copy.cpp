@@ -14,123 +14,26 @@ class CopyKernel {
   bool h2c, c2h;
   bool general;
 
-  inline std::string OffsetCalc(const std::string &off, bool input = true) {
+  inline std::string OffsetCalc(const std::string &off, bool input = true)
+  {
     std::string str;
-    const size_t* pStride = input ? params.fft_inStride : params.fft_outStride;
-    std::string batch = "batch";
 
-    switch(params.fft_DataDim) {
-      case 5: {
-          str += "\t{\n\tuint ocalc1 = ";
-          str += batch;
-          str += "%";
-          str += SztToStr(params.fft_N[1] * params.fft_N[2] * params.fft_N[3]);
-          str += ";\n";
-          str += "\tuint ocalc0 = ";
-          str += "ocalc1";
-          str += "%";
-          str += SztToStr(params.fft_N[1] * params.fft_N[2]);
-          str += ";\n";
-          str += "\t";
-          str += off;
-          str += " = ";
-          str += "(";
-          str += batch;
-          str += "/";
-          str += SztToStr(params.fft_N[1] * params.fft_N[2] * params.fft_N[3]);
-          str += ")*";
-          str += SztToStr(pStride[4]);
-          str += " + ";
-          str += "(ocalc1";
-          str += "/";
-          str += SztToStr(params.fft_N[1] * params.fft_N[2]);
-          str += ")*";
-          str += SztToStr(pStride[3]);
-          str += " + ";
-          str += "(ocalc0";
-          str += "/";
-          str += SztToStr(params.fft_N[1]);
-          str += ")*";
-          str += SztToStr(pStride[2]);
-          str += " + ";
-          str += "(ocalc0";
-          str += "%";
-          str += SztToStr(params.fft_N[1]);
-          str += ")*";
-          str += SztToStr(pStride[1]);
-          str += ";\n";
-          str += "\t}\n";
-        }
-        break;
+    const size_t *pStride = input ? params.fft_inStride : params.fft_outStride;
 
-      case 4: {
-          str += "\t{\n\tuint ocalc0 = ";
-          str += batch;
-          str += "%";
-          str += SztToStr(params.fft_N[1] * params.fft_N[2]);
-          str += ";\n";
-          str += "\t";
-          str += off;
-          str += " = ";
-          str += "(";
-          str += batch;
-          str += "/";
-          str += SztToStr(params.fft_N[1] * params.fft_N[2]);
-          str += ")*";
-          str += SztToStr(pStride[3]);
-          str += " + ";
-          str += "(ocalc0";
-          str += "/";
-          str += SztToStr(params.fft_N[1]);
-          str += ")*";
-          str += SztToStr(pStride[2]);
-          str += " + ";
-          str += "(ocalc0";
-          str += "%";
-          str += SztToStr(params.fft_N[1]);
-          str += ")*";
-          str += SztToStr(pStride[1]);
-          str += ";\n";
-          str += "\t}\n";
-        }
-        break;
+    str += "\t"; str += off; str += " = ";
+    std::string nextBatch = "batch";
+    for(size_t i=(params.fft_DataDim - 1); i>1; i--)
+    {
+      size_t currentLength = 1;
+      for(int j=1; j<i; j++) currentLength *= params.fft_N[j];
 
-      case 3: {
-          str += "\t";
-          str += off;
-          str += " = ";
-          str += "(";
-          str += batch;
-          str += "/";
-          str += SztToStr(params.fft_N[1]);
-          str += ")*";
-          str += SztToStr(pStride[2]);
-          str += " + ";
-          str += "(";
-          str += batch;
-          str += "%";
-          str += SztToStr(params.fft_N[1]);
-          str += ")*";
-          str += SztToStr(pStride[1]);
-          str += ";\n";
-        }
-        break;
+      str += "("; str += nextBatch; str += "/"; str += SztToStr(currentLength);
+      str += ")*"; str += SztToStr(pStride[i]); str += " + ";
 
-      case 2: {
-          str += "\t";
-          str += off;
-          str += " = ";
-          str += batch;
-          str += "*";
-          str += SztToStr(pStride[1]);
-          str += ";\n";
-        }
-        break;
-
-      default:
-        assert(false);
+      nextBatch = "(" + nextBatch + "%" + SztToStr(currentLength) + ")";
     }
 
+    str += nextBatch; str += "*"; str += SztToStr(pStride[1]); str += ";\n";
     return str;
   }
 
@@ -472,6 +375,8 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Copy> (FFTKernelGenKeyParams & params) c
   params.fft_outStride[i] = this->oDist;
   params.fft_fwdScale  = this->forwardScale;
   params.fft_backScale = this->backwardScale;
+  params.limit_LocalMemSize = this->envelope.limit_LocalMemSize;
+
   return HCFFT_SUCCEEDS;
 }
 
@@ -511,11 +416,6 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Copy> (std::vector<size_t> & globalWS, std:
   globalWS.push_back( count );
   localWS.push_back( 64 );
   return    HCFFT_SUCCEEDS;
-}
-
-template<>
-hcfftStatus FFTPlan::GetMax1DLengthPvt<Copy> (size_t* longest) const {
-  return FFTPlan::GetMax1DLengthPvt<Stockham>(longest);
 }
 
 using namespace CopyGenerator;

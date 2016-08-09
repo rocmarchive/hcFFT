@@ -44,6 +44,36 @@ enum BlockComputeType {
   BCT_C2C         // Column to Column
 };
 
+//NonSquareKernelType
+enum NonSquareTransposeKernelType
+{
+    NON_SQUARE_TRANS_PARENT,
+    NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING,
+    NON_SQUARE_TRANS_TRANSPOSE_BATCHED,
+    NON_SQUARE_TRANS_SWAP
+};
+
+/*
+There are three ways of conducting inplace transpose with 1:2 (or 2:1) dimension ratio.
+A. first conduct line swapping kernels for the whole non square matrix
+then conduct batched square transpose along column dim (a 'real' batched transpose)
+B. first conduct batched square transpose along column dim (a 'real' batched transpose)
+then conduct line swapping kernels for the whole non square matrix (for 2:1 case)
+C. first conduct batched square transpose along leading dim (row dim)
+then conduct line swapping kernels for the whole non square matrix
+Note that the twiddle computation has to go at the begining of the first kernel or the end of the second kernel
+
+if leading dimension is bigger, it makes more sense (faster) to swap line first and then conduct batched square transpose
+if leading dimension is smaller, it makes more sense (faster) to conduct batched transpose and then swap lines.
+*/
+enum NON_SQUARE_KERNEL_ORDER
+{
+	NOT_A_TRANSPOSE,
+	SWAP_AND_TRANSPOSE, // A.
+	TRANSPOSE_AND_SWAP, // B.
+	TRANSPOSE_LEADING_AND_SWAP, // C.
+};
+
 typedef enum hcfftLibType_
 {
   HCFFT_R2CD2Z = 1,
@@ -96,7 +126,9 @@ typedef enum hcfftStatus_ {
 
 typedef enum hcfftGenerators_ {
   Stockham,
-  Transpose,
+  Transpose_GCN,
+  Transpose_SQUARE,
+  Transpose_NONSQUARE,
   Copy,
 } hcfftGenerators;
 
@@ -105,7 +137,7 @@ static inline bool IsPo2 (size_t u) {
 }
 
 inline void BSF( unsigned long* index, size_t& mask ) {
-  //_BitScanForward( index, mask );
+		*index = __builtin_ctz( mask );
 }
 
 template<typename T>
@@ -118,6 +150,25 @@ static inline size_t BitScanF (size_t n) {
   unsigned long tmp = 0;
   BSF (& tmp, n);
   return (size_t) tmp;
+}
+
+static bool Is1DPossible(size_t length, size_t large1DThreshold)
+{
+	if (length > large1DThreshold)
+		return false;
+
+	if ( (length%7 == 0) && (length%5 == 0) && (length%3 == 0) )
+		return false;
+
+	// radix 11 & 2 is ok, anything else we cannot do in 1 kernel
+	if ( (length % 11 == 0) && ((length % 13 == 0) || (length % 7 == 0) || (length % 5 == 0) || (length % 3 == 0)) )
+		return false;
+
+	// radix 13 & 2 is ok, anything else we cannot do in 1 kernel
+	if ( (length % 13 == 0) && ((length % 11 == 0) || (length % 7 == 0) || (length % 5 == 0) || (length % 3 == 0)) )
+		return false;
+
+	return true;
 }
 
 //  Find the smallest power of 2 that is >= n; return its power of 2 factor
@@ -157,10 +208,12 @@ inline std::string SztToStr(size_t i) {
 inline std::string hcHeader() {
   return "#include <hc.hpp>\n"
          "#include <hc_am.hpp>\n"
+         "#include <hc_math.hpp>\n"
          "#include <stdio.h>\n"
          "#include <hc_short_vector.hpp>\n"
          "#include <iostream>\n"
          "using namespace hc;\n"
+         "using namespace hc::fast_math;\n"
          "using namespace hc::short_vector;\n";
 }
 
@@ -336,8 +389,21 @@ struct FFTKernelGenKeyParams {
   size_t       blockSIMD;
   size_t       blockLDS;
 
-  bool                     fft_UseFMA;        // *** TODO
+  NonSquareTransposeKernelType      nonSquareKernelType;
+  // sometimes non square matrix are broken down into a number of
+  // square matrix during inplace transpose
+  // let's call this number transposeMiniBatchSize
+  // no user of the library should set its value
+  size_t transposeMiniBatchSize;
+  // transposeBatchSize is the number of batchs times transposeMiniBatchSzie
+  // no user of the library should set its value
+  size_t transposeBatchSize;
+  // no user of the library should set its value
+  NON_SQUARE_KERNEL_ORDER nonSquareKernelOrder;
+
   bool                     fft_RCsimple;
+
+  ulong   limit_LocalMemSize;
 
   // Default constructor
   FFTKernelGenKeyParams() {
@@ -368,6 +434,10 @@ struct FFTKernelGenKeyParams {
     blockComputeType = BCT_R2C;
     blockSIMD = 0;
     blockLDS = 0;
+    nonSquareKernelType = NON_SQUARE_TRANS_PARENT;
+    transposeMiniBatchSize = 1;
+    transposeBatchSize = 1;
+    limit_LocalMemSize = 0;
   }
 };
 
@@ -471,11 +541,25 @@ class FFTPlan {
   // User created plan
   bool userPlan;
 
+  // Allocate no extra memory
+  bool allOpsInplace;
+
   // A flag to say that blocked FFTs are going to be performed
   // It can only be one of these: column to row, row to column or column to column
   // row to row is just the normal case where blocking is not needed
   bool blockCompute;
   BlockComputeType blockComputeType;
+
+  // flag to indicate transpose placeness in 2D breakdown
+  bool transpose_in_2d_inplace;
+
+  NonSquareTransposeKernelType nonSquareKernelType;
+  // sometimes non square matrix are broken down into a number of
+  // square matrix during inplace transpose
+  // let's call this number transposeMiniBatchSize
+  // no user of the library should set its value
+  size_t transposeMiniBatchSize;
+  NON_SQUARE_KERNEL_ORDER nonSquareKernelOrder;
 
   // Store sizes of original plan
   std::vector<size_t> originalLength;
@@ -492,9 +576,11 @@ class FFTPlan {
     bLdsComplex(false), uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
     intBuffer( NULL ), intBufferD(NULL), tmpBufSizeRC(0), intBufferRC(NULL), intBufferRCD(NULL),
     tmpBufSizeC2R(0), intBufferC2RD(NULL), intBufferC2R(NULL), transflag(false),
-    twiddles(NULL), twiddleslarge(NULL), transOutHorizontal(false), large1D(0), large2D(false),
-    RCsimple(false), realSpecial(false), realSpecial_Nr(0), userPlan(false), blockCompute(false),
-    blockComputeType(BCT_C2C), hcfftlibtype(HCFFT_R2CD2Z), exist(false), transformed(false) {
+    transpose_in_2d_inplace(false), twiddles(NULL), twiddleslarge(NULL), transOutHorizontal(false),
+    large1D(0), large2D(false), RCsimple(false), realSpecial(false), realSpecial_Nr(0),
+    userPlan(false), allOpsInplace(false), blockCompute(false), blockComputeType(BCT_C2C),
+    nonSquareKernelType(NON_SQUARE_TRANS_PARENT), transposeMiniBatchSize(1),
+    nonSquareKernelOrder(NOT_A_TRANSPOSE), hcfftlibtype(HCFFT_R2CD2Z), exist(false), transformed(false) {
       originalLength.clear();
   };
 
