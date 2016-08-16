@@ -4389,6 +4389,11 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
 							trans1Plan->nonSquareKernelType = NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING;
 						trans1Plan->transflag = true;
             trans1Plan->large1D = fftPlan->large1D;//twiddling may happen in this kernel
+            trans1Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans1Plan->originalLength  = fftPlan->originalLength;
+            trans1Plan->acc  = fftPlan->acc;
+            trans1Plan->exist  = fftPlan->exist;
+            trans1Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
 						if (trans1Plan->nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED)
 						{
@@ -4453,6 +4458,11 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
 							trans2Plan->nonSquareKernelType = NON_SQUARE_TRANS_SWAP;
 						trans2Plan->transflag = true;
 						trans2Plan->large1D = fftPlan->large1D;//twiddling may happen in this kernel
+            trans2Plan->hcfftlibtype  = fftPlan->hcfftlibtype;
+            trans2Plan->originalLength  = fftPlan->originalLength;
+            trans2Plan->acc  = fftPlan->acc;
+            trans2Plan->exist  = fftPlan->exist;
+            trans2Plan->plHandleOrigin  = fftPlan->plHandleOrigin;
 
 						if (trans2Plan->nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED)
 						{
