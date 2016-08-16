@@ -2952,7 +2952,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             // Enable block compute under these conditions
   					if( (fftPlan->inStride[0] == 1) && (fftPlan->outStride[0] == 1) && !rc
 	  					&& (fftPlan->length[0] <= 262144/width(fftPlan->precision)) && (fftPlan->length.size() <= 1)
-		  				&& (fftPlan->location == HCFFT_OUTOFPLACE))
+		  				&& (1 || (fftPlan->location == HCFFT_OUTOFPLACE)))
 			  		{
               fftPlan->blockCompute = true;
 
@@ -3124,7 +3124,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
 
 		  			if ( IsPo2(fftPlan->length[0]) &&
 			  			 (fftPlan->length[0] <= 262144/width(fftPlan->precision)) &&
-				  		 (fftPlan->location == HCFFT_OUTOFPLACE)) break;
+				  		 ((fftPlan->location == HCFFT_OUTOFPLACE) || 1)) break;
 
 					  if ( clLengths[0]<=32 && clLengths[1]<=32) break;
 
@@ -4496,20 +4496,6 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
         }
         size_t length0 = fftPlan->length[0];
         size_t length1 = fftPlan->length[1];
-
-        if (fftPlan->length[0] == 256 && fftPlan->length[1] == 256) {
-          length0 += 8;
-          length1 += 1;
-        } else if (fftPlan->length[0] == 512 && fftPlan->length[1] == 512) {
-          length0 += 1;
-          length1 += 1;//length1 += 0;
-        } else if (fftPlan->length[0] == 1024 && fftPlan->length[1] == 512) {
-          length0 += 2;
-          length1 += 2;//length1 += 0;
-        } else if (fftPlan->length[0] == 1024 && fftPlan->length[1] == 1024) {
-          length0 += 1;
-          length1 += 1;//length1 += 0;
-        }
 
         if (fftPlan->length[0] > Large1DThreshold ||
             fftPlan->length[1] > Large1DThreshold) {
@@ -6168,13 +6154,25 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
       }
   }
 
-  //  For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
-  fftPlan->GenerateKernel( plHandle, fftRepo, bakedPlanCount, fftPlan->exist);
-  //  For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
-  bakedPlanCount++;
-  CompileKernels( plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, fftPlan->exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
-  //  Record that we baked the plan
-  fftPlan->baked    = true;
+  switch (fftPlan->gen)
+  {
+    case Stockham:
+    case Transpose_GCN:
+    case Copy:
+    {
+      //  For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
+      fftPlan->GenerateKernel( plHandle, fftRepo, bakedPlanCount, fftPlan->exist);
+      //  For the radices that we have factored, we need to load/compile and build the appropriate OpenCL kernels
+      CompileKernels( plHandle, fftPlan->gen, fftPlan, fftPlan->plHandleOrigin, fftPlan->exist, fftPlan->originalLength, fftPlan->hcfftlibtype);
+      bakedPlanCount++;
+      fftPlan->baked    = true;
+    }
+    break;
+
+    default:
+			assert(false);
+  }
+
 
   return  HCFFT_SUCCEEDS;
 }
