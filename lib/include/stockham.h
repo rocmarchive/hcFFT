@@ -9,8 +9,6 @@
 
 using namespace std;
 
-static bool Lfirst;
-
 namespace StockhamGenerator {
 // Precision
 enum Precision {
@@ -50,15 +48,7 @@ typedef std::pair<std::string, std::string> stringpair;
 inline stringpair ComplexMul(const char* type, const char* a, const char* b, bool forward = true) {
   stringpair result;
 
-  if((strcmp(type, "float_2")) != 0) {
-    result.first = "(";
-  }
-
   result.first += type;
-
-  if((strcmp(type, "float_2")) != 0) {
-    result.first += ")";
-  }
 
   result.first += " ((";
   result.first += a;
@@ -240,40 +230,40 @@ class TwiddleTableLarge {
     assert(*twiddleslarge != NULL);
   }
 
-  void GenerateTwiddleTable(std::string &twStr) {
-    if(!Lfirst) {
-      std::stringstream ss;
-      // Twiddle calc function
-      ss << "inline ";
-      ss << RegBaseType<PR>(2);
-      ss << "\n" << TwTableLargeFunc() << "(size_t u, ";
-      ss << RegBaseType<PR>(2);
-      ss << " *";
-      ss << TwTableLargeName();
-      ss << ")  __attribute__((hc))\n{\n";
-      ss << "\t" "size_t j = u & " << unsigned(X - 1) << ";\n";
-      ss << "\t" ;
-      ss << RegBaseType<PR>(2);
-      ss << " result = ";
-      ss << TwTableLargeName();
-      ss << "[j];\n";
+  void GenerateTwiddleTable(std::string &twStr, const hcfftPlanHandle plHandle)
+  {
+    std::stringstream ss;
+    // Twiddle calc function
+    ss << "inline ";
+    ss << RegBaseType<PR>(2);
+    ss << "\n" << TwTableLargeFunc() ;
+    ss << SztToStr(plHandle);
+    ss << "(size_t u, ";
+    ss << RegBaseType<PR>(2);
+    ss << " *";
+    ss << TwTableLargeName();
+    ss << ")  __attribute__((hc))\n{\n";
+    ss << "\t" "size_t j = u & " << unsigned(X - 1) << ";\n";
+    ss << "\t" ;
+    ss << RegBaseType<PR>(2);
+    ss << " result = ";
+    ss << TwTableLargeName();
+    ss << "[j];\n";
 
-      for (size_t iY = 1; iY < Y; ++iY) {
-        std::string phasor = TwTableLargeName();
-        phasor += "[";
-        phasor += SztToStr(iY * X) ;
-        phasor += "+ j]";
-        stringpair product = ComplexMul((RegBaseType<PR>(2)).c_str(), "result", phasor.c_str());
-        ss << "\t" "u >>= " << unsigned (ARBITRARY::TWIDDLE_DEE) << ";\n";
-        ss << "\t" "j = u & " << unsigned(X - 1) << ";\n";
-        ss << "\t" "result = " << product.first << "\n";
-        ss << "\t" "\t" << product.second << ";\n";
-      }
-
-      ss << "\t" "return result;\n}\n\n";
-      twStr += ss.str();
-      Lfirst = true;
+    for (size_t iY = 1; iY < Y; ++iY) {
+      std::string phasor = TwTableLargeName();
+      phasor += "[";
+      phasor += SztToStr(iY * X) ;
+      phasor += "+ j]";
+      stringpair product = ComplexMul((RegBaseType<PR>(2)).c_str(), "result", phasor.c_str());
+      ss << "\t" "u >>= " << unsigned (ARBITRARY::TWIDDLE_DEE) << ";\n";
+      ss << "\t" "j = u & " << unsigned(X - 1) << ";\n";
+      ss << "\t" "result = " << product.first << "\n";
+      ss << "\t" "\t" << product.second << ";\n";
     }
+
+    ss << "\t" "return result;\n}\n\n";
+    twStr += ss.str();
   }
 };
 

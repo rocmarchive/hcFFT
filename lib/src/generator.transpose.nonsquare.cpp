@@ -276,54 +276,129 @@ template<>
 hcfftStatus FFTPlan::GenerateKernelPvt<Transpose_NONSQUARE>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const {
   FFTKernelGenKeyParams params;
   this->GetKernelGenKeyPvt<Transpose_NONSQUARE> (params);
-  std::string programCode;
-	std::string kernelFuncName;//applied to swap kernel for now
+  if(!exist)
+  {
+    std::string programCode;
+	  std::string kernelFuncName;//applied to swap kernel for now
 
-  vector< size_t > gWorkSize;
-  vector< size_t > lWorkSize;
-  this->GetWorkSizesPvt<Transpose_NONSQUARE> (gWorkSize, lWorkSize);
+    vector< size_t > gWorkSize;
+    vector< size_t > lWorkSize;
+    this->GetWorkSizesPvt<Transpose_NONSQUARE> (gWorkSize, lWorkSize);
 
-  if (params.nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING)
-  {
-    //Requested local memory size by callback must not exceed the device LDS limits after factoring the LDS size required by transpose kernel
-    hcfft_transpose_generator::genTransposeKernelLeadingDimensionBatched((void**)&twiddleslarge, acc, params, programCode, lwSize, reShapeFactor, gWorkSize, lWorkSize, count);
-  }
-	else if (params.nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED)
-	{
-		hcfft_transpose_generator::genTransposeKernelBatched((void**)&twiddleslarge, acc, params, programCode, lwSize, reShapeFactor, gWorkSize, lWorkSize, count);
-	}
-  else
-  {
-		//general swap kernel takes care of all ratio
-		hcfft_transpose_generator::genSwapKernelGeneral((void**)&twiddleslarge, acc, params, programCode, kernelFuncName, lwSize, reShapeFactor, gWorkSize, lWorkSize, count);
-  }
-  fftRepo.setProgramCode(Transpose_NONSQUARE, plHandle, params, programCode);
-  if (params.nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING)
-  {
-    // Note:  See genFunctionPrototype( )
-    if (params.fft_3StepTwiddle)
+    if (params.nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING)
     {
-      fftRepo.setProgramEntryPoints(Transpose_NONSQUARE, plHandle, params, "transpose_nonsquare_tw_fwd", "transpose_nonsquare_tw_back");
+      //Requested local memory size by callback must not exceed the device LDS limits after factoring the LDS size required by transpose kernel
+      hcfft_transpose_generator::genTransposeKernelLeadingDimensionBatched((void**)&twiddleslarge, acc, plHandle, params, programCode, lwSize, reShapeFactor, gWorkSize, lWorkSize, count);
     }
+	  else if (params.nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED)
+	  {
+		  hcfft_transpose_generator::genTransposeKernelBatched((void**)&twiddleslarge, acc, plHandle, params, programCode, lwSize, reShapeFactor, gWorkSize, lWorkSize, count);
+	  }
     else
     {
-      fftRepo.setProgramEntryPoints(Transpose_NONSQUARE, plHandle, params, "transpose_nonsquare", "transpose_nonsquare");
+		  //general swap kernel takes care of all ratio
+		  hcfft_transpose_generator::genSwapKernelGeneral((void**)&twiddleslarge, acc, plHandle, params, programCode, kernelFuncName, lwSize, reShapeFactor, gWorkSize, lWorkSize, count);
+    }
+    fftRepo.setProgramCode(Transpose_NONSQUARE, plHandle, params, programCode);
+    if (params.nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING)
+    {
+      // Note:  See genFunctionPrototype( )
+      if (params.fft_3StepTwiddle)
+      {
+        fftRepo.setProgramEntryPoints(Transpose_NONSQUARE, plHandle, params, "transpose_nonsquare_tw_fwd", "transpose_nonsquare_tw_back");
+      }
+      else
+      {
+        fftRepo.setProgramEntryPoints(Transpose_NONSQUARE, plHandle, params, "transpose_nonsquare", "transpose_nonsquare");
+      }
+    }
+	  else if(params.nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED)
+	  {
+          fftRepo.setProgramEntryPoints(Transpose_NONSQUARE, plHandle, params, "transpose_square", "transpose_square");
+	  }
+    else
+    {
+      if (params.fft_3StepTwiddle)//if miniBatchSize > 1 twiddling is done in swap kernel
+      {
+        std::string kernelFwdFuncName = kernelFuncName + "_tw_fwd";
+        std::string kernelBwdFuncName = kernelFuncName + "_tw_back";
+        fftRepo.setProgramEntryPoints(Transpose_NONSQUARE, plHandle, params, kernelFwdFuncName.c_str(), kernelBwdFuncName.c_str());
+      }
+      else
+        fftRepo.setProgramEntryPoints(Transpose_NONSQUARE, plHandle, params, kernelFuncName.c_str(), kernelFuncName.c_str());
     }
   }
-	else if(params.nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED)
-	{
-        fftRepo.setProgramEntryPoints(Transpose_NONSQUARE, plHandle, params, "transpose_square", "transpose_square");
-	}
   else
   {
-    if (params.fft_3StepTwiddle)//if miniBatchSize > 1 twiddling is done in swap kernel
+    if (params.nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING)
     {
-      std::string kernelFwdFuncName = kernelFuncName + "_tw_fwd";
-      std::string kernelBwdFuncName = kernelFuncName + "_tw_back";
-      fftRepo.setProgramEntryPoints(Transpose_NONSQUARE, plHandle, params, kernelFwdFuncName.c_str(), kernelBwdFuncName.c_str());
+	    //	If twiddle computation has been requested, generate the lookup function
+	    if (params.fft_3StepTwiddle)
+	    {
+		    if (params.fft_precision == HCFFT_SINGLE)
+        {
+          StockhamGenerator::TwiddleTableLarge<hc::short_vector::float_2, StockhamGenerator::P_SINGLE> twLarge(params.fft_N[0] * params.fft_N[1]);
+          twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+        }
+		    else
+		    {
+          StockhamGenerator::TwiddleTableLarge<hc::short_vector::double_2, StockhamGenerator::P_DOUBLE> twLarge(params.fft_N[0] * params.fft_N[1]);
+          twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+        }
+	    }
     }
+	  else if (params.nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED)
+	  {
+	    //  it is a better idea to do twiddle in swap kernel if we will have a swap kernel.
+	    //  for pure square transpose, twiddle will be done in transpose kernel
+	    bool twiddleTransposeKernel = params.fft_3StepTwiddle && (params.transposeMiniBatchSize == 1);//when transposeMiniBatchSize == 1 it is guaranteed to be a sqaure matrix transpose
+	    //	If twiddle computation has been requested, generate the lookup function
+
+	    if (twiddleTransposeKernel)
+	    {
+		    if (params.fft_precision == HCFFT_SINGLE)
+        {
+		      StockhamGenerator::TwiddleTableLarge<hc::short_vector::float_2, StockhamGenerator::P_SINGLE> twLarge(params.fft_N[0] * params.fft_N[1]);
+          twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+        }
+		    else
+        {
+          StockhamGenerator::TwiddleTableLarge<hc::short_vector::double_2, StockhamGenerator::P_DOUBLE> twLarge(params.fft_N[0] * params.fft_N[1]);
+          twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+        }
+	    }
+	  }
     else
-      fftRepo.setProgramEntryPoints(Transpose_NONSQUARE, plHandle, params, kernelFuncName.c_str(), kernelFuncName.c_str());
+    {
+	    size_t smaller_dim = (params.fft_N[0] < params.fft_N[1]) ? params.fft_N[0] : params.fft_N[1];
+	    size_t bigger_dim = (params.fft_N[0] >= params.fft_N[1]) ? params.fft_N[0] : params.fft_N[1];
+	    size_t dim_ratio = bigger_dim / smaller_dim;
+
+	    if(dim_ratio % 2 != 0 && dim_ratio % 3 != 0 && dim_ratio % 5 != 0 && dim_ratio % 10 != 0)
+	    {
+		    return HCFFT_INVALID;
+	    }
+
+	    //twiddle in swap kernel (for now, swap with twiddle seems to always be the second kernel after transpose)
+	    bool twiddleSwapKernel = params.fft_3StepTwiddle && (dim_ratio > 1);
+
+	    //twiddle in swap kernel
+	    //twiddle in or out should be using the same twiddling table
+	    if (twiddleSwapKernel)
+	    {
+		    if (params.fft_precision == HCFFT_SINGLE)
+        {
+          StockhamGenerator::TwiddleTableLarge<hc::short_vector::float_2, StockhamGenerator::P_SINGLE> twLarge(smaller_dim * smaller_dim * dim_ratio);
+          twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+        }
+		    else
+        {
+          StockhamGenerator::TwiddleTableLarge<hc::short_vector::double_2, StockhamGenerator::P_DOUBLE> twLarge(smaller_dim * smaller_dim * dim_ratio);
+          twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+        }
+	    }
+    }
   }
+
   return HCFFT_SUCCEEDS;
 }

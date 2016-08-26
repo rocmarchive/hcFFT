@@ -107,23 +107,46 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Transpose_SQUARE>(const hcfftPlanHandle p
   FFTKernelGenKeyParams params;
   this->GetKernelGenKeyPvt<Transpose_SQUARE> (params);
 
-	std::string programCode;
-        vector< size_t > gWorkSize;
-        vector< size_t > lWorkSize;
-        this->GetWorkSizesPvt<Transpose_SQUARE> (gWorkSize, lWorkSize);
+  if(!exist)
+  {
+	  std::string programCode;
+    vector< size_t > gWorkSize;
+    vector< size_t > lWorkSize;
+    this->GetWorkSizesPvt<Transpose_SQUARE> (gWorkSize, lWorkSize);
 
-	hcfft_transpose_generator::genTransposeKernelBatched((void**)&twiddleslarge, acc, params, programCode, lwSize, reShapeFactor, gWorkSize, lWorkSize, count);
-	fftRepo.setProgramCode(Transpose_SQUARE, plHandle, params, programCode);
+	  hcfft_transpose_generator::genTransposeKernelBatched((void**)&twiddleslarge, acc, plHandle, params, programCode, lwSize, reShapeFactor, gWorkSize, lWorkSize, count);
+	  fftRepo.setProgramCode(Transpose_SQUARE, plHandle, params, programCode);
 
-	// Note:  See genFunctionPrototype( )
-	if (params.fft_3StepTwiddle)
-	{
-		fftRepo.setProgramEntryPoints(Transpose_SQUARE, plHandle, params, "transpose_square_tw_fwd", "transpose_square_tw_back");
-	}
-	else
-	{
-		fftRepo.setProgramEntryPoints(Transpose_SQUARE, plHandle, params, "transpose_square", "transpose_square");
-	}
-
+	  // Note:  See genFunctionPrototype( )
+	  if (params.fft_3StepTwiddle)
+	  {
+		  fftRepo.setProgramEntryPoints(Transpose_SQUARE, plHandle, params, "transpose_square_tw_fwd", "transpose_square_tw_back");
+	  }
+	  else
+	  {
+		  fftRepo.setProgramEntryPoints(Transpose_SQUARE, plHandle, params, "transpose_square", "transpose_square");
+	  }
+  }
+  else
+  {
+	  //  it is a better idea to do twiddle in swap kernel if we will have a swap kernel.
+	  //  for pure square transpose, twiddle will be done in transpose kernel
+	  bool twiddleTransposeKernel = params.fft_3StepTwiddle && (params.transposeMiniBatchSize == 1);//when transposeMiniBatchSize == 1 it is guaranteed to be a sqaure matrix transpose
+	  //	If twiddle computation has been requested, generate the lookup function
+	
+	  if (twiddleTransposeKernel)
+	  {
+		  if (params.fft_precision == HCFFT_SINGLE)
+      {
+		    StockhamGenerator::TwiddleTableLarge<hc::short_vector::float_2, StockhamGenerator::P_SINGLE> twLarge(params.fft_N[0] * params.fft_N[1]);
+        twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+      }
+		  else
+      {
+    		StockhamGenerator::TwiddleTableLarge<hc::short_vector::double_2, StockhamGenerator::P_DOUBLE> twLarge(params.fft_N[0] * params.fft_N[1]);
+        twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+      }
+	  }
+  }
 	return HCFFT_SUCCEEDS;
 }

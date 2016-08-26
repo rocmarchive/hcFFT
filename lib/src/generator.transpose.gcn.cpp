@@ -67,9 +67,9 @@ static void OffsetCalc(std::stringstream& transKernel, const FFTKernelGenKeyPara
 
 // Small snippet of code that multiplies the twiddle factors into the butterfiles.  It is only emitted if the plan tells
 // the generator that it wants the twiddle factors generated inside of the transpose
-static hcfftStatus genTwiddleMath( const FFTKernelGenKeyParams& params, std::stringstream& transKernel, const std::string& dtComplex, bool fwd )
+static hcfftStatus genTwiddleMath(const hcfftPlanHandle plHandle, const FFTKernelGenKeyParams& params, std::stringstream& transKernel, const std::string& dtComplex, bool fwd )
 {
-    hcKernWrite( transKernel, 9 ) << dtComplex << " W = TW3step( (groupIndex.x * wgTileExtent.x + xInd) * (currDimIndex * wgTileExtent.y * wgUnroll + yInd) " <<  ", " << TwTableLargeName() << ");" << std::endl;
+    hcKernWrite( transKernel, 9 ) << dtComplex << " W = TW3step" << plHandle << "( (groupIndex.x * wgTileExtent.x + xInd) * (currDimIndex * wgTileExtent.y * wgUnroll + yInd) " <<  ", " << TwTableLargeName() << ");" << std::endl;
     hcKernWrite( transKernel, 9 ) << dtComplex << " T;" << std::endl;
 
 	if(fwd)
@@ -267,11 +267,11 @@ static hcfftStatus genTransposeKernel( void **twiddleslarge, accelerator acc, co
     genTwiddle = true;
     if(params.fft_precision == HCFFT_SINGLE) {
     StockhamGenerator::TwiddleTableLarge<hc::short_vector::float_2, StockhamGenerator::P_SINGLE> twLarge(params.fft_N[0] * params.fft_N[1]);
-    twLarge.GenerateTwiddleTable(str);
+    twLarge.GenerateTwiddleTable(str, plHandle);
     twLarge.TwiddleLargeAV(twiddleslarge, acc);
     } else {
       StockhamGenerator::TwiddleTableLarge<hc::short_vector::double_2, StockhamGenerator::P_DOUBLE> twLarge(params.fft_N[0] * params.fft_N[1]);
-      twLarge.GenerateTwiddleTable(str);
+      twLarge.GenerateTwiddleTable(str, plHandle);
       twLarge.TwiddleLargeAV(twiddleslarge, acc);
     }
 
@@ -539,7 +539,7 @@ static hcfftStatus genTransposeKernel( void **twiddleslarge, accelerator acc, co
 
 			// If requested, generate the Twiddle math to multiply constant values
 			if( params.fft_3StepTwiddle )
-				genTwiddleMath( params, transKernel, dtComplex, fwd );
+				genTwiddleMath(plHandle, params, transKernel, dtComplex, fwd );
 
 			hcKernWrite( transKernel, 9 ) << "lds[ xInd ][ yInd ] = tmp; " << std::endl;
 

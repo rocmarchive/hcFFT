@@ -499,7 +499,7 @@ class Pass {
 
   // SweepRegs is to iterate through the registers to do the three basic operations:
   // reading, twiddle multiplication, writing
-  void SweepRegs( size_t flag, bool fwd, bool interleaved, size_t stride, size_t component,
+  void SweepRegs( const hcfftPlanHandle plHandle, size_t flag, bool fwd, bool interleaved, size_t stride, size_t component,
                   double scale, bool frontTwiddle,
                   const std::string &bufferRe, const std::string &bufferIm, const std::string &offset,
                   size_t regC, size_t numB, size_t numPrev, std::string &passStr, bool isPrecallVector = false, bool oddt = false) const {
@@ -920,6 +920,7 @@ class Pass {
               passStr += twType;
               passStr += " W = ";
               passStr += tw3StepFunc;
+              passStr += SztToStr(plHandle);
               passStr += "( ";
 
               if(frontTwiddle) {
@@ -1993,7 +1994,7 @@ class Pass {
       if(position == 0) {
         passStr += "\n\tif(rw)\n\t{";
 
-        SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
 
         passStr += "\n\t}\n";
 
@@ -2005,7 +2006,7 @@ class Pass {
           passStr += "\n";
         } else {
           passStr += "\n\tif(rw > 1)\n\t{";
-          SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe2, bufferInIm2, "inOffset", 1, numB1, 0, passStr);
+          SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe2, bufferInIm2, "inOffset", 1, numB1, 0, passStr);
 
           passStr += "\n\t}\n";
           passStr += "\telse\n\t{";
@@ -2091,7 +2092,7 @@ class Pass {
         }
 
         passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
-        SweepRegs(SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr, false, oddp);
+        SweepRegs(plHandle, SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr, false, oddp);
         passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif((rw > 1) && !me)\n\t{\n\t";
         passStr += processBufIm;
@@ -2162,7 +2163,7 @@ class Pass {
         }
 
         passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
-        SweepRegs(SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr);
         passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
       }
     } else {
@@ -2171,9 +2172,9 @@ class Pass {
 
         passStr += "\n\tif(rw)\n\t{";
 
-        SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr, isPrecallVector);
-        SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 2, numB2, numB1, passStr, isPrecallVector);
-        SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 4, numB4, 2 * numB2 + numB1, passStr, isPrecallVector);
+        SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr, isPrecallVector);
+        SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 2, numB2, numB1, passStr, isPrecallVector);
+        SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 4, numB4, 2 * numB2 + numB1, passStr, isPrecallVector);
 
         passStr += "\n\t}\n";
       }
@@ -2187,11 +2188,11 @@ class Pass {
       tw3Done = true;
 
       if(linearRegs) {
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
       } else {
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 4, numB4, 2 * numB2 + numB1, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 4, numB4, 2 * numB2 + numB1, passStr);
       }
     }
 
@@ -2199,9 +2200,9 @@ class Pass {
 
     // Twiddle multiply
     if( (position > 0) && (radix > 1) ) {
-      SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
-      SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
-      SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 4, numB4, 2 * numB2 + numB1, passStr);
+      SweepRegs(plHandle, SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+      SweepRegs(plHandle, SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
+      SweepRegs(plHandle, SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 4, numB4, 2 * numB2 + numB1, passStr);
     }
 
     // Butterfly calls
@@ -2228,11 +2229,11 @@ class Pass {
       assert(nextPass == NULL);
 
       if(linearRegs) {
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
       } else {
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 4, numB4, 2 * numB2 + numB1, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 4, numB4, 2 * numB2 + numB1, passStr);
       }
     }
 
@@ -2243,7 +2244,7 @@ class Pass {
       if(nextPass == NULL) { // last pass
         if(r2c && !rcSimple) {
           if(!singlePass) {
-            SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
+            SweepRegs(plHandle, SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
 
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 
@@ -2299,7 +2300,7 @@ class Pass {
 
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 
-            SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
+            SweepRegs(plHandle, SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
 
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 
@@ -2388,46 +2389,46 @@ class Pass {
         } else if(c2r) {
           passStr += "\n\tif(rw)\n\t{";
 
-          SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+          SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
 
           passStr += "\n\t}\n";
 
           if(!rcSimple) {
             passStr += "\n\tif(rw > 1)\n\t{";
 
-            SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe2, bufferOutIm2, "outOffset", 1, numB1, 0, passStr);
+            SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe2, bufferOutIm2, "outOffset", 1, numB1, 0, passStr);
 
             passStr += "\n\t}\n";
           }
         } else {
           passStr += "\n\tif(rw)\n\t{";
 
-          SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+          SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
 
           passStr += "\n\t}\n";
         }
       } else {
         passStr += "\n\tif(rw)\n\t{";
 
-        SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
 
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif(rw)\n\t{";
 
-        nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
+        nextPass->SweepRegs(plHandle, SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
 
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif(rw)\n\t{";
 
-        SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
 
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif(rw)\n\t{";
 
-        nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
+        nextPass->SweepRegs(plHandle, SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
 
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
@@ -2435,9 +2436,9 @@ class Pass {
     } else {
       passStr += "\n\tif(rw)\n\t{";
 
-      SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
-      SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 2, numB2, numB1, passStr);
-      SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 4, numB4, 2 * numB2 + numB1, passStr);
+      SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+      SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 2, numB2, numB1, passStr);
+      SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 4, numB4, 2 * numB2 + numB1, passStr);
 
       passStr += "\n\t}\n";
     }
@@ -3035,7 +3036,7 @@ class Kernel {
        TwiddleTableLarge<float_2, PR> twLarge(large1D);
        // twiddle factors for 1d-large 3-step algorithm
        if(params.fft_3StepTwiddle) {
-         twLarge.GenerateTwiddleTable(str);
+         twLarge.GenerateTwiddleTable(str, plHandle);
          twLarge.TwiddleLargeAV(twiddleslarge, acc);
       }
     }
@@ -3045,7 +3046,7 @@ class Kernel {
 
        // twiddle factors for 1d-large 3-step algorithm
        if(params.fft_3StepTwiddle) {
-         twLarge.GenerateTwiddleTable(str);
+         twLarge.GenerateTwiddleTable(str, plHandle);
          twLarge.TwiddleLargeAV(twiddleslarge, acc);
       }
     }
@@ -4339,7 +4340,7 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
       size_t cnPerWI = (numTrans * length) / params.fft_SIMD;
 
       // Possible radices
-      size_t cRad[] = {10, 8, 7, 6, 5, 4, 3, 2, 1}; // Must be in descending order
+      size_t cRad[] = {13, 11, 10, 8, 7, 6, 5, 4, 3, 2, 1}; // Must be in descending order
       size_t cRadSize = (sizeof(cRad) / sizeof(cRad[0]));
 
       while(true) {
@@ -4398,5 +4399,6 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
       }
     }
   }
+
   return HCFFT_SUCCEEDS;
 }

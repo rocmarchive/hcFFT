@@ -422,39 +422,42 @@ using namespace CopyGenerator;
 
 template<>
 hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const {
-  FFTKernelGenKeyParams params;
-  this->GetKernelGenKeyPvt<Copy> (params);
-  vector< size_t > gWorkSize;
-  vector< size_t > lWorkSize;
-  this->GetWorkSizesPvt<Copy> (gWorkSize, lWorkSize);
-  bool h2c, c2h;
-  h2c = ( (params.fft_inputLayout == HCFFT_HERMITIAN_PLANAR) || (params.fft_inputLayout == HCFFT_HERMITIAN_INTERLEAVED) );
-  c2h = ( (params.fft_outputLayout == HCFFT_HERMITIAN_PLANAR) || (params.fft_outputLayout == HCFFT_HERMITIAN_INTERLEAVED) );
-  bool general = !(h2c || c2h);
-  std::string programCode;
-  programCode = hcHeader();
-  Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
+  if(!exist)
+  {
+    FFTKernelGenKeyParams params;
+    this->GetKernelGenKeyPvt<Copy> (params);
+    vector< size_t > gWorkSize;
+    vector< size_t > lWorkSize;
+    this->GetWorkSizesPvt<Copy> (gWorkSize, lWorkSize);
+    bool h2c, c2h;
+    h2c = ( (params.fft_inputLayout == HCFFT_HERMITIAN_PLANAR) || (params.fft_inputLayout == HCFFT_HERMITIAN_INTERLEAVED) );
+    c2h = ( (params.fft_outputLayout == HCFFT_HERMITIAN_PLANAR) || (params.fft_outputLayout == HCFFT_HERMITIAN_INTERLEAVED) );
+    bool general = !(h2c || c2h);
+    std::string programCode;
+    programCode = hcHeader();
+    Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
 
-  switch(pr) {
-    case P_SINGLE: {
-        CopyKernel<P_SINGLE> kernel(params);
-        kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
-      }
-      break;
+    switch(pr) {
+      case P_SINGLE: {
+          CopyKernel<P_SINGLE> kernel(params);
+          kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
+        }
+        break;
 
-    case P_DOUBLE: {
-        CopyKernel<P_DOUBLE> kernel(params);
-        kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
-      }
-      break;
-  }
+      case P_DOUBLE: {
+          CopyKernel<P_DOUBLE> kernel(params);
+          kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
+        }
+        break;
+    }
 
-  fftRepo.setProgramCode( Copy, plHandle, params, programCode);
+    fftRepo.setProgramCode( Copy, plHandle, params, programCode);
 
-  if( general) {
-    fftRepo.setProgramEntryPoints( Copy, plHandle, params, "copy_general", "copy_general");
-  } else {
-    fftRepo.setProgramEntryPoints( Copy, plHandle, params, "copy_c2h", "copy_h2c");
+    if( general) {
+      fftRepo.setProgramEntryPoints( Copy, plHandle, params, "copy_general", "copy_general");
+    } else {
+      fftRepo.setProgramEntryPoints( Copy, plHandle, params, "copy_c2h", "copy_h2c");
+    }
   }
 
   return HCFFT_SUCCEEDS;
