@@ -5,6 +5,8 @@
 1.5.1. Testing hcFFT against clFFT:
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+* Please refer to https://github.com/clMathLibraries/clFFT for clFFT Prerequisites/Installation/Pre-built binaries
+
 a) Install clFFT library:
 
        ``git clone https://github.com/clMathLibraries/clFFT.git && cd clFFT``
