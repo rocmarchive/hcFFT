@@ -2,16 +2,18 @@
 #include "../gtest/gtest.h"
 #include "clFFT.h"
 
-#define VECTOR_SIZE 1024
-
 TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_D2Z ) {
   putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
+
+  size_t N1;
+  N1 = my_argc > 1 ? atoi(my_argv[1]) : 1024;
+
   // HCFFT work flow
   hcfftHandle *plan = NULL;
-  hcfftResult status  = hcfftPlan1d(plan, VECTOR_SIZE, HCFFT_D2Z);
+  hcfftResult status  = hcfftPlan1d(plan, N1, HCFFT_D2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  int Rsize = VECTOR_SIZE;
-  int Csize = (VECTOR_SIZE / 2) + 1;
+  int Rsize = N1;
+  int Csize = (N1 / 2) + 1;
   hcfftDoubleReal *input = (hcfftDoubleReal*)calloc(Rsize, sizeof(hcfftDoubleReal));
   int seed = 123456789;
   srand(seed);
@@ -49,8 +51,6 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_D2Z ) {
   double *X, *Y;
   cl_event event = NULL;
   int ret = 0;
-  size_t N1;
-  N1 = VECTOR_SIZE;
 
   /* FFT library realted declarations */
   clfftPlanHandle planHandle;
@@ -185,11 +185,15 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_D2Z ) {
 }
 
 TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2D ) {
+
+  size_t N1;
+  N1 = my_argc > 1 ? atoi(my_argv[1]) : 1024;
+
   hcfftHandle *plan = NULL;
-  hcfftResult status  = hcfftPlan1d(plan, VECTOR_SIZE, HCFFT_Z2D);
+  hcfftResult status  = hcfftPlan1d(plan, N1, HCFFT_Z2D);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  int Csize = (VECTOR_SIZE / 2) + 1;
-  int Rsize = VECTOR_SIZE;
+  int Csize = (N1 / 2) + 1;
+  int Rsize = N1;
   hcfftDoubleComplex *input = (hcfftDoubleComplex*)calloc(Csize, sizeof(hcfftDoubleComplex));
   int seed = 123456789;
   srand(seed);
@@ -229,8 +233,6 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2D ) {
   double *X, *Y;
   cl_event event = NULL;
   int ret = 0;
-  size_t N1;
-  N1 = VECTOR_SIZE;
 
   /* FFT library realted declarations */
   clfftPlanHandle planHandle;
@@ -369,10 +371,14 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2D ) {
 }
 
 TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2Z ) {
+
+  size_t N1;
+  N1 = my_argc > 1 ? atoi(my_argv[1]) : 1024;
+
   hcfftHandle *plan = NULL;
-  hcfftResult status  = hcfftPlan1d(plan, VECTOR_SIZE, HCFFT_Z2Z);
+  hcfftResult status  = hcfftPlan1d(plan, N1, HCFFT_Z2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  int hSize = VECTOR_SIZE;
+  int hSize = N1;
   hcfftDoubleComplex *input = (hcfftDoubleComplex*)calloc(hSize, sizeof(hcfftDoubleComplex));
   hcfftDoubleComplex *output = (hcfftDoubleComplex*)calloc(hSize, sizeof(hcfftDoubleComplex));
   int seed = 123456789;
@@ -412,8 +418,6 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2Z ) {
   double *X, *Y;
   cl_event event = NULL;
   int ret = 0;
-  size_t N1;
-  N1 = VECTOR_SIZE;
 
   /* FFT library realted declarations */
   clfftPlanHandle planHandle;

@@ -31,9 +31,14 @@
 
 #include "gtest/gtest.h"
 
+int my_argc;
+char** my_argv;
+
 GTEST_API_ int main(int argc, char **argv) {
   std::cout << "Running main() from gtest_main.cc\n";
 
   testing::InitGoogleTest(&argc, argv);
+  my_argc = argc;
+  my_argv = argv;
   return RUN_ALL_TESTS();
 }
