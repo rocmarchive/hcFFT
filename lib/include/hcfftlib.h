@@ -349,10 +349,10 @@ struct FFTKernelGenKeyParams {
    *  been compiled.
    */
   size_t                   fft_DataDim;       // Dimensionality of the data
-  size_t                   fft_N[5];          // [0] is FFT size, e.g. 1024
+  size_t                   fft_N[16];          // [0] is FFT size, e.g. 1024
   // This must be <= size of LDS!
-  size_t                   fft_inStride [5];  // input strides
-  size_t                   fft_outStride[5];  // output strides
+  size_t                   fft_inStride [16];  // input strides
+  size_t                   fft_outStride[16];  // output strides
 
   hcfftResLocation   fft_placeness;
   hcfftIpLayout           fft_inputLayout;
@@ -409,7 +409,7 @@ struct FFTKernelGenKeyParams {
   FFTKernelGenKeyParams() {
     fft_DataDim = 0;
 
-    for(int i = 0; i < 5; i++) {
+    for(int i = 0; i < 16; i++) {
       fft_N[i] = 0;
       fft_inStride[i] = 0;
       fft_outStride[i] = 0;
