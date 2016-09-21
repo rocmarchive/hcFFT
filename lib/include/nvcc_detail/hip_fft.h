@@ -22,14 +22,13 @@ THE SOFTWARE.
 #pragma once
 
 #include <cuda_runtime_api.h>
-#include <cusparse.h>
+#include <cufft.h>
 
-#ifdef cplusplus
+#ifdef __cplusplus
 extern "C" {
 #endif
 
 typedef cufftHandle hipfftHandle;
-typedef cudaStream_t hipStream_t;
 typedef cufftComplex hipfftComplex;
 typedef cufftDoubleComplex hipfftDoubleComplex;
 typedef cufftReal  hipfftReal;
@@ -72,14 +71,14 @@ inline static hipfftResult hipCUFFTResultToHIPFFTResult(cufftResult cuResult)
    }
 }
 
-inline static hipfftType hipHIPFFTTypeToCUFFTType(hipfftType hipType) 
+inline static cufftType hipHIPFFTTypeToCUFFTType(hipfftType hipType) 
 {
    switch(hipType) 
    {
     case HIPFFT_R2C:
         return CUFFT_R2C;
     case HIPFFT_C2R:
-        return CUFFT_C2R
+        return CUFFT_C2R;
     case HIPFFT_C2C:
         return CUFFT_C2C;
     case HIPFFT_D2Z:
@@ -93,31 +92,40 @@ inline static hipfftType hipHIPFFTTypeToCUFFTType(hipfftType hipType)
   }
 }
 
-
-inline static hipfftResult hipfftCreate(hipfftHandle *plan){
-    return hipCUFFTResultToHIPFFTResult(cufftCreate(&plan));
+inline static int hipHIPFFTDirectionToCUFFTDirection(hipfftDirection hipDirection)
+{
+    switch(hipDirection)
+    {
+        case HIPFFT_FORWARD:
+          return CUFFT_FORWARD;
+        case HIPFFT_INVERSE:
+          return CUFFT_INVERSE;
+        default:
+          throw "Unimplemented direction";
+    }
 }
 
-inline static hipfftResult hipfftSetStream(hipfftHandle plan, hipStream_t stream){
-    return hipCUFFTResultToHIPFFTResult(cufftSetStream(plan, stream));
+
+inline static hipfftResult hipfftCreate(hipfftHandle *plan){
+    return hipCUFFTResultToHIPFFTResult(cufftCreate(plan));
+}
+
+inline static hipfftResult hipfftDestroy(hipfftHandle plan){
+    return hipCUFFTResultToHIPFFTResult(cufftDestroy(plan));
 }
 
 /*hipFFT Basic Plans*/
 
 inline static hipfftResult hipfftPlan1d(hipfftHandle *plan, int nx, hipfftType type, int batch){
-    return hipCUFFTResultToHIPFFTResult(cufftPlan1d(&plan, nx, hipHIPFFTTypeToCUFFTType(type), batch));
+    return hipCUFFTResultToHIPFFTResult(cufftPlan1d(plan, nx, hipHIPFFTTypeToCUFFTType(type), batch));
 }
 
 inline static hipfftResult hipfftPlan2d(hipfftHandle *plan, int nx, int ny, hipfftType type){
-    return hipCUFFTResultToHIPFFTResult(cufftPlan2d(&plan, nx, ny, hipHIPFFTTypeToCUFFTType(type)));
+    return hipCUFFTResultToHIPFFTResult(cufftPlan2d(plan, nx, ny, hipHIPFFTTypeToCUFFTType(type)));
 }
 
 inline static hipfftResult hipfftPlan3d(hipfftHandle *plan, int nx, int ny, int nz, hipfftType type){
-    return hipCUFFTResultToHIPFFTResult(cufftPlan3d(&plan, nx, ny, nz, hipHIPFFTTypeToCUFFTType(type)));
-}
-
-inline static hipfftResult hipfftDestroy(hipfftHandle plan){
-    return hipCUFFTResultToHIPFFTResult(cufftDestroy(plan));
+    return hipCUFFTResultToHIPFFTResult(cufftPlan3d(plan, nx, ny, nz, hipHIPFFTTypeToCUFFTType(type)));
 }
 
 /*hipFFT Execution*/
@@ -147,13 +155,12 @@ inline static hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex *idata
     return hipCUFFTResultToHIPFFTResult(cufftExecC2R(plan, idata, odata));
 }
 
-inline static hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftComplex *idata, 
-                                         hipfftReal *odata){
+inline static hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex *idata, 
+                                         hipfftDoubleReal *odata){
     return hipCUFFTResultToHIPFFTResult(cufftExecZ2D(plan, idata, odata));
 }
 
 #ifdef __cplusplus
 }
 #endif
-
 

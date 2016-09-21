@@ -57,6 +57,11 @@ typedef enum hipfftResult_t {
   HIPFFT_NO_WORKSPACE   = 13  //  No workspace has been provided prior to plan execution
 }hipfftResult;
 
+typedef enum hipfftDirection_ {
+  HIPFFT_FORWARD = -1,
+  HIPFFT_INVERSE = 1,
+} hipfftDirection;
+
 // Some standard header files, these are included by hc.hpp and so want to make them avail on both
 // paths to provide a consistent include env and avoid "missing symbol" errors that only appears
 // on NVCC path:
