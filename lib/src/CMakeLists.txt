@@ -30,20 +30,12 @@ IF(WIN32)
     MESSAGE(FATAL_ERROR "TARGET IDE ISNT VISUAL STUDIO 11/12.... EXITING")
   ENDIF(MSVC)
 ELSE(WIN32)
+  MESSAGE(STATUS "compiler" ${HCC_CONFIG})
   # Choice to take compilation flags from source or package
-  if(EXISTS ${MCWHCCBUILD})
-    execute_process(COMMAND ${HCC_CONFIG} --build --cxxflags
-                            OUTPUT_VARIABLE HCC_CXXFLAGS)
-    execute_process(COMMAND ${HCC_CONFIG} --build --ldflags --shared
-                            OUTPUT_VARIABLE HCC_LDFLAGS)
-  else(EXISTS ${MCWHCCBUILD})
-    execute_process(COMMAND ${HCC_CONFIG} --cxxflags
-                            OUTPUT_VARIABLE HCC_CXXFLAGS)
-    execute_process(COMMAND ${HCC_CONFIG} --ldflags --shared
-                            OUTPUT_VARIABLE HCC_LDFLAGS)
-  endif(EXISTS ${MCWHCCBUILD})
-
-  
+  execute_process(COMMAND ${HCC_CONFIG} --cxxflags
+                          OUTPUT_VARIABLE HCC_CXXFLAGS)
+  execute_process(COMMAND ${HCC_CONFIG} --ldflags --shared
+                          OUTPUT_VARIABLE HCC_LDFLAGS)
   string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
   string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
   set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/../include")

@@ -15,12 +15,11 @@ if( MSVC OR APPLE)
   message(FATAL_ERROR "Unsupported platform.")
 endif()
 
-set(MCWHCCBUILD $ENV{MCWHCCBUILD})
-if(EXISTS ${MCWHCCBUILD})
+if(EXISTS ${HCCLC})
   find_path(HC++_BIN_DIR clang++
-           HINTS ${MCWHCCBUILD}/compiler/bin)
+           HINTS /opt/rocm/hcc-lc/bin)
   find_path(HC++_CONFIGURE_DIR hcc-config
-           HINTS ${MCWHCCBUILD}/bin)
+           HINTS /opt/rocm/hcc-lc/bin)
   include(FindPackageHandleStandardArgs)
   # handle the QUIETLY and REQUIRED arguments and set HC++_FOUND to TRUE
   # if all listed variables are TRUE
@@ -38,23 +37,21 @@ if(EXISTS ${MCWHCCBUILD})
   # Build mode
   set (CLANG_AMP "${HC++_BIN_DIR}/clang++")
   set (HCC_CONFIG "${HC++_CONFIGURE_DIR}/hcc-config")
-  execute_process(COMMAND ${HCC_CONFIG} --build --cxxflags
+  execute_process(COMMAND ${HCC_CONFIG} --cxxflags
                   OUTPUT_VARIABLE HCC_CXXFLAGS)
   string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
   set (HCC_CXXFLAGS "${HCC_CXXFLAGS}")
-  execute_process(COMMAND ${HCC_CONFIG} --build --ldflags --shared
+  execute_process(COMMAND ${HCC_CONFIG} --ldflags --shared
                   OUTPUT_VARIABLE HCC_LDFLAGS)
   string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
   set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -Wall -Wno-deprecated-register -Wno-deprecated-declarations")
   set (HCC_LDFLAGS "${HCC_LDFLAGS}")
 
-# Package built from sources
-# Compiler and configure file are two key factors to advance
-elseif(EXISTS /opt/rocm/hcc/bin/clang++)
+elseif(EXISTS "/opt/rocm/hcc-hsail/bin/clang++")
   find_path(HC++_BIN_DIR clang++
-           HINTS /opt/rocm/hcc/bin)
+           HINTS /opt/rocm/hcc-hsail/bin)
   find_path(HC++_CONFIGURE_DIR hcc-config
-           HINTS /opt/rocm/hcc/bin)
+           HINTS /opt/rocm/hcc-hsail/bin)
   include(FindPackageHandleStandardArgs)
   # handle the QUIETLY and REQUIRED arguments and set HC++_FOUND to TRUE
   # if all listed variables are TRUE
