@@ -15,7 +15,8 @@ if( MSVC OR APPLE)
   message(FATAL_ERROR "Unsupported platform.")
 endif()
 
-if(EXISTS ${HCCLC})
+set(HCCLC $ENV{HCCLC})
+if(DEFINED HCCLC)
   find_path(HC++_BIN_DIR clang++
            HINTS /opt/rocm/hcc-lc/bin)
   find_path(HC++_CONFIGURE_DIR hcc-config

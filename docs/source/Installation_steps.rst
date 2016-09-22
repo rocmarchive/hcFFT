@@ -71,6 +71,12 @@ b. Build debian from source
     ``chmod +x build.sh && ./build.sh``
 
 
+    To use LC Compiler,
+
+
+    ``export HCCLC=1``
+
+
     build.sh execution builds the library and generates a debian under build directory.
 
 1.4.3. Library UnInstallation

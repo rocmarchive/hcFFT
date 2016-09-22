@@ -30,7 +30,6 @@ IF(WIN32)
     MESSAGE(FATAL_ERROR "TARGET IDE ISNT VISUAL STUDIO 11/12.... EXITING")
   ENDIF(MSVC)
 ELSE(WIN32)
-  MESSAGE(STATUS "compiler" ${HCC_CONFIG})
   # Choice to take compilation flags from source or package
   execute_process(COMMAND ${HCC_CONFIG} --cxxflags
                           OUTPUT_VARIABLE HCC_CXXFLAGS)
