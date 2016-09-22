@@ -205,6 +205,8 @@ while (@ARGV) {
     my $warnings = 0;
     my $warningsCusparse = 0;
     my $warningsCurand = 0;
+    my $warningsCublas = 0;
+    my $warningsCufft = 0;
     my %warningTags;  # hash with counts of particular unknown keywords.
 
     my $lineCount = 0;
@@ -537,7 +539,7 @@ while (@ARGV) {
         unless ($quiet_warnings) {
             #print STDERR "Check WARNINGs\n";
             # copy into array of lines, process line-by-line to show warnings:
-            if ($hasDeviceCode or (/\bcuda/) or (/<<<.*>>>/) or (/(\bcublas[A-Z]\w+)/) or (/(\bcurand[A-Z]\w+)/) ) { 
+            if ($hasDeviceCode or (/\bcuda/) or (/<<<.*>>>/) or (/(\bcufft[A-Z]\w+)/) or (/(\bcublas[A-Z]\w+)/) or (/(\bcurand[A-Z]\w+)/) ) { 
                 my @lines = split /\n/, $_;
                 my $tmp = $_;  # copies the whole file, could be a little smarter here...
                 my $line_num = 0;
@@ -561,7 +563,10 @@ while (@ARGV) {
 					} elsif (/(\bcurand[A-Z]\w+)/) {
                         $warningsCurand++;
 						$tag = $1;
-					}
+					} elsif (/(\bcufft[A-Z]\w+)/) {
+                        $warningsCufft++;
+                        $tag = $1;
+                    }
 
 					if (defined $tag) {
                         $warnings++;

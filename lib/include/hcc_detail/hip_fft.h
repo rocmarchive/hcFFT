@@ -116,7 +116,7 @@ inline static hipfftResult hipfftDestroy(hipfftHandle plan){
 }
 
 inline static hipfftResult hipfftSetStream(hipfftHandle plan, hipStream_t stream){
-    return HIPFFT_RESULT_NOT_SUPPORTED;;
+    return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
 /*hipFFT Basic Plans*/
@@ -132,6 +132,102 @@ inline static hipfftResult hipfftPlan2d(hipfftHandle *plan, int nx, int ny, hipf
 inline static hipfftResult hipfftPlan3d(hipfftHandle *plan, int nx, int ny, int nz, hipfftType type){
     return hipHCFFTResultToHIPFFTResult(hcfftPlan3d(plan, nx, ny, nz, hipHIPFFTTypeToHCFFTType(type)));
 }
+
+inline static hipfftResult hipfftPlanMany(hipfftHandle *plan, int rank, int *n, int *inembed,int istride, 
+                                          int idist, int *onembed, int ostride,
+                                          int odist, hipfftType type, int batch){
+    return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+/*hipFFT Extensible Plans*/
+
+inline static hipfftResult hipfftMakePlan1d(hipfftHandle *plan, int nx, hipfftType type, int batch, size_t *workSize){
+    return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+inline static hipfftResult hipfftMakePlan2d(hipfftHandle *plan, int nx, int ny, hipfftType type, size_t *workSize){
+    return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+inline static hipfftResult hipfftMakePlan3d(hipfftHandle *plan, int nx, int ny, int nz, hipfftType type, size_t *workSize){
+    return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+
+inline static hipfftResult hipfftMakePlanMany(hipfftHandle plan, int rank, int *n, int *inembed, int istride, 
+                                              int idist, int *onembed, int ostride, int odist, hipfftType type, 
+                                              int batch, size_t *workSize){
+  	return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+inline static hipfftResult hipfftMakePlanMany64(hipfftHandle plan, int rank, long long int *n, 
+                                                long long int *inembed, long long int istride, long long int idist, 
+                                                long long int *onembed, long long int ostride, long long int odist, 
+                                                hipfftType type, long long int batch, size_t *workSize){
+  	return HIPFFT_RESULT_NOT_SUPPORTED; 
+}
+
+/*hipFFT Estimated Size of Work Area*/
+
+inline static hipfftResult hipfftEstimate1d(int nx, hipfftType type, int batch, size_t *workSize){
+  	return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+inline static hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type, int batch, size_t *workSize){
+  	return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+inline static hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type, int batch, size_t *workSize){
+  	return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+inline static hipfftResult hipfftEstimateMany(int rank, int *n, int *inembed, int istride, int idist, int *onembed, 
+                                              int ostride, int odist, hipfftType type, int batch, size_t *workSize){
+  	return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+/*hipFFT Refined Estimated Size of Work Area*/
+
+inline static hipfftResult hipfftGetSize1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t *workSize){
+  return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+inline static hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type, int batch, size_t *workSize){
+  return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+inline static hipfftResult hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz hipfftType type, 
+                                           int batch, size_t *workSize){
+  return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+inline static hipfftResult hipfftGetSizeMany(hipfftHandle plan, int rank, int *n, int *inembed,
+                                             int istride, int idist, int *onembed, int ostride,
+                                             int odist, hipfftType type, int batch, size_t *workSize){
+  return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+inline static hipfftResult hipfftGetSizeMany64(hipfftHandle plan, int rank, long long int *n, 
+                                              long long int *inembed, long long int istride, long long int idist, 
+                                              long long int *onembed, long long int ostride, long long int odist, 
+                                              hipfftType type, long long int batch, size_t *workSize){
+  return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+inline static hipfftResult hipfftGetSize(hipfftHandle plan, size_t *workSize){
+  return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+/*hipFFT Caller Allocated Work Area Support*/
+
+inline static hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAllocate){
+  return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
+inline static hipfftResult hipfftSetWorkArea(hipfftHandle plan, void *workArea){
+  return HIPFFT_RESULT_NOT_SUPPORTED;
+}
+
 
 /*hipFFT Execution*/
 
