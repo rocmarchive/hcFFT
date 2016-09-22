@@ -54,7 +54,8 @@ typedef enum hipfftResult_t {
   HIPFFT_INCOMPLETE_PARAMETER_LIST = 10, //  Missing parameters in call
   HIPFFT_INVALID_DEVICE = 11, //  Execution of a plan was on different GPU than plan creation
   HIPFFT_PARSE_ERROR    = 12, //  Internal plan database error
-  HIPFFT_NO_WORKSPACE   = 13  //  No workspace has been provided prior to plan execution
+  HIPFFT_NO_WORKSPACE   = 13,  //  No workspace has been provided prior to plan execution
+  HIPFFT_RESULT_NOT_SUPPORTED = 14
 }hipfftResult;
 
 typedef enum hipfftDirection_ {

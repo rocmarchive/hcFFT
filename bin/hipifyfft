@@ -395,21 +395,28 @@ while (@ARGV) {
         #$aOt += s/\bcudaProfilerInitialize\b/hipProfilerInitialize/g;  // see if these are called anywhere.
         $ft{'other'} += s/\bcudaProfilerStart\b/hipProfilerStart/g;
         $ft{'other'} += s/\bcudaProfilerStop\b/hipProfilerStop/g;
+	
+	$ft{'other'} += s/\bCuda\b/Hip/g;
 
         # FFT:
 	$ft{'fft'} += s/\bcufftHandle\b/hipfftHandle/g;
 	$ft{'fft'} += s/\bcufftComplex\b/hipfftComplex/g;
+    	$ft{'fft'} += s/\bcufftDoubleComplex\b/hipfftDoubleComplex/g;
+    	$ft{'fft'} += s/\bcufftReal\b/hipfftReal/g;
+	$ft{'fft'} += s/\bcufftDoubleReal\b/hipfftDoubleReal/g;
+    
 	$ft{'fft'} += s/\bcufftCreate\b/hipfftCreate/g;
 	$ft{'fft'} += s/\bcufftSetStream\b/hipfftSetStream/g;
 	$ft{'fft'} += s/\bcufftDestroy\b/hipfftDestroy/g;
 	$ft{'fft'} += s/\bcu\b/hip/g;
+	$ft{'fft'} += s/\bCUFFT\b/HIPFFT/g;
 
-    #Basic Plans
+    	#Basic Plans
         $ft{'fft'} += s/\bcufftPlan1d\b/hipfftPlan1d/g;
         $ft{'fft'} += s/\bcufftPlan2d\b/hipfftPlan2d/g;
         $ft{'fft'} += s/\bcufftPlan3d\b/hipfftPlan3d/g;
 
-    #Execution
+	#Execution
         $ft{'fft'} += s/\bcufftExecC2C\b/hipfftExecC2C/g;
         $ft{'fft'} += s/\bcufftExecZ2Z\b/hipfftExecZ2Z/g;
         $ft{'fft'} += s/\bcufftExecR2C\b/hipfftExecR2C/g;
@@ -417,7 +424,7 @@ while (@ARGV) {
         $ft{'fft'} += s/\bcufftExecC2R\b/hipfftExecC2R/g;
         $ft{'fft'} += s/\bcufftExecZ2D\b/hipfftExecZ2D/g;
 
-    #Result
+    	#Result
         $ft{'fft'} += s/\bCUFFT_SUCCESS\b/HIPFFT_SUCCESS/g;
         $ft{'fft'} += s/\bCUFFT_INVALID_PLAN\b/HIPFFT_INVALID_PLAN/g;
         $ft{'fft'} += s/\bCUFFT_ALLOC_FAILED\b/HIPFFT_ALLOC_FAILED/g;
@@ -432,7 +439,7 @@ while (@ARGV) {
         $ft{'fft'} += s/\bCUFFT_PARSE_ERROR\b/HIPFFT_PARSE_ERROR/g;
         $ft{'fft'} += s/\bCUFFT_NO_WORKSPACE\b/HIPFFT_NO_WORKSPACE/g;
 
-    #Types
+	#Types
         $ft{'fft'} += s/\bCUFFT_R2C\b/HIPFFT_R2C/g;
         $ft{'fft'} += s/\bCUFFT_C2R\b/HIPFFT_C2R/g;
         $ft{'fft'} += s/\bCUFFT_C2C\b/HIPFFT_C2C/g;
@@ -440,7 +447,7 @@ while (@ARGV) {
         $ft{'fft'} += s/\bCUFFT_Z2D\b/HIPFFT_Z2D/g;
         $ft{'fft'} += s/\bCUFFT_Z2Z\b/HIPFFT_Z2Z/g;
 
-    #Direction
+    	#Direction
         $ft{'fft'} += s/\bCUFFT_FORWARD\b/HIPFFT_FORWARD/g;
         $ft{'fft'} += s/\bCUFFT_INVERSE\b/HIPFFT_INVERSE/g;
 

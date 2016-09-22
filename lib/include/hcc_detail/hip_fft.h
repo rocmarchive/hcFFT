@@ -34,6 +34,7 @@ typedef hcfftComplex hipfftComplex;
 typedef hcfftDoubleComplex hipfftDoubleComplex;
 typedef hcfftReal  hipfftReal;
 typedef hcfftDoubleReal hipfftDoubleReal;
+typedef void *hipStream_t;
 
 inline static hipfftResult hipHCFFTResultToHIPFFTResult(hcfftResult hcResult) 
 {
@@ -196,7 +197,7 @@ inline static hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hi
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-inline static hipfftResult hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz hipfftType type, 
+inline static hipfftResult hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, 
                                            int batch, size_t *workSize){
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }

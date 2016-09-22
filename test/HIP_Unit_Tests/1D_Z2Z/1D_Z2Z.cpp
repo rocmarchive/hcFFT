@@ -10,10 +10,10 @@
 int main()
 {
 	hipfftHandle plan;
-	cufftDoubleComplex *input = (cufftDoubleComplex*)calloc(NX, sizeof(cufftDoubleComplex));
-	cufftDoubleComplex *output = (cufftDoubleComplex*)calloc(NX, sizeof(cufftDoubleComplex));
-	cufftDoubleComplex *idata;
-	cufftDoubleComplex *odata;
+	hipfftDoubleComplex *input = (hipfftDoubleComplex*)calloc(NX, sizeof(hipfftDoubleComplex));
+	hipfftDoubleComplex *output = (hipfftDoubleComplex*)calloc(NX, sizeof(hipfftDoubleComplex));
+	hipfftDoubleComplex *idata;
+	hipfftDoubleComplex *odata;
 
 	int seed = 123456789;
 	srand(seed);
@@ -24,35 +24,35 @@ int main()
 		input[i].y = rand();
 	}
 
-	hipMalloc((void**)&idata, sizeof(cufftDoubleComplex)*NX*BATCH);
-	hipMemcpy(idata, input, sizeof(cufftDoubleComplex)*NX*BATCH, hipMemcpyHostToDevice);
-	hipMalloc((void**)&odata, sizeof(cufftDoubleComplex)*NX*BATCH);
-	hipMemcpy(odata, output, sizeof(cufftDoubleComplex)*NX*BATCH, hipMemcpyHostToDevice);
-	
+	hipMalloc((void**)&idata, sizeof(hipfftDoubleComplex)*NX*BATCH);
+	hipMemcpy(idata, input, sizeof(hipfftDoubleComplex)*NX*BATCH, hipMemcpyHostToDevice);
+	hipMalloc((void**)&odata, sizeof(hipfftDoubleComplex)*NX*BATCH);
+	hipMemcpy(odata, output, sizeof(hipfftDoubleComplex)*NX*BATCH, hipMemcpyHostToDevice);
+
 	if (hipGetLastError() != hipSuccess){
 		fprintf(stderr, "Cuda error: Failed to allocate\n");
-		return 0;	
+		return 0;
 	}
 
 	if (hipfftPlan1d(&plan, NX, HIPFFT_Z2Z, BATCH) != HIPFFT_SUCCESS){
 		fprintf(stderr, "CUFFT error: Plan creation failed");
-		return 0;	
-	}	
-
-	if (hipfftExecZ2Z(plan, (cufftDoubleComplex*)idata, (cufftDoubleComplex*)odata, HIPFFT_FORWARD) != HIPFFT_SUCCESS){
-		fprintf(stderr, "CUFFT error: ExecC2C Forward failed");
-		return 0;	
+		return 0;
 	}
 
-	if (hipfftExecZ2Z(plan, (cufftDoubleComplex*)idata, (cufftDoubleComplex*)odata, HIPFFT_INVERSE) != HIPFFT_SUCCESS){
+	if (hipfftExecZ2Z(plan, (hipfftDoubleComplex*)idata, (hipfftDoubleComplex*)odata, HIPFFT_FORWARD) != HIPFFT_SUCCESS){
+		fprintf(stderr, "CUFFT error: ExecC2C Forward failed");
+		return 0;
+	}
+
+	if (hipfftExecZ2Z(plan, (hipfftDoubleComplex*)idata, (hipfftDoubleComplex*)odata, HIPFFT_INVERSE) != HIPFFT_SUCCESS){
 		fprintf(stderr, "CUFFT error: ExecZ2Z Inverse failed");
-		return 0;	
+		return 0;
 	}
 
 	if (hipDeviceSynchronize() != hipSuccess){
 		fprintf(stderr, "Cuda error: Failed to synchronize\n");
-		return 0;	
-	}	
+		return 0;
+	}
 
 	hipfftDestroy(plan);
 

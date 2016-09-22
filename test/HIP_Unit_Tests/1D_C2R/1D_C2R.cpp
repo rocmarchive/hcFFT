@@ -12,9 +12,9 @@ int main()
 	hipfftHandle plan;
 	int Csize = (NX/2) + 1;
 	hipfftComplex *input = (hipfftComplex*)calloc(Csize, sizeof(hipfftComplex));
-	cufftReal *output = (cufftReal*)calloc(NX, sizeof(cufftReal));
+	hipfftReal *output = (hipfftReal*)calloc(NX, sizeof(hipfftReal));
 	hipfftComplex *idata;
-	cufftReal *odata;
+	hipfftReal *odata;
 
 	int seed = 123456789;
 	srand(seed);
@@ -27,28 +27,28 @@ int main()
 
 	hipMalloc((void**)&idata, sizeof(hipfftComplex)*Csize*BATCH);
 	hipMemcpy(idata, input, sizeof(hipfftComplex)*Csize*BATCH, hipMemcpyHostToDevice);
-	hipMalloc((void**)&odata, sizeof(cufftReal)*NX*BATCH);
-	hipMemcpy(odata, output, sizeof(cufftReal)*NX*BATCH, hipMemcpyHostToDevice);
-	
+	hipMalloc((void**)&odata, sizeof(hipfftReal)*NX*BATCH);
+	hipMemcpy(odata, output, sizeof(hipfftReal)*NX*BATCH, hipMemcpyHostToDevice);
+
 	if (hipGetLastError() != hipSuccess){
 		fprintf(stderr, "Cuda error: Failed to allocate\n");
-		return 0;	
+		return 0;
 	}
 
 	if (hipfftPlan1d(&plan, NX, HIPFFT_C2R, BATCH) != HIPFFT_SUCCESS){
 		fprintf(stderr, "CUFFT error: Plan creation failed");
-		return 0;	
-	}	
+		return 0;
+	}
 
-	if (hipfftExecC2R(plan, (hipfftComplex*)idata, (cufftReal*)odata) != HIPFFT_SUCCESS){
+	if (hipfftExecC2R(plan, (hipfftComplex*)idata, (hipfftReal*)odata) != HIPFFT_SUCCESS){
 		fprintf(stderr, "CUFFT error: ExecC2R failed");
-		return 0;	
+		return 0;
 	}
 
 	if (hipDeviceSynchronize() != hipSuccess){
 		fprintf(stderr, "Cuda error: Failed to synchronize\n");
-		return 0;	
-	}	
+		return 0;
+	}
 
 	hipfftDestroy(plan);
 

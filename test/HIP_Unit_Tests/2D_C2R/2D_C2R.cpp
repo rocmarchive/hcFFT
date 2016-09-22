@@ -15,9 +15,9 @@ int main()
 	int Csize = ((NX/2) + 1) * NY;
 	int Rsize = NX * NY;
 	hipfftComplex *input = (hipfftComplex*)calloc(Csize, sizeof(hipfftComplex));
-	cufftReal *output = (cufftReal*)calloc(Rsize, sizeof(cufftReal));
+	hipfftReal *output = (hipfftReal*)calloc(Rsize, sizeof(hipfftReal));
 	hipfftComplex *idata;
-	cufftReal *odata;
+	hipfftReal *odata;
 
 	int seed = 123456789;
 	srand(seed);
@@ -30,36 +30,36 @@ int main()
 
 	hipMalloc((void**)&idata, sizeof(hipfftComplex)*Csize*BATCH);
 	hipMemcpy(idata, input, sizeof(hipfftComplex)*Csize*BATCH, hipMemcpyHostToDevice);
-	hipMalloc((void**)&odata, sizeof(cufftReal)*Rsize*BATCH);
-	hipMemcpy(odata, output, sizeof(cufftReal)*Rsize*BATCH, hipMemcpyHostToDevice);
-	
+	hipMalloc((void**)&odata, sizeof(hipfftReal)*Rsize*BATCH);
+	hipMemcpy(odata, output, sizeof(hipfftReal)*Rsize*BATCH, hipMemcpyHostToDevice);
+
 	if (hipGetLastError() != hipSuccess)
-	{ 
-		fprintf(stderr, "Cuda error: Failed to allocate\n"); 
+	{
+		fprintf(stderr, "Cuda error: Failed to allocate\n");
 		return 0;
-	} 
+	}
 
-	/* Create a 2D FFT plan. */ 
+	/* Create a 2D FFT plan. */
 	if (hipfftPlan2d(&plan, NX, NY, HIPFFT_C2R) != HIPFFT_SUCCESS)
-	{ 
-		fprintf(stderr, "CUFFT Error: Unable to create plan\n"); 
+	{
+		fprintf(stderr, "CUFFT Error: Unable to create plan\n");
 		return 0;
 	}
 
 
-	if (hipfftExecC2R(plan, (hipfftComplex*)idata, (cufftReal*)odata) != HIPFFT_SUCCESS)
-	{ 
-		fprintf(stderr, "CUFFT error: ExecC2R failed\n"); 
-		return 0;	
-	} 
+	if (hipfftExecC2R(plan, (hipfftComplex*)idata, (hipfftReal*)odata) != HIPFFT_SUCCESS)
+	{
+		fprintf(stderr, "CUFFT error: ExecC2R failed\n");
+		return 0;
+	}
 	if (hipDeviceSynchronize() != hipSuccess)
-	{ 
-		fprintf(stderr, "Cuda error: Failed to synchronize\n"); 
-		return 0; 
+	{
+		fprintf(stderr, "Cuda error: Failed to synchronize\n");
+		return 0;
 	}
 
-	hipfftDestroy(plan); 
-	
+	hipfftDestroy(plan);
+
 	free(input);
 	free(output);
 

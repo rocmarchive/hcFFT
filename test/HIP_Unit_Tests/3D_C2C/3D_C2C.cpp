@@ -4,9 +4,9 @@
 #include <hip_runtime.h>
 #include <hipfft.h>
 
-#define NX 128 
-#define NY 128 
-#define NZ 128 
+#define NX 128
+#define NY 128
+#define NZ 128
 #define BATCH 1
 
 int main()
@@ -33,36 +33,36 @@ int main()
 	hipMemcpy(odata, output, sizeof(hipfftComplex)*Csize*BATCH, hipMemcpyHostToDevice);
 
 	if (hipGetLastError() != hipSuccess)
-	{ 
-		fprintf(stderr, "Cuda error: Failed to allocate\n"); 
-		return 0;	
-	} 
+	{
+		fprintf(stderr, "Cuda error: Failed to allocate\n");
+		return 0;
+	}
 
-	/* Create a 3D FFT plan. */ 
-	if (hipfftPlan3d(&plan, NX, NY, NZ, HIPFFT_C2C) != HIPFFT_SUCCESS) 
-	{ 
-		fprintf(stderr, "CUFFT error: Plan creation failed"); 
-		return 0;	
-	}	
+	/* Create a 3D FFT plan. */
+	if (hipfftPlan3d(&plan, NX, NY, NZ, HIPFFT_C2C) != HIPFFT_SUCCESS)
+	{
+		fprintf(stderr, "CUFFT error: Plan creation failed");
+		return 0;
+	}
 
-	/* Use the CUFFT plan to transform the signal in place. */ 
+	/* Use the CUFFT plan to transform the signal in place. */
 	if (hipfftExecC2C(plan, (hipfftComplex*)idata, (hipfftComplex*)odata, HIPFFT_FORWARD) != HIPFFT_SUCCESS)
-	{ 
-		fprintf(stderr, "CUFFT error: ExecC2C Forward failed"); 
-		return 0;	
+	{
+		fprintf(stderr, "CUFFT error: ExecC2C Forward failed");
+		return 0;
 	}
 	if (hipfftExecC2C(plan, (hipfftComplex*)idata, (hipfftComplex*)odata, HIPFFT_INVERSE) != HIPFFT_SUCCESS)
-	{ 
-		fprintf(stderr, "CUFFT error: ExecC2C Inverse failed"); 
-		return 0;	
-	} 
+	{
+		fprintf(stderr, "CUFFT error: ExecC2C Inverse failed");
+		return 0;
+	}
 	if (hipDeviceSynchronize() != hipSuccess)
-	{ 
-		fprintf(stderr, "Cuda error: Failed to synchronize\n"); 
-		return 0;	
-	}	
-	
-	hipfftDestroy(plan); 
+	{
+		fprintf(stderr, "Cuda error: Failed to synchronize\n");
+		return 0;
+	}
+
+	hipfftDestroy(plan);
 
 	free(input);
 	free(output);

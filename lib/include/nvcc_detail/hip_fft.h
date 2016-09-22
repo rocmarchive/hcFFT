@@ -33,6 +33,7 @@ typedef cufftComplex hipfftComplex;
 typedef cufftDoubleComplex hipfftDoubleComplex;
 typedef cufftReal  hipfftReal;
 typedef cufftDoubleReal hipfftDoubleReal;
+typedef cuStream_t hipStream_t;
 
 inline static hipfftResult hipCUFFTResultToHIPFFTResult(cufftResult cuResult) 
 {
@@ -198,9 +199,9 @@ inline static hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hi
   return hipCUFFTResultToHIPFFTResult(cufftGetSize2d(plan, nx, ny, hipHIPFFTTypeToCUFFTType(type), batch, workSize));
 }
 
-inline static hipfftResult hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz hipfftType type, 
+inline static hipfftResult hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, 
                                            int batch, size_t *workSize){
-  return hipCUFFTResultToHIPFFTResult(cufftGetSize3d(plan, nx, ny, nz hipHIPFFTTypeToCUFFTType(type), batch, workSize));
+  return hipCUFFTResultToHIPFFTResult(cufftGetSize3d(plan, nx, ny, nz, hipHIPFFTTypeToCUFFTType(type), batch, workSize));
 }
 
 inline static hipfftResult hipfftGetSizeMany(hipfftHandle plan, int rank, int *n, int *inembed,
