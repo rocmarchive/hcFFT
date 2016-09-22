@@ -22,8 +22,8 @@ hcfftResult hcfftXtSetGPUs(hc::accelerator &acc)
 /* Function hcfftSetStream()
 Associate FFT Plan with an accelerator_view
 */
-hcfftResult hcfftSetStream(hcfftHandle *&plan, hc::accelerator_view &acc_view) {
-  hcfftStatus status = planObject.hcfftSetAcclView(*plan, acc_view);
+hcfftResult hcfftSetStream(hcfftHandle *plan, hc::accelerator_view &acc_view) {
+  hcfftStatus status = planObject.hcfftSetAcclView(**plan, acc_view);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
@@ -33,14 +33,14 @@ hcfftResult hcfftSetStream(hcfftHandle *&plan, hc::accelerator_view &acc_view) {
 /* Function hcfftCreate()
 Creates only an opaque handle, and allocates small data structures on the host.
 */
-hcfftResult hcfftCreate(hcfftHandle *&plan) {
+hcfftResult hcfftCreate(hcfftHandle *plan) {
   if(plan == NULL) {
     // create new plan
-    plan = new hcfftHandle;
+    *plan = new hcfftPlanHandle;
     return HCFFT_SUCCESS;
   } else {
-    plan = NULL;
-    plan = new hcfftHandle;
+    *plan = NULL;
+    *plan = new hcfftPlanHandle;
     return HCFFT_SUCCESS;
   }
 }
@@ -102,7 +102,7 @@ int checkLength(int x)
  ***********************************************************************************************************************
  */
 
-hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
+hcfftResult hcfftPlan1d(hcfftHandle* plan, int nx, hcfftType type) {
   // Set dimension as 1D
   hcfftDim dimension = HCFFT_1D; 
   
@@ -192,7 +192,7 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
       return HCFFT_INVALID_VALUE;
   }
 
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, precision, libType);
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (*plan, dimension, length, direction, precision, libType);
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
   }
@@ -200,40 +200,40 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
   // Default options
   // set certain properties of plan with default values
   // Set Precision
-  status = planObject.hcfftSetPlanPrecision(*plan, precision);
+  status = planObject.hcfftSetPlanPrecision(**plan, precision);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   // Set Transpose type
-  status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
+  status = planObject.hcfftSetPlanTransposeResult(**plan, HCFFT_NOTRANSPOSE);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
   
   // Set Result location data layout
-  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
+  status = planObject.hcfftSetResultLocation(**plan, HCFFT_OUTOFPLACE);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftSetPlanInStride(*plan, dimension, ipStrides);
+  status = planObject.hcfftSetPlanInStride(**plan, dimension, ipStrides);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftSetPlanOutStride(*plan, dimension, opStrides);
+  status = planObject.hcfftSetPlanOutStride(**plan, dimension, opStrides);
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftSetPlanDistance(*plan, ipDistance, opDistance);
+  status = planObject.hcfftSetPlanDistance(**plan, ipDistance, opDistance);
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   if ( libType == HCFFT_C2RZ2D) {
-    status = planObject.hcfftSetPlanScale(*plan, direction, scale );
+    status = planObject.hcfftSetPlanScale(**plan, direction, scale );
     if( status != HCFFT_SUCCEEDS) {
       return HCFFT_SETUP_FAILED;
     }
@@ -269,7 +269,7 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
    HCFFT_INVALID_SIZE 	Either or both of the nx or ny parameters is not a supported sizek.
 */
 
-hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
+hcfftResult hcfftPlan2d(hcfftHandle *plan, int nx, int ny, hcfftType type) {
   // Set dimension as 2D
   hcfftDim dimension = HCFFT_2D; 
   
@@ -367,7 +367,7 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
       return HCFFT_INVALID_VALUE;
   }
 
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, precision, libType);
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (*plan, dimension, length, direction, precision, libType);
 
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
@@ -376,40 +376,40 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
   // Default options
   // set certain properties of plan with default values
   // Set Precision
-  status = planObject.hcfftSetPlanPrecision(*plan, precision);
+  status = planObject.hcfftSetPlanPrecision(**plan, precision);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   // Set Transpose type
-  status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
+  status = planObject.hcfftSetPlanTransposeResult(**plan, HCFFT_NOTRANSPOSE);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
   
   // Set Result location data layout
-  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
+  status = planObject.hcfftSetResultLocation(**plan, HCFFT_OUTOFPLACE);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftSetPlanInStride(*plan, dimension, ipStrides);
+  status = planObject.hcfftSetPlanInStride(**plan, dimension, ipStrides);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftSetPlanOutStride(*plan, dimension, opStrides);
+  status = planObject.hcfftSetPlanOutStride(**plan, dimension, opStrides);
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftSetPlanDistance(*plan, ipDistance, opDistance);
+  status = planObject.hcfftSetPlanDistance(**plan, ipDistance, opDistance);
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   if ( libType == HCFFT_C2RZ2D) {
-    status = planObject.hcfftSetPlanScale(*plan, direction, scale );
+    status = planObject.hcfftSetPlanScale(**plan, direction, scale );
     if( status != HCFFT_SUCCEEDS) {
       return HCFFT_SETUP_FAILED;
     }
@@ -446,7 +446,7 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
    HCFFT_INVALID_SIZE 	One or more of the nx, ny, or nz parameters is not a supported size.
 */
 
-hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType type) {
+hcfftResult hcfftPlan3d(hcfftHandle *plan, int nx, int ny, int nz, hcfftType type) {
   // Set dimension as 3D
   hcfftDim dimension = HCFFT_3D; 
   
@@ -552,7 +552,7 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
       return HCFFT_INVALID_VALUE;
   }
 
-  hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, precision, libType);
+  hcfftStatus status = planObject.hcfftCreateDefaultPlan (*plan, dimension, length, direction, precision, libType);
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
   } 
@@ -560,40 +560,40 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
   // Default options
   // set certain properties of plan with default values
   // Set Precision
-  status = planObject.hcfftSetPlanPrecision(*plan, precision);
+  status = planObject.hcfftSetPlanPrecision(**plan, precision);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   // Set Transpose type
-  status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
+  status = planObject.hcfftSetPlanTransposeResult(**plan, HCFFT_NOTRANSPOSE);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
   
   // Set Result location data layout
-  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
+  status = planObject.hcfftSetResultLocation(**plan, HCFFT_OUTOFPLACE);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftSetPlanInStride(*plan, dimension, ipStrides);
+  status = planObject.hcfftSetPlanInStride(**plan, dimension, ipStrides);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftSetPlanOutStride(*plan, dimension, opStrides);
+  status = planObject.hcfftSetPlanOutStride(**plan, dimension, opStrides);
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftSetPlanDistance(*plan, ipDistance, opDistance);
+  status = planObject.hcfftSetPlanDistance(**plan, ipDistance, opDistance);
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   if ( libType == HCFFT_C2RZ2D) {
-    status = planObject.hcfftSetPlanScale(*plan, direction, scale );
+    status = planObject.hcfftSetPlanScale(**plan, direction, scale );
     if( status != HCFFT_SUCCEEDS) {
       return HCFFT_SETUP_FAILED;
     }
@@ -619,7 +619,7 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
 
 hcfftResult hcfftDestroy(hcfftHandle plan) {
   auto planHandle = plan;
-  hcfftStatus status = planObject.hcfftDestroyPlan(&planHandle);
+  hcfftStatus status = planObject.hcfftDestroyPlan(planHandle);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_INVALID_PLAN;
   }
@@ -667,17 +667,17 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata
   hcfftDirection dir = HCFFT_FORWARD;
   hcfftReal *odataR = (hcfftReal*)odata;
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
+  hcfftStatus status = planObject.hcfftSetLayout(*plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftBakePlan(plan);
+  status = planObject.hcfftBakePlan(*plan);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, dir, idata, odataR, NULL);
+  status = planObject.hcfftEnqueueTransform(*plan, dir, idata, odataR, NULL);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }
@@ -697,19 +697,19 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal *idata, hcfftDoubleCo
   hcfftDirection dir = HCFFT_FORWARD;
   hcfftDoubleReal *odataR = (hcfftDoubleReal*)odata;
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
+  hcfftStatus status = planObject.hcfftSetLayout(*plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
   if(status != HCFFT_SUCCEEDS) {
     std::cout << " set layout failed "<<std::endl;
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftBakePlan(plan);
+  status = planObject.hcfftBakePlan(*plan);
   if(status != HCFFT_SUCCEEDS) {
     std::cout << " bake plan failed "<<std::endl;
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, dir, idata, odataR, NULL);
+  status = planObject.hcfftEnqueueTransform(*plan, dir, idata, odataR, NULL);
   if (status != HCFFT_SUCCEEDS) {
     std::cout << " enqueuetransform failed "<<std::endl;
     return HCFFT_EXEC_FAILED;
@@ -759,17 +759,17 @@ hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata
   hcfftDirection dir = HCFFT_BACKWARD;
   hcfftReal *idataR = (hcfftReal*)idata;
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
+  hcfftStatus status = planObject.hcfftSetLayout(*plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftBakePlan(plan);
+  status = planObject.hcfftBakePlan(*plan);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, dir, idataR, odata, NULL);
+  status = planObject.hcfftEnqueueTransform(*plan, dir, idataR, odata, NULL);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }
@@ -789,17 +789,17 @@ hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubl
   hcfftDirection dir = HCFFT_BACKWARD;
   hcfftDoubleReal *idataR = (hcfftDoubleReal*)idata;
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
+  hcfftStatus status = planObject.hcfftSetLayout(*plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftBakePlan(plan);
+  status = planObject.hcfftBakePlan(*plan);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, dir, idataR, odata, NULL);
+  status = planObject.hcfftEnqueueTransform(*plan, dir, idataR, odata, NULL);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }
@@ -846,17 +846,17 @@ hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex *idata, hcfftComplex *od
   hcfftReal *idataR = (hcfftReal*)idata;
   hcfftReal *odataR = (hcfftReal*)odata;
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
+  hcfftStatus status = planObject.hcfftSetLayout(*plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftBakePlan(plan);
+  status = planObject.hcfftBakePlan(*plan);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, (hcfftDirection)direction, idataR, odataR, NULL);
+  status = planObject.hcfftEnqueueTransform(*plan, (hcfftDirection)direction, idataR, odataR, NULL);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }
@@ -877,17 +877,17 @@ hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubl
   hcfftDoubleReal *idataR = (hcfftDoubleReal*)idata;
   hcfftDoubleReal *odataR = (hcfftDoubleReal*)odata;
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
+  hcfftStatus status = planObject.hcfftSetLayout(*plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftBakePlan(plan);
+  status = planObject.hcfftBakePlan(*plan);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, (hcfftDirection)direction, idataR, odataR, NULL);
+  status = planObject.hcfftEnqueueTransform(*plan, (hcfftDirection)direction, idataR, odataR, NULL);
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }

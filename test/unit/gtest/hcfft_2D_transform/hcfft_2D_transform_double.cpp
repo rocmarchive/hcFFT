@@ -6,8 +6,8 @@
   
 TEST(hcfft_2D_transform_test, func_correct_2D_transform_D2Z ) {
   putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
-  hcfftHandle *plan = NULL;
-  hcfftResult status  = hcfftPlan2d(plan, VECTOR_SIZE, VECTOR_SIZE,  HCFFT_D2Z);
+  hcfftHandle plan;
+  hcfftResult status  = hcfftPlan2d(&plan, VECTOR_SIZE, VECTOR_SIZE,  HCFFT_D2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int Rsize = VECTOR_SIZE * VECTOR_SIZE;
   int Csize = VECTOR_SIZE * (1 + VECTOR_SIZE / 2);
@@ -29,12 +29,12 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_D2Z ) {
   hcfftDoubleComplex *odata = hc::am_alloc(Csize * sizeof(hcfftDoubleComplex), accs[1], 0);
   hc::am_copy(odata,  output, sizeof(hcfftDoubleComplex) * Csize);
 
-  status = hcfftExecD2Z(*plan, idata, odata);
+  status = hcfftExecD2Z(plan, idata, odata);
   EXPECT_EQ(status, HCFFT_SUCCESS);
 
   hc::am_copy(output, odata, sizeof(hcfftDoubleComplex) * Csize);
 
-  status =  hcfftDestroy(*plan);
+  status =  hcfftDestroy(plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
 
   // clFFT work flow
@@ -184,8 +184,8 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_D2Z ) {
 }
 
 TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2D ) {
-  hcfftHandle *plan = NULL;
-  hcfftResult status  = hcfftPlan2d(plan, VECTOR_SIZE, VECTOR_SIZE, HCFFT_Z2D);
+  hcfftHandle plan;
+  hcfftResult status  = hcfftPlan2d(&plan, VECTOR_SIZE, VECTOR_SIZE, HCFFT_Z2D);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int Csize = VECTOR_SIZE * (1 + VECTOR_SIZE / 2);
   int Rsize = VECTOR_SIZE * VECTOR_SIZE;
@@ -209,12 +209,12 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2D ) {
   hcfftDoubleReal *odata = hc::am_alloc(Rsize * sizeof(hcfftDoubleReal), accs[1], 0);
   hc::am_copy(odata, output, sizeof(hcfftDoubleReal) * Rsize);
 
-  status = hcfftExecZ2D(*plan, idata, odata);
+  status = hcfftExecZ2D(plan, idata, odata);
   EXPECT_EQ(status, HCFFT_SUCCESS);
 
   hc::am_copy(output, odata, sizeof(hcfftDoubleReal) * Rsize);
 
-  status =  hcfftDestroy(*plan);
+  status =  hcfftDestroy(plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
 
   // clFFT work flow
@@ -368,8 +368,8 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2D ) {
 }
 
 TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
-  hcfftHandle *plan = NULL;
-  hcfftResult status  = hcfftPlan2d(plan, VECTOR_SIZE, VECTOR_SIZE, HCFFT_Z2Z);
+  hcfftHandle plan;
+  hcfftResult status  = hcfftPlan2d(&plan, VECTOR_SIZE, VECTOR_SIZE, HCFFT_Z2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int hSize = VECTOR_SIZE * VECTOR_SIZE;
   hcfftDoubleComplex *input = (hcfftDoubleComplex*)calloc(hSize, sizeof(hcfftDoubleComplex));
@@ -392,12 +392,12 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
   hcfftDoubleComplex *odata = hc::am_alloc(hSize * sizeof(hcfftDoubleComplex), accs[1], 0);
   hc::am_copy(odata,  output, sizeof(hcfftDoubleComplex) * hSize);
 
-  status = hcfftExecZ2Z(*plan, idata, odata, HCFFT_FORWARD);
+  status = hcfftExecZ2Z(plan, idata, odata, HCFFT_FORWARD);
   EXPECT_EQ(status, HCFFT_SUCCESS);
 
   hc::am_copy(output, odata, sizeof(hcfftDoubleComplex) * hSize);
 
-  status =  hcfftDestroy(*plan);
+  status =  hcfftDestroy(plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
 
   // clFFT work flow
