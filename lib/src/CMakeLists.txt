@@ -31,19 +31,10 @@ IF(WIN32)
   ENDIF(MSVC)
 ELSE(WIN32)
   # Choice to take compilation flags from source or package
-  if(EXISTS ${MCWHCCBUILD})
-    execute_process(COMMAND ${HCC_CONFIG} --build --cxxflags
-                            OUTPUT_VARIABLE HCC_CXXFLAGS)
-    execute_process(COMMAND ${HCC_CONFIG} --build --ldflags --shared
-                            OUTPUT_VARIABLE HCC_LDFLAGS)
-  else(EXISTS ${MCWHCCBUILD})
-    execute_process(COMMAND ${HCC_CONFIG} --cxxflags
-                            OUTPUT_VARIABLE HCC_CXXFLAGS)
-    execute_process(COMMAND ${HCC_CONFIG} --ldflags --shared
-                            OUTPUT_VARIABLE HCC_LDFLAGS)
-  endif(EXISTS ${MCWHCCBUILD})
-
-  
+  execute_process(COMMAND ${HCC_CONFIG} --cxxflags
+                          OUTPUT_VARIABLE HCC_CXXFLAGS)
+  execute_process(COMMAND ${HCC_CONFIG} --ldflags --shared
+                          OUTPUT_VARIABLE HCC_LDFLAGS)
   string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
   string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
   set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/../include")

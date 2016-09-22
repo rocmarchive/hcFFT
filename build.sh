@@ -2,18 +2,19 @@
 # Preliminary version
 
 # CHECK FOR COMPILER PATH
-if [ ! -z $MCWHCCBUILD ]
+if [ ! -z $HCCLC ]
 then
-  if [ -x $MCWHCCBUILD/compiler/bin/clang++ ] 
+  if [ -x "/opt/rocm/hcc-lc/bin/clang++" ]
   then
-    cmake_c_compiler=$MCWHCCBUILD/compiler/bin/clang
-    cmake_cxx_compiler=$MCWHCCBUILD/compiler/bin/clang++
+    cmake_c_compiler=/opt/rocm/hcc-lc/bin/clang
+    cmake_cxx_compiler=/opt/rocm/hcc-lc/bin/clang++
   fi
 
-elif [ -x "/opt/rocm/hcc/bin/clang++" ]
+elif [ -x "/opt/rocm/hcc-hsail/bin/clang++" ]
 then
-  cmake_c_compiler=/opt/rocm/hcc/bin/clang
-  cmake_cxx_compiler=/opt/rocm/hcc/bin/clang++
+  cmake_c_compiler=/opt/rocm/hcc-hsail/bin/clang
+  cmake_cxx_compiler=/opt/rocm/hcc-hsail/bin/clang++
+
 else
   echo "Clang compiler not found"
   exit 1
