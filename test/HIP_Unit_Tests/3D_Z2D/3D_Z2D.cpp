@@ -4,7 +4,7 @@
 #include <hip_runtime.h>
 #include <hipfft.h>
 
-#define NX 128
+#define NX 64
 #define NY 128
 #define NZ 128
 #define BATCH 1
@@ -36,7 +36,7 @@ int main()
 	if (hipGetLastError() != hipSuccess)
 	{
 		fprintf(stderr, "Cuda error: Failed to allocate\n");
-		return 0;
+		return 0 ;
 	}
 
 	/* Create a 3D FFT plan. */

@@ -11,7 +11,7 @@
 int main()
 {
 	hipfftHandle plan;
-	int Csize = ((NX/2) + 1) * NY;
+	int Csize = NX * NY;
 	hipfftDoubleComplex *input = (hipfftDoubleComplex*)calloc(Csize, sizeof(hipfftDoubleComplex));
 	hipfftDoubleComplex *output = (hipfftDoubleComplex*)calloc(Csize, sizeof(hipfftDoubleComplex));
 	hipfftDoubleComplex *idata;

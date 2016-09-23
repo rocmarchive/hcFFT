@@ -33,7 +33,6 @@ typedef cufftComplex hipfftComplex;
 typedef cufftDoubleComplex hipfftDoubleComplex;
 typedef cufftReal  hipfftReal;
 typedef cufftDoubleReal hipfftDoubleReal;
-typedef cuStream_t hipStream_t;
 
 inline static hipfftResult hipCUFFTResultToHIPFFTResult(cufftResult cuResult) 
 {

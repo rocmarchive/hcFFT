@@ -4,14 +4,14 @@
 #include <hip_runtime.h>
 #include <hipfft.h>
 
-#define NX 256 
-#define NY 128  
+#define NX 256
+#define NY 128
 #define BATCH 1
 
 int main()
 {
 	hipfftHandle plan;
-	int Csize = ((NX/2) + 1) * NY;
+	int Csize = NX * NY;
 	hipfftComplex *input = (hipfftComplex*)calloc(Csize, sizeof(hipfftComplex));
 	hipfftComplex *output = (hipfftComplex*)calloc(Csize, sizeof(hipfftComplex));
 	hipfftComplex *idata;

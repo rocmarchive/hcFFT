@@ -11,7 +11,7 @@
 int main()
 {
 	cufftHandle plan;
-	int Csize = ((NX/2) + 1) * NY;
+	int Csize = NX * NY;
 	cufftDoubleComplex *input = (cufftDoubleComplex*)calloc(Csize, sizeof(cufftDoubleComplex));
 	cufftDoubleComplex *output = (cufftDoubleComplex*)calloc(Csize, sizeof(cufftDoubleComplex));
 	cufftDoubleComplex *idata;

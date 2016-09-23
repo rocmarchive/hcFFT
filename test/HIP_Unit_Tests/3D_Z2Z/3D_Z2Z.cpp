@@ -4,7 +4,7 @@
 #include <hip_runtime.h>
 #include <hipfft.h>
 
-#define NX 128
+#define NX 64
 #define NY 128
 #define NZ 128
 #define BATCH 1
@@ -12,7 +12,7 @@
 int main()
 {
 	hipfftHandle plan;
-	int Csize = ((NX/2) + 1) * NY * NZ;
+	int Csize = NX * NY * NZ;
 	hipfftDoubleComplex *input = (hipfftDoubleComplex*)calloc(Csize, sizeof(hipfftDoubleComplex));
 	hipfftDoubleComplex *output = (hipfftDoubleComplex*)calloc(Csize, sizeof(hipfftDoubleComplex));
 	hipfftDoubleComplex *idata;

@@ -4,7 +4,7 @@
 #include <cuda_runtime.h>
 #include <cufft.h>
 
-#define NX 16
+#define NX 256
 #define BATCH 1
 
 int main()

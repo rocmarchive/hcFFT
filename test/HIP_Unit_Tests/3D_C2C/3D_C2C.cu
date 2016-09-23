@@ -4,7 +4,7 @@
 #include <cuda_runtime.h>
 #include <cufft.h>
 
-#define NX 128 
+#define NX 64 
 #define NY 128 
 #define NZ 128 
 #define BATCH 1
@@ -12,7 +12,7 @@
 int main()
 {
 	cufftHandle plan;
-	int Csize = ((NX/2) + 1) * NY * NZ;
+	int Csize = NX * NY * NZ;
 	cufftComplex *input = (cufftComplex*)calloc(Csize, sizeof(cufftComplex));
 	cufftComplex *output = (cufftComplex*)calloc(Csize, sizeof(cufftComplex));
 	cufftComplex *idata;

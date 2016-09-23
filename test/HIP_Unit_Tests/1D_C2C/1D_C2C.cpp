@@ -4,7 +4,7 @@
 #include <hip_runtime.h>
 #include <hipfft.h>
 
-#define NX 16
+#define NX 256
 #define BATCH 1
 
 int main()

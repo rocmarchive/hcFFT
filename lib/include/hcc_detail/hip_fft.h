@@ -34,7 +34,6 @@ typedef hcfftComplex hipfftComplex;
 typedef hcfftDoubleComplex hipfftDoubleComplex;
 typedef hcfftReal  hipfftReal;
 typedef hcfftDoubleReal hipfftDoubleReal;
-typedef void *hipStream_t;
 
 inline static hipfftResult hipHCFFTResultToHIPFFTResult(hcfftResult hcResult) 
 {

@@ -4,7 +4,7 @@
 #include <hip_runtime.h>
 #include <hipfft.h>
 
-#define NX 128
+#define NX 64
 #define NY 128
 #define NZ 128
 #define BATCH 1
