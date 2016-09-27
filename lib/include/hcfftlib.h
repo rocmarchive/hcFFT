@@ -41,6 +41,36 @@ enum BlockComputeType {
   BCT_C2C         // Column to Column
 };
 
+//NonSquareKernelType
+enum NonSquareTransposeKernelType
+{
+    NON_SQUARE_TRANS_PARENT,
+    NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING,
+    NON_SQUARE_TRANS_TRANSPOSE_BATCHED,
+    NON_SQUARE_TRANS_SWAP
+};
+
+/*
+There are three ways of conducting inplace transpose with 1:2 (or 2:1) dimension ratio.
+A. first conduct line swapping kernels for the whole non square matrix
+then conduct batched square transpose along column dim (a 'real' batched transpose)
+B. first conduct batched square transpose along column dim (a 'real' batched transpose)
+then conduct line swapping kernels for the whole non square matrix (for 2:1 case)
+C. first conduct batched square transpose along leading dim (row dim)
+then conduct line swapping kernels for the whole non square matrix
+Note that the twiddle computation has to go at the begining of the first kernel or the end of the second kernel
+
+if leading dimension is bigger, it makes more sense (faster) to swap line first and then conduct batched square transpose
+if leading dimension is smaller, it makes more sense (faster) to conduct batched transpose and then swap lines.
+*/
+enum NON_SQUARE_KERNEL_ORDER
+{
+	NOT_A_TRANSPOSE,
+	SWAP_AND_TRANSPOSE, // A.
+	TRANSPOSE_AND_SWAP, // B.
+	TRANSPOSE_LEADING_AND_SWAP, // C.
+};
+
 typedef enum hcfftLibType_
 {
   HCFFT_R2CD2Z = 1,
@@ -93,7 +123,9 @@ typedef enum hcfftStatus_ {
 
 typedef enum hcfftGenerators_ {
   Stockham,
-  Transpose,
+  Transpose_GCN,
+  Transpose_SQUARE,
+  Transpose_NONSQUARE,
   Copy,
 } hcfftGenerators;
 
@@ -102,7 +134,7 @@ static inline bool IsPo2 (size_t u) {
 }
 
 inline void BSF( unsigned long* index, size_t& mask ) {
-  //_BitScanForward( index, mask );
+		*index = __builtin_ctz( mask );
 }
 
 template<typename T>
@@ -115,6 +147,25 @@ static inline size_t BitScanF (size_t n) {
   unsigned long tmp = 0;
   BSF (& tmp, n);
   return (size_t) tmp;
+}
+
+static bool Is1DPossible(size_t length, size_t large1DThreshold)
+{
+	if (length > large1DThreshold)
+		return false;
+
+	if ( (length%7 == 0) && (length%5 == 0) && (length%3 == 0) )
+		return false;
+
+	// radix 11 & 2 is ok, anything else we cannot do in 1 kernel
+	if ( (length % 11 == 0) && ((length % 13 == 0) || (length % 7 == 0) || (length % 5 == 0) || (length % 3 == 0)) )
+		return false;
+
+	// radix 13 & 2 is ok, anything else we cannot do in 1 kernel
+	if ( (length % 13 == 0) && ((length % 11 == 0) || (length % 7 == 0) || (length % 5 == 0) || (length % 3 == 0)) )
+		return false;
+
+	return true;
 }
 
 //  Find the smallest power of 2 that is >= n; return its power of 2 factor
@@ -154,10 +205,12 @@ inline std::string SztToStr(size_t i) {
 inline std::string hcHeader() {
   return "#include <hc.hpp>\n"
          "#include <hc_am.hpp>\n"
+         "#include <hc_math.hpp>\n"
          "#include <stdio.h>\n"
          "#include <hc_short_vector.hpp>\n"
          "#include <iostream>\n"
          "using namespace hc;\n"
+         "using namespace hc::fast_math;\n"
          "using namespace hc::short_vector;\n";
 }
 
@@ -293,10 +346,10 @@ struct FFTKernelGenKeyParams {
    *  been compiled.
    */
   size_t                   fft_DataDim;       // Dimensionality of the data
-  size_t                   fft_N[5];          // [0] is FFT size, e.g. 1024
+  size_t                   fft_N[16];          // [0] is FFT size, e.g. 1024
   // This must be <= size of LDS!
-  size_t                   fft_inStride [5];  // input strides
-  size_t                   fft_outStride[5];  // output strides
+  size_t                   fft_inStride [16];  // input strides
+  size_t                   fft_outStride[16];  // output strides
 
   hcfftResLocation   fft_placeness;
   hcfftIpLayout           fft_inputLayout;
@@ -333,14 +386,27 @@ struct FFTKernelGenKeyParams {
   size_t       blockSIMD;
   size_t       blockLDS;
 
-  bool                     fft_UseFMA;        // *** TODO
+  NonSquareTransposeKernelType      nonSquareKernelType;
+  // sometimes non square matrix are broken down into a number of
+  // square matrix during inplace transpose
+  // let's call this number transposeMiniBatchSize
+  // no user of the library should set its value
+  size_t transposeMiniBatchSize;
+  // transposeBatchSize is the number of batchs times transposeMiniBatchSzie
+  // no user of the library should set its value
+  size_t transposeBatchSize;
+  // no user of the library should set its value
+  NON_SQUARE_KERNEL_ORDER nonSquareKernelOrder;
+
   bool                     fft_RCsimple;
+
+  ulong   limit_LocalMemSize;
 
   // Default constructor
   FFTKernelGenKeyParams() {
     fft_DataDim = 0;
 
-    for(int i = 0; i < 5; i++) {
+    for(int i = 0; i < 16; i++) {
       fft_N[i] = 0;
       fft_inStride[i] = 0;
       fft_outStride[i] = 0;
@@ -365,6 +431,10 @@ struct FFTKernelGenKeyParams {
     blockComputeType = BCT_R2C;
     blockSIMD = 0;
     blockLDS = 0;
+    nonSquareKernelType = NON_SQUARE_TRANS_PARENT;
+    transposeMiniBatchSize = 1;
+    transposeBatchSize = 1;
+    limit_LocalMemSize = 0;
   }
 };
 
@@ -372,8 +442,17 @@ class FFTRepo;
 
 class FFTPlan {
  public:
-  hc::accelerator acc;
-  hc::accelerator_view acc_view = hc::accelerator().get_default_view();
+
+  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
+  FUNC_FFTFwd* kernelPtr;
+
+  std::string kernellib;
+  std::string filename;
+
+  bool exist;
+
+  accelerator acc;
+  accelerator_view acc_view = accelerator().get_default_view();
   hcfftDim dimension;
   hcfftIpLayout ipLayout;
   hcfftOpLayout opLayout;
@@ -383,7 +462,6 @@ class FFTPlan {
   hcfftPrecision precision;
   void* input;
   void* output;
-  std::vector< size_t > unpaddedLength;
   std::vector< size_t > length;
   std::vector< size_t > inStride, outStride;
   size_t batchSize;
@@ -393,8 +471,8 @@ class FFTPlan {
   double backwardScale;
   bool  twiddleFront;
 
-  bool isPadded;
   bool baked;
+  bool transformed;
   hcfftGenerators gen;
 
   //  Hardware Limits
@@ -433,6 +511,9 @@ class FFTPlan {
   float* intBufferC2R;
   double* intBufferC2RD;
 
+  void* twiddles;
+  void* twiddleslarge;
+
   bool transflag;
   bool transOutHorizontal;
 
@@ -455,11 +536,25 @@ class FFTPlan {
   // User created plan
   bool userPlan;
 
+  // Allocate no extra memory
+  bool allOpsInplace;
+
   // A flag to say that blocked FFTs are going to be performed
   // It can only be one of these: column to row, row to column or column to column
   // row to row is just the normal case where blocking is not needed
   bool blockCompute;
   BlockComputeType blockComputeType;
+
+  // flag to indicate transpose placeness in 2D breakdown
+  bool transpose_in_2d_inplace;
+
+  NonSquareTransposeKernelType nonSquareKernelType;
+  // sometimes non square matrix are broken down into a number of
+  // square matrix during inplace transpose
+  // let's call this number transposeMiniBatchSize
+  // no user of the library should set its value
+  size_t transposeMiniBatchSize;
+  NON_SQUARE_KERNEL_ORDER nonSquareKernelOrder;
 
   // Store sizes of original plan
   std::vector<size_t> originalLength;
@@ -471,38 +566,20 @@ class FFTPlan {
     opLayout (HCFFT_COMPLEX_INTERLEAVED), direction(HCFFT_FORWARD), location (HCFFT_INPLACE),
     transposeType (HCFFT_NOTRANSPOSE), precision (HCFFT_SINGLE),
     batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0),
-    twiddleFront(false), isPadded(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
+    twiddleFront(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
     planTX(0), planTY(0), planTZ(0), planRCcopy(0), planCopy(0), plHandle(0), plHandleOrigin(0),
     bLdsComplex(false), uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
     intBuffer( NULL ), intBufferD(NULL), tmpBufSizeRC(0), intBufferRC(NULL), intBufferRCD(NULL),
     tmpBufSizeC2R(0), intBufferC2RD(NULL), intBufferC2R(NULL), transflag(false),
-    transOutHorizontal(false), large1D(0), large2D(false), RCsimple(false), realSpecial(false),
-    realSpecial_Nr(0), userPlan(false), blockCompute(false), blockComputeType(BCT_C2C),
-    hcfftlibtype(HCFFT_R2CD2Z) {
+    transpose_in_2d_inplace(false), twiddles(NULL), twiddleslarge(NULL), transOutHorizontal(false),
+    large1D(0), large2D(false), RCsimple(false), realSpecial(false), realSpecial_Nr(0),
+    userPlan(false), allOpsInplace(false), blockCompute(false), blockComputeType(BCT_C2C),
+    nonSquareKernelType(NON_SQUARE_TRANS_PARENT), transposeMiniBatchSize(1),
+    nonSquareKernelOrder(NOT_A_TRANSPOSE), hcfftlibtype(HCFFT_R2CD2Z), exist(false), transformed(false) {
       originalLength.clear();
   };
 
   hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, hcfftPrecision precision, hcfftLibType libType);
-
-  hcfftStatus hcfftpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
-
-  hcfftStatus hcfftpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
-                           size_t z_size, size_t z_pad_size);
-
-  hcfftStatus hcfftUnpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
-
-  hcfftStatus hcfftUnpadding(float *input, float *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
-                             size_t z_size, size_t z_pad_size);
-
-  hcfftStatus hcfftpadding(double *input, double *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
-
-  hcfftStatus hcfftpadding(double *input, double *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
-                           size_t z_size, size_t z_pad_size);
-
-  hcfftStatus hcfftUnpadding(double *input, double *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size);
-
-  hcfftStatus hcfftUnpadding(double *input, double *paddedmatrix, size_t x_size, size_t x_pad_size, size_t y_size, size_t y_pad_size,
-                             size_t z_size, size_t z_pad_size);
 
   hcfftStatus hcfftBakePlan(hcfftPlanHandle plHandle);
 
@@ -522,9 +599,9 @@ class FFTPlan {
   hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, double* inputBuffers,
                                             double* outputBuffers, double* tmpBuffer);
 
-  hcfftStatus hcfftSetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view accl_view);
+  hcfftStatus hcfftSetAcclView( hcfftPlanHandle plHandle, accelerator_view accl_view);
 
-  hcfftStatus hcfftGetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view *accl_view);
+  hcfftStatus hcfftGetAcclView( hcfftPlanHandle plHandle, accelerator_view *accl_view);
 
   hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 
@@ -584,7 +661,7 @@ class FFTPlan {
   hcfftStatus GetWorkSizesPvt (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
 
   template <hcfftGenerators G>
-  hcfftStatus GenerateKernelPvt (const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const;
+  hcfftStatus GenerateKernelPvt (const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const;
 
   hcfftStatus GetMax1DLength (size_t* longest ) const;
 
@@ -592,7 +669,7 @@ class FFTPlan {
 
   hcfftStatus GetWorkSizes (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
 
-  hcfftStatus GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo, size_t count) const;
+  hcfftStatus GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo, size_t count, bool exist) const;
 
   hcfftStatus ReleaseBuffers ();
 
@@ -607,8 +684,8 @@ class FFTRepo {
   //  A lock object is created for each plan, such that any getter/setter can lock the 'plan' object before
   //  reading/writing its values.  The lock object is kept seperate from the plan object so that the lock
   //  object can be held the entire time a plan is getting destroyed in hcfftDestroyPlan.
-  typedef std::pair< FFTPlan*, lockRAII* > repoPlansValue;
-  typedef std::map< hcfftPlanHandle, repoPlansValue > repoPlansType;
+  typedef pair< FFTPlan*, lockRAII* > repoPlansValue;
+  typedef map< hcfftPlanHandle, repoPlansValue > repoPlansType;
   repoPlansType repoPlans;
 
   //  Structure containing all the data we need to remember for a specific invokation of a kernel

@@ -177,7 +177,7 @@ class KernelCoreSpecs {
 // Given the length of 1d fft, this function determines the appropriate work group size
 // and the number of transforms per work group
 // TODO for optimizations - experiment with different possibilities for work group sizes and num transforms for improving performance
-void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGroupSize, size_t &numTrans) {
+void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGroupSize, size_t &numTrans, Precision &pr) {
   assert(MAX_WGS >= 64);
 
   if(length == 1) { // special case
@@ -186,7 +186,7 @@ void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGro
     return;
   }
 
-  size_t baseRadix[] = {7, 5, 3, 2}; // list only supported primes
+  size_t baseRadix[] = {13, 11, 7, 5, 3, 2}; // list only supported primes
   size_t baseRadixSize = sizeof(baseRadix) / sizeof(baseRadix[0]);
   size_t l = length;
   std::map<size_t, size_t> primeFactorsExpanded;
@@ -228,7 +228,13 @@ void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGro
   } else if (primeFactorsExpanded[7] == length) { // Length is pure power of 7
     workGroupSize = 49;
     numTrans = length >= 7 * workGroupSize ? 1 : (7 * workGroupSize) / length;
-  } else {
+  } else if (primeFactorsExpanded[11] == length) { // Length is pure power of 11
+		workGroupSize = 121;
+		numTrans = length >= 11 * workGroupSize ? 1 : (11 * workGroupSize) / length;
+	}	else if (primeFactorsExpanded[13] == length) { // Length is pure power of 13
+		workGroupSize = 169;
+		numTrans = length >= 13 * workGroupSize ? 1 : (13 * workGroupSize) / length;
+	} else {
     size_t leastNumPerWI = 1; // least number of elements in one work item
     size_t maxWorkGroupSize = MAX_WGS; // maximum work group size desired
 
@@ -272,10 +278,19 @@ void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGro
     } else if (primeFactorsExpanded[3] * primeFactorsExpanded[5] * primeFactorsExpanded[7] == length) {
       leastNumPerWI = 105;
       maxWorkGroupSize = 24;
-    } else {
+    } else if (primeFactorsExpanded[2] * primeFactorsExpanded[11] == length) {
+			leastNumPerWI = 22; maxWorkGroupSize = 128;
+		}	else if (primeFactorsExpanded[2] * primeFactorsExpanded[13] == length) {
+			leastNumPerWI = 26; maxWorkGroupSize = 128;
+		} else {
       leastNumPerWI = 210;
       maxWorkGroupSize = 12;
     }
+		if (pr==P_DOUBLE)
+		{
+			//leastNumPerWI /= 2; 
+			maxWorkGroupSize /= 2;
+		}
 
     if (maxWorkGroupSize > MAX_WGS) {
       maxWorkGroupSize = MAX_WGS;
@@ -303,26 +318,24 @@ void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGro
 }
 
 // Twiddle factors table
+template <class T>
 class TwiddleTable {
   size_t N; // length
-  double* wc, *ws; // cosine, sine arrays
+  T* wc; // cosine, sine arrays
 
  public:
   TwiddleTable(size_t length) : N(length) {
     // Allocate memory for the tables
     // We compute twiddle factors in double precision for both P_SINGLE and P_DOUBLE
-    wc = new double[N];
-    ws = new double[N];
+    wc = new T[N];
   }
 
   ~TwiddleTable() {
     // Free
     delete[] wc;
-    delete[] ws;
   }
 
-  template <Precision PR>
-  void GenerateTwiddleTable(const std::vector<size_t> &radices, std::string &twStr) {
+  void GenerateTwiddleTable(void **twiddles, accelerator acc, const std::vector<size_t> &radices) {
     const double TWO_PI = -6.283185307179586476925286766559;
     // Make sure the radices vector sums up to N
     size_t sz = 1;
@@ -351,31 +364,14 @@ class TwiddleTable {
           double s = sin(((double)j) * theta);
           //if (fabs(c) < 1.0E-12)  c = 0.0;
           //if (fabs(s) < 1.0E-12)  s = 0.0;
-          wc[nt]   = c;
-          ws[nt++] = s;
+          wc[nt].x   = c;
+          wc[nt++].y = s;
         }
       }
     }
-
-    std::string sfx = FloatSuffix<PR>();
-    // Stringize the table
-    std::stringstream ss;
-
-    for(size_t i = 0; i < (N - 1); i++) {
-      ss << RegBaseType<PR>(2);
-      ss << "(";
-      char cv[64], sv[64];
-      sprintf(cv, "%036.34lf", wc[i]);
-      sprintf(sv, "%036.34lf", ws[i]);
-      ss << cv;
-      ss << sfx;
-      ss << ", ";
-      ss << sv;
-      ss << sfx;
-      ss << "),\n";
-    }
-
-    twStr += ss.str();
+    *twiddles = (T*)hc::am_alloc( N * sizeof(T), acc, 0);
+    hc::am_copy(*twiddles, wc, N * sizeof(T));
+    assert(twiddles != NULL);
   }
 };
 
@@ -503,10 +499,10 @@ class Pass {
 
   // SweepRegs is to iterate through the registers to do the three basic operations:
   // reading, twiddle multiplication, writing
-  void SweepRegs( size_t flag, bool fwd, bool interleaved, size_t stride, size_t component,
+  void SweepRegs( const hcfftPlanHandle plHandle, size_t flag, bool fwd, bool interleaved, size_t stride, size_t component,
                   double scale, bool frontTwiddle,
                   const std::string &bufferRe, const std::string &bufferIm, const std::string &offset,
-                  size_t regC, size_t numB, size_t numPrev, std::string &passStr) const {
+                  size_t regC, size_t numB, size_t numPrev, std::string &passStr, bool isPrecallVector = false, bool oddt = false) const {
     assert( (flag == SR_READ )      ||
             (flag == SR_TWMUL)      ||
             (flag == SR_TWMUL_3STEP)  ||
@@ -560,6 +556,8 @@ class Pass {
     std::string twType = RegBaseType<PR>(2);
     std::string rType  = RegBaseType<PR>(1);
     size_t butterflyIndex = numPrev;
+  	std::string bufOffset;
+
     std::string regBase;
     RegBase(regC, regBase);
 
@@ -621,6 +619,10 @@ class Pass {
       return;
     }
 
+    size_t hid = 0;
+    bool swapElement = false;
+    size_t tIter = numB * radix;
+
     // block to rearrange reads of adjacent memory locations together
     if(linearRegs && (flag == SR_READ)) {
       for(size_t r = 0; r < radix; r++) {
@@ -628,6 +630,7 @@ class Pass {
           for(size_t c = cStart; c < cEnd; c++) { // component loop: 0 - real, 1 - imaginary
             std::string tail;
             std::string regIndex;
+            std::string regIndexC;
             regIndex = "(R";
             std::string buffer;
 
@@ -641,6 +644,13 @@ class Pass {
             } else {
               if(c == 0) {
                 RegBaseAndCountAndPos("", i * radix + r, regIndex);
+		hid = (i * radix + r) / ( tIter > 1 ? (tIter / 2) : 1 );
+		swapElement = swapElement && hid != 0;
+		swapElement = (oddt && ((i * radix + r) >= (tIter - 1))) ? false : swapElement;  //for c2r odd size don't swap for last register
+		if (swapElement)
+		{
+		regIndexC = regIndex; regIndexC += "[0]).y";
+		}
                 regIndex += "[0]).x";
                 buffer = bufferRe;
                 tail = interleaved ? ".x;" : ";";
@@ -652,31 +662,32 @@ class Pass {
               }
             }
 
-            passStr += "\n\t";
-            passStr += regIndex;
-            passStr += " = ";
-            passStr += buffer;
-            passStr += "[";
-            passStr += offset;
-            passStr += " + ( ";
-            passStr += SztToStr(numPrev);
-            passStr += " + ";
-            passStr += "me*";
-            passStr += SztToStr(numButterfly);
-            passStr += " + ";
-            passStr += SztToStr(i);
-            passStr += " + ";
-            passStr += SztToStr(r * length / radix);
-            passStr += " )*";
-            passStr += SztToStr(stride);
-            passStr += "]";
-            passStr += tail;
+	//get offset 
+	bufOffset.clear();
+	bufOffset += offset; bufOffset += " + ( "; bufOffset += SztToStr(numPrev); bufOffset += " + ";
+	bufOffset += "me*"; bufOffset += SztToStr(numButterfly); bufOffset += " + ";
+	bufOffset += SztToStr(i); bufOffset += " + ";
+	bufOffset += SztToStr(r*length/radix); bufOffset += " )*";
+	bufOffset += SztToStr(stride);
 
-            // Since we read real & imag at once, we break the loop
-            if(interleaved && (component == SR_COMP_BOTH) ) {
-              break;
-            }
-          }
+	if (swapElement)
+        {
+	passStr += "\n\t";
+	passStr += regIndexC; passStr += " = "; passStr += regIndex; passStr += ";";
+	}
+
+	passStr += "\n\t";
+	passStr += regIndex;
+	passStr += " = ";
+
+	passStr += buffer;
+	passStr += "["; passStr += bufOffset; passStr += "]"; passStr += tail;
+
+        // Since we read real & imag at once, we break the loop
+        if(interleaved && (component == SR_COMP_BOTH) ) {
+           break;
+        }
+        }
         }
       }
 
@@ -701,6 +712,7 @@ class Pass {
             passStr += "\n\t}\n\tif( rw && !me)\n\t{";
           }
 
+					std::string regIndexC0;
           for(size_t c = cStart; c < cEnd; c++) { // component loop: 0 - real, 1 - imaginary
             std::string tail;
             std::string regIndex;
@@ -728,50 +740,42 @@ class Pass {
               }
             }
 
-            passStr += "\n\t";
-            passStr += buffer;
-            passStr += "[";
-            passStr += offset;
-            passStr += " + ( ";
+	    bufOffset.clear();
+	    bufOffset += offset; bufOffset += " + ( "; 
 
             if( (numButterfly * workGroupSize) > algLS ) {
-              passStr += "((";
-              passStr += SztToStr(numButterfly);
-              passStr += "*me + ";
-              passStr += SztToStr(butterflyIndex);
-              passStr += ")/";
-              passStr += SztToStr(algLS);
-              passStr += ")*";
+              bufOffset += "((";
+              bufOffset += SztToStr(numButterfly);
+              bufOffset += "*me + ";
+              bufOffset += SztToStr(butterflyIndex);
+              bufOffset += ")/";
+              bufOffset += SztToStr(algLS);
+              bufOffset += ")*";
               passStr += SztToStr(algL);
-              passStr += " + (";
-              passStr += SztToStr(numButterfly);
-              passStr += "*me + ";
-              passStr += SztToStr(butterflyIndex);
-              passStr += ")%";
-              passStr += SztToStr(algLS);
-              passStr += " + ";
+              bufOffset += " + (";
+              bufOffset += SztToStr(numButterfly);
+              bufOffset += "*me + ";
+              bufOffset += SztToStr(butterflyIndex);
+              bufOffset += ")%";
+              bufOffset += SztToStr(algLS);
+              bufOffset += " + ";
             } else {
-              passStr += SztToStr(numButterfly);
-              passStr += "*me + ";
-              passStr += SztToStr(butterflyIndex);
-              passStr += " + ";
+              bufOffset += SztToStr(numButterfly);
+              bufOffset += "*me + ";
+              bufOffset += SztToStr(butterflyIndex);
+              bufOffset += " + ";
             }
 
-            passStr += SztToStr(r * algLS);
-            passStr += " )*";
-            passStr += SztToStr(stride);
-            passStr += "]";
-            passStr += tail;
-            passStr += " = ";
-            passStr += regIndex;
+            bufOffset += SztToStr(r * algLS);
+            bufOffset += " )*";
+            bufOffset += SztToStr(stride);
 
-            if(scale != 1.0f) {
-              passStr += " * ";
-              passStr += FloatToStr(scale);
-              passStr += FloatSuffix<PR>();
-            }
+	    if(scale != 1.0f) { regIndex += " * "; regIndex += FloatToStr(scale); regIndex += FloatSuffix<PR>(); }
+	    if (c == cStart)	regIndexC0 = regIndex;
 
-            passStr += ";";
+	    passStr += "\n\t";
+	    passStr += buffer; passStr += "["; passStr += bufOffset; passStr += "]";
+	    passStr += tail; passStr += " = "; passStr += regIndex; passStr += ";";
 
             // Since we write real & imag at once, we break the loop
             if(interleaved && (component == SR_COMP_BOTH)) {
@@ -801,6 +805,7 @@ class Pass {
           for(size_t c = cStart; c < cEnd; c++) { // component loop: 0 - real, 1 - imaginary
             std::string tail;
             std::string regIndex;
+						std::string regIndexC;
             regIndex = linearRegs ? "(R" : regBaseCount;
             std::string buffer;
 
@@ -815,6 +820,7 @@ class Pass {
               if(c == 0) {
                 if(linearRegs) {
                   RegBaseAndCountAndPos("", i * radix + r, regIndex);
+									hid = (i * radix + r) / (numB * radix / 2);
                   regIndex += "[0]).x";
                 } else       {
                   RegBaseAndCountAndPos("R", r, regIndex);
@@ -842,25 +848,21 @@ class Pass {
                 regIndexSub += ((v == 0) ? ".x" : (v == 1) ? ".y " : (v == 2) ? ".z" : ".w");
               }
 
-              passStr += "\n\t";
-              passStr += regIndexSub;
-              passStr += " = ";
-              passStr += buffer;
-              passStr += "[";
-              passStr += offset;
-              passStr += " + ( ";
-              passStr += SztToStr(numPrev);
-              passStr += " + ";
-              passStr += "me*";
-              passStr += SztToStr(numButterfly);
-              passStr += " + ";
-              passStr += SztToStr(i * regC + v);
-              passStr += " + ";
-              passStr += SztToStr(r * length / radix);
-              passStr += " )*";
-              passStr += SztToStr(stride);
-              passStr += "]";
-              passStr += tail;
+	     //get offset 
+	     bufOffset.clear();
+	     bufOffset += offset; bufOffset += " + ( "; bufOffset += SztToStr(numPrev); bufOffset += " + ";
+	     bufOffset += "me*"; bufOffset += SztToStr(numButterfly); bufOffset += " + ";
+	     bufOffset += SztToStr(i*regC + v); bufOffset += " + ";
+	     bufOffset += SztToStr(r*length/radix); bufOffset += " )*";
+	     bufOffset += SztToStr(stride);
+
+	     passStr += "\n\t";
+	     passStr += regIndexSub;
+	     passStr += " = "; 
+
+	     passStr += buffer;
+	     passStr += "["; passStr += bufOffset; passStr += "]"; passStr += tail;
+
             }
 
             // Since we read real & imag at once, we break the loop
@@ -918,6 +920,7 @@ class Pass {
               passStr += twType;
               passStr += " W = ";
               passStr += tw3StepFunc;
+              passStr += SztToStr(plHandle);
               passStr += "( ";
 
               if(frontTwiddle) {
@@ -1049,6 +1052,8 @@ class Pass {
               passStr += "\n\t}\n\tif( rw && !me)\n\t{";
             }
 
+						std::string regIndexC0;
+
             for(size_t c = cStart; c < cEnd; c++) { // component loop: 0 - real, 1 - imaginary
               std::string tail;
               std::string regIndex;
@@ -1091,49 +1096,44 @@ class Pass {
               }
 
               passStr += "\n\t";
-              passStr += buffer;
-              passStr += "[";
-              passStr += offset;
-              passStr += " + ( ";
+
+	      if(scale != 1.0f) { regIndex += " * "; regIndex += FloatToStr(scale); regIndex += FloatSuffix<PR>(); }
+	      if (c == 0) regIndexC0 += regIndex;
+
+	      bufOffset.clear();
+	      bufOffset += offset; bufOffset += " + ( ";
 
               if( (numButterfly * workGroupSize) > algLS ) {
-                passStr += "((";
-                passStr += SztToStr(numButterfly);
-                passStr += "*me + ";
-                passStr += SztToStr(butterflyIndex);
-                passStr += ")/";
-                passStr += SztToStr(algLS);
-                passStr += ")*";
-                passStr += SztToStr(algL);
-                passStr += " + (";
-                passStr += SztToStr(numButterfly);
-                passStr += "*me + ";
-                passStr += SztToStr(butterflyIndex);
-                passStr += ")%";
-                passStr += SztToStr(algLS);
-                passStr += " + ";
+                bufOffset += "((";
+                bufOffset += SztToStr(numButterfly);
+                bufOffset += "*me + ";
+                bufOffset += SztToStr(butterflyIndex);
+                bufOffset += ")/";
+                bufOffset += SztToStr(algLS);
+                bufOffset += ")*";
+                bufOffset += SztToStr(algL);
+                bufOffset += " + (";
+                bufOffset += SztToStr(numButterfly);
+                bufOffset += "*me + ";
+                bufOffset += SztToStr(butterflyIndex);
+                bufOffset += ")%";
+                bufOffset += SztToStr(algLS);
+                bufOffset += " + ";
               } else {
-                passStr += SztToStr(numButterfly);
-                passStr += "*me + ";
-                passStr += SztToStr(butterflyIndex);
-                passStr += " + ";
+                bufOffset += SztToStr(numButterfly);
+                bufOffset += "*me + ";
+                bufOffset += SztToStr(butterflyIndex);
+                bufOffset += " + ";
               }
 
-              passStr += SztToStr(r * algLS);
-              passStr += " )*";
-              passStr += SztToStr(stride);
-              passStr += "]";
-              passStr += tail;
-              passStr += " = ";
-              passStr += regIndex;
+              bufOffset += SztToStr(r * algLS);
+              bufOffset += " )*";
+              bufOffset += SztToStr(stride);
 
-              if(scale != 1.0f) {
-                passStr += " * ";
-                passStr += FloatToStr(scale);
-                passStr += FloatSuffix<PR>();
-              }
 
-              passStr += ";";
+	      passStr += buffer; passStr += "["; passStr += bufOffset; passStr += "]";
+	      passStr += tail; passStr += " = "; passStr += regIndex;
+	      passStr += ";";
 
               // Since we write real & imag at once, we break the loop
               if(interleaved && (component == SR_COMP_BOTH) && linearRegs) {
@@ -1213,20 +1213,19 @@ class Pass {
     }
 
     for(size_t r = rStart; r < rEnd; r++) {
+			std::string val1StrExt;
       for(size_t c = cStart; c < cEnd; c++) { // component loop: 0 - real, 1 - imaginary
         if(flag == SR_READ) { // read operation
           std::string tail, tail2;
           std::string regIndex = "(R";
           std::string buffer;
-
+					RegBaseAndCountAndPos("", r, regIndex); 
           if(c == 0) {
-            RegBaseAndCountAndPos("", r, regIndex);
             regIndex += "[0]).x";
             buffer = bufferRe;
             tail  = interleaved ? ".x;" : ";";
             tail2 = interleaved ? ".y;" : ";";
           } else {
-            RegBaseAndCountAndPos("", r, regIndex);
             regIndex += "[0]).y";
             buffer = bufferIm;
             tail  = interleaved ? ".y;" : ";";
@@ -1396,6 +1395,7 @@ class Pass {
               idxStrRev += idxStr;
               idxStrRev += " )";
               std::string val1Str, val2Str;
+
               val1Str += "\n\t";
               val1Str += buffer;
               val1Str += "[";
@@ -1407,6 +1407,7 @@ class Pass {
               val1Str += "]";
               val1Str += tail;
               val1Str += " = ";
+
               val2Str += "\n\t";
               val2Str += buffer;
               val2Str += "[";
@@ -1500,9 +1501,10 @@ class Pass {
 
               val1Str += sclStr;
               val2Str += sclStr;
-              passStr += val1Str;
-              passStr += ";";
 
+              val1Str += ";";
+
+              passStr += val1Str;
               if(rcFull)  {
                 passStr += val2Str;
                 passStr += ";";
@@ -1685,10 +1687,8 @@ class Pass {
     enableGrouping = grp;
   }
   void GeneratePass(const hcfftPlanHandle plHandle, bool fwd, std::string &passStr, bool fft_3StepTwiddle,
-                    bool inInterleaved, bool outInterleaved,
-                    bool inReal, bool outReal,
-                    size_t inStride, size_t outStride, double scale,
-                    size_t lWorkSize, size_t count,
+                    bool twiddleFront, bool inInterleaved, bool outInterleaved, bool inReal, bool outReal,
+                    size_t inStride, size_t outStride, double scale, size_t lWorkSize, size_t count,
                     bool gIn = false, bool gOut = false) const {
     const std::string bufferInRe  = (inReal || inInterleaved) ?   "bufIn"  : "bufInRe";
     const std::string bufferInIm  = (inReal || inInterleaved) ?   "bufIn"  : "bufInIm";
@@ -1698,6 +1698,7 @@ class Pass {
     const std::string bufferInIm2  = (inReal || inInterleaved) ?   "bufIn2"  : "bufInIm2";
     const std::string bufferOutRe2 = (outReal || outInterleaved) ? "bufOut2" : "bufOutRe2";
     const std::string bufferOutIm2 = (outReal || outInterleaved) ? "bufOut2" : "bufOutIm2";
+    std::string twType = RegBaseType<PR>(2);
 
     // for real transforms we use only B1 butteflies (regC = 1)
     if(r2c || c2r) {
@@ -1740,6 +1741,7 @@ class Pass {
     //  if(outInterleaved) assert(gOut);
 
     if(r2c || c2r) {
+			assert(halfLds);
       if(gIn) {
         if(inInterleaved) {
           passStr += regB2Type;
@@ -1933,14 +1935,14 @@ class Pass {
 
     if(length > 1) {
       passStr += ", ";
-      passStr += regB2Type;
+      passStr += twType;
       passStr += " *";
       passStr += TwTableName();
     }
 
     if(fft_3StepTwiddle) {
       passStr += ", ";
-      passStr += RegBaseType<PR>(2);
+      passStr += twType;
       passStr += " *";
       passStr += TwTableLargeName();
     }
@@ -1992,7 +1994,7 @@ class Pass {
       if(position == 0) {
         passStr += "\n\tif(rw)\n\t{";
 
-        SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
 
         passStr += "\n\t}\n";
 
@@ -2004,7 +2006,7 @@ class Pass {
           passStr += "\n";
         } else {
           passStr += "\n\tif(rw > 1)\n\t{";
-          SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe2, bufferInIm2, "inOffset", 1, numB1, 0, passStr);
+          SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe2, bufferInIm2, "inOffset", 1, numB1, 0, passStr);
 
           passStr += "\n\t}\n";
           passStr += "\telse\n\t{";
@@ -2090,7 +2092,7 @@ class Pass {
         }
 
         passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
-        SweepRegs(SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_REAL, 1.0f, false, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr, false, oddp);
         passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif((rw > 1) && !me)\n\t{\n\t";
         passStr += processBufIm;
@@ -2139,8 +2141,9 @@ class Pass {
 
             SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, true, bufferInRe2, bufferInRe2, "inOffset", passStr);
 
-            passStr += "\n\t}\n";
+            passStr += "\n\t}";
           }
+					passStr += "\n";
 
           SweepRegsRC(SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, true, false, processBufRe, processBufIm, processBufOffset, passStr);
 
@@ -2160,16 +2163,18 @@ class Pass {
         }
 
         passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
-        SweepRegs(SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_READ, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, processBufRe, processBufIm, processBufOffset, 1, numB1, 0, passStr);
         passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
       }
     } else {
       if( (!halfLds) || (halfLds && (position == 0)) ) {
+	bool isPrecallVector = false;
+
         passStr += "\n\tif(rw)\n\t{";
 
-        SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
-        SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 2, numB2, numB1, passStr);
-        SweepRegs(SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 4, numB4, 2 * numB2 + numB1, passStr);
+        SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr, isPrecallVector);
+        SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 2, numB2, numB1, passStr, isPrecallVector);
+        SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 4, numB4, 2 * numB2 + numB1, passStr, isPrecallVector);
 
         passStr += "\n\t}\n";
       }
@@ -2179,15 +2184,15 @@ class Pass {
     // 3-step twiddle multiplies done in the front
     bool tw3Done = false;
 
-    if(fft_3StepTwiddle && (position == 0)) {
+    if(fft_3StepTwiddle && twiddleFront) {
       tw3Done = true;
 
       if(linearRegs) {
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
       } else {
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 4, numB4, 2 * numB2 + numB1, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, true, bufferInRe, bufferInIm, "", 4, numB4, 2 * numB2 + numB1, passStr);
       }
     }
 
@@ -2195,9 +2200,9 @@ class Pass {
 
     // Twiddle multiply
     if( (position > 0) && (radix > 1) ) {
-      SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
-      SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
-      SweepRegs(SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 4, numB4, 2 * numB2 + numB1, passStr);
+      SweepRegs(plHandle, SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+      SweepRegs(plHandle, SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
+      SweepRegs(plHandle, SR_TWMUL, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 4, numB4, 2 * numB2 + numB1, passStr);
     }
 
     // Butterfly calls
@@ -2224,11 +2229,11 @@ class Pass {
       assert(nextPass == NULL);
 
       if(linearRegs) {
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
       } else {
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
-        SweepRegs(SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 4, numB4, 2 * numB2 + numB1, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 2, numB2, numB1, passStr);
+        SweepRegs(plHandle, SR_TWMUL_3STEP, fwd, false, 1, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "", 4, numB4, 2 * numB2 + numB1, passStr);
       }
     }
 
@@ -2239,7 +2244,7 @@ class Pass {
       if(nextPass == NULL) { // last pass
         if(r2c && !rcSimple) {
           if(!singlePass) {
-            SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
+            SweepRegs(plHandle, SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
 
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 
@@ -2295,7 +2300,7 @@ class Pass {
 
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 
-            SweepRegs(SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
+            SweepRegs(plHandle, SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
 
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
 
@@ -2384,46 +2389,46 @@ class Pass {
         } else if(c2r) {
           passStr += "\n\tif(rw)\n\t{";
 
-          SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+          SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
 
           passStr += "\n\t}\n";
 
           if(!rcSimple) {
             passStr += "\n\tif(rw > 1)\n\t{";
 
-            SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe2, bufferOutIm2, "outOffset", 1, numB1, 0, passStr);
+            SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe2, bufferOutIm2, "outOffset", 1, numB1, 0, passStr);
 
             passStr += "\n\t}\n";
           }
         } else {
           passStr += "\n\tif(rw)\n\t{";
 
-          SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+          SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
 
           passStr += "\n\t}\n";
         }
       } else {
         passStr += "\n\tif(rw)\n\t{";
 
-        SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
 
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif(rw)\n\t{";
 
-        nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
+        nextPass->SweepRegs(plHandle, SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
 
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif(rw)\n\t{";
 
-        SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+        SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
 
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif(rw)\n\t{";
 
-        nextPass->SweepRegs(SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
+        nextPass->SweepRegs(plHandle, SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
 
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
@@ -2431,9 +2436,9 @@ class Pass {
     } else {
       passStr += "\n\tif(rw)\n\t{";
 
-      SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
-      SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 2, numB2, numB1, passStr);
-      SweepRegs(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 4, numB4, 2 * numB2 + numB1, passStr);
+      SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
+      SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 2, numB2, numB1, passStr);
+      SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 4, numB4, 2 * numB2 + numB1, passStr);
 
       passStr += "\n\t}\n";
     }
@@ -2678,17 +2683,11 @@ class Kernel {
 
     rcSimple = params.fft_RCsimple;
 
-    // Set half lds only for power-of-2 problem sizes & interleaved data
-    halfLds = ( (params.fft_inputLayout == HCFFT_COMPLEX_INTERLEAVED) &&
-              (params.fft_outputLayout == HCFFT_COMPLEX_INTERLEAVED) ) ? true : false;
-    halfLds = halfLds ? ((length & (length-1)) ? false : true) : false;
-
-    // Set half lds for real transforms
-    halfLds = r2c2r ? true : halfLds;
-
-    linearRegs = halfLds;
+    halfLds = true;
+   linearRegs = true;
 
     realSpecial = params.fft_realSpecial;
+
     blockCompute = params.blockCompute;
     blockComputeType = params.blockComputeType;
 
@@ -2733,7 +2732,7 @@ class Kernel {
       numPasses = nPasses;
     } else {
       // Possible radices
-      size_t cRad[] = {10, 8, 7, 6, 5, 4, 3, 2, 1}; // Must be in descending order
+      size_t cRad[] = {13, 11, 10, 8, 7, 6, 5, 4, 3, 2, 1}; // Must be in descending order
       size_t cRadSize = (sizeof(cRad) / sizeof(cRad[0]));
 
       while(true) {
@@ -2877,7 +2876,7 @@ class Kernel {
     }
   };
 
-  void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize, size_t count) {
+  void GenerateKernel(void **twiddles, void **twiddleslarge, accelerator acc, const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count) {
     std::string twType = RegBaseType<PR>(2);
     std::string rType  = RegBaseType<PR>(1);
     std::string r2Type  = RegBaseType<PR>(2);
@@ -2904,45 +2903,89 @@ class Kernel {
     }
 
     std::string sfx = FloatSuffix<PR>() + "\n";
+
+    // Base type
+    str += "#define fptype "; str += RegBaseType<PR>(1); str += "\n\n";
+
     // Vector type
     str += "#define fvect2 ";
     str += RegBaseType<PR>(2);
     str += "\n\n";
 
     //constants
-    str += "#define C8Q  0.70710678118654752440084436210485";
-    str += sfx;
+    if (length%8 == 0)
+    {
+	str += "#define C8Q  0.70710678118654752440084436210485"; str += sfx; str += "\n";
+    }
+    if (length % 5 == 0)
+    {
+	str += "#define C5QA 0.30901699437494742410229341718282"; str += sfx; str += "\n";
+	str += "#define C5QB 0.95105651629515357211643933337938"; str += sfx; str += "\n";
+	str += "#define C5QC 0.50000000000000000000000000000000"; str += sfx; str += "\n";
+	str += "#define C5QD 0.58778525229247312916870595463907"; str += sfx; str += "\n";
+	str += "#define C5QE 0.80901699437494742410229341718282"; str += sfx; str += "\n";
+    }
+    if (length % 3 == 0)
+    {
+	str += "#define C3QA 0.50000000000000000000000000000000"; str += sfx; str += "\n";
+	str += "#define C3QB 0.86602540378443864676372317075294"; str += sfx; str += "\n";
+    }
+    if (length % 7 == 0)
+    {
+	str += "#define C7Q1 -1.16666666666666651863693004997913"; str += sfx; str += "\n";
+	str += "#define C7Q2  0.79015646852540022404554065360571"; str += sfx; str += "\n";
+	str += "#define C7Q3  0.05585426728964774240049351305970"; str += sfx; str += "\n";
+	str += "#define C7Q4  0.73430220123575240531721419756650"; str += sfx; str += "\n";
+	str += "#define C7Q5  0.44095855184409837868031445395900"; str += sfx; str += "\n";
+	str += "#define C7Q6  0.34087293062393136944265847887436"; str += sfx; str += "\n";
+	str += "#define C7Q7 -0.53396936033772524066165487965918"; str += sfx; str += "\n";
+	str += "#define C7Q8  0.87484229096165666561546458979137"; str += sfx; str += "\n";
+    }
+
+    if (length % 11 == 0)
+    {
+	str += "#define b11_0 0.9898214418809327"; str += sfx; str += "\n";
+	str += "#define b11_1 0.9594929736144973"; str += sfx; str += "\n";
+	str += "#define b11_2 0.9189859472289947"; str += sfx; str += "\n";
+	str += "#define b11_3 0.8767688310025893"; str += sfx; str += "\n";
+	str += "#define b11_4 0.8308300260037728"; str += sfx; str += "\n";
+	str += "#define b11_5 0.7784344533346518"; str += sfx; str += "\n";
+	str += "#define b11_6 0.7153703234534297"; str += sfx; str += "\n";
+	str += "#define b11_7 0.6343562706824244"; str += sfx; str += "\n";
+	str += "#define b11_8 0.3425847256816375"; str += sfx; str += "\n";
+	str += "#define b11_9 0.5211085581132027"; str += sfx; str += "\n";
+    }
+    if (length % 13 == 0)
+    {
+	str += "#define b13_0  0.9682872443619840"; str += sfx; str += "\n";
+	str += "#define b13_1  0.9578059925946651"; str += sfx; str += "\n";
+	str += "#define b13_2  0.8755023024091479"; str += sfx; str += "\n";
+	str += "#define b13_3  0.8660254037844386"; str += sfx; str += "\n";
+	str += "#define b13_4  0.8595425350987748"; str += sfx; str += "\n";
+	str += "#define b13_5  0.8534800018598239"; str += sfx; str += "\n";
+	str += "#define b13_6  0.7693388175729806"; str += sfx; str += "\n";
+	str += "#define b13_7  0.6865583707817543"; str += sfx; str += "\n";
+	str += "#define b13_8  0.6122646503767565"; str += sfx; str += "\n";
+	str += "#define b13_9  0.6004772719326652"; str += sfx; str += "\n";
+	str += "#define b13_10 0.5817047785105157"; str += sfx; str += "\n";
+	str += "#define b13_11 0.5751407294740031"; str += sfx; str += "\n";
+	str += "#define b13_12 0.5220263851612750"; str += sfx; str += "\n";
+	str += "#define b13_13 0.5200285718888646"; str += sfx; str += "\n";
+	str += "#define b13_14 0.5165207806234897"; str += sfx; str += "\n";
+	str += "#define b13_15 0.5149187780863157"; str += sfx; str += "\n";
+	str += "#define b13_16 0.5035370328637666"; str += sfx; str += "\n";
+	str += "#define b13_17 0.5000000000000000"; str += sfx; str += "\n";
+	str += "#define b13_18 0.3027756377319946"; str += sfx; str += "\n";
+	str += "#define b13_19 0.3014792600477098"; str += sfx; str += "\n";
+	str += "#define b13_20 0.3004626062886657"; str += sfx; str += "\n";
+	str += "#define b13_21 0.2517685164318833"; str += sfx; str += "\n";
+	str += "#define b13_22 0.2261094450357824"; str += sfx; str += "\n";
+	str += "#define b13_23 0.0833333333333333"; str += sfx; str += "\n";
+	str += "#define b13_24 0.0386329546443481"; str += sfx; str += "\n";
+    }
+
     str += "\n";
-    str += "#define C5QA 0.30901699437494742410229341718282";
-    str += sfx;
-    str += "\n";
-    str += "#define C5QB 0.95105651629515357211643933337938";
-    str += sfx;
-    str += "\n";
-    str += "#define C5QC 0.50000000000000000000000000000000";
-    str += sfx;
-    str += "\n";
-    str += "#define C5QD 0.58778525229247312916870595463907";
-    str += sfx;
-    str += "\n";
-    str += "#define C5QE 0.80901699437494742410229341718282";
-    str += sfx;
-    str += "\n";
-    str += "#define C3QA 0.50000000000000000000000000000000";
-    str += sfx;
-    str += "\n";
-    str += "#define C3QB 0.86602540378443864676372317075294";
-    str += sfx;
-    str += "\n";
-    str += "#define C7Q1 -1.16666666666666651863693004997913" + sfx;
-    str += "#define C7Q2  0.79015646852540022404554065360571" + sfx;
-    str += "#define C7Q3  0.05585426728964774240049351305970" + sfx;
-    str += "#define C7Q4  0.73430220123575240531721419756650" + sfx;
-    str += "#define C7Q5  0.44095855184409837868031445395900" + sfx;
-    str += "#define C7Q6  0.34087293062393136944265847887436" + sfx;
-    str += "#define C7Q7 -0.53396936033772524066165487965918" + sfx;
-    str += "#define C7Q8  0.87484229096165666561546458979137" + sfx;
-    str += "\n";
+
     bool cReg = linearRegs ? true : false;
     // Generate butterflies for all unique radices
     std::list<size_t> uradices;
@@ -2988,11 +3031,24 @@ class Kernel {
       }
     }
 
-    TwiddleTableLarge twLarge(large1D);
+    if(PR == P_SINGLE)
+    {
+       TwiddleTableLarge<float_2, PR> twLarge(large1D);
+       // twiddle factors for 1d-large 3-step algorithm
+       if(params.fft_3StepTwiddle) {
+         twLarge.GenerateTwiddleTable(str, plHandle);
+         twLarge.TwiddleLargeAV(twiddleslarge, acc);
+      }
+    }
+    else
+    {
+       TwiddleTableLarge<double_2, PR> twLarge(large1D);
 
-    // twiddle factors for 1d-large 3-step algorithm
-    if(params.fft_3StepTwiddle) {
-      twLarge.GenerateTwiddleTable<PR>(str);
+       // twiddle factors for 1d-large 3-step algorithm
+       if(params.fft_3StepTwiddle) {
+         twLarge.GenerateTwiddleTable(str, plHandle);
+         twLarge.TwiddleLargeAV(twiddleslarge, acc);
+      }
     }
 
     // Generate passes
@@ -3054,7 +3110,7 @@ class Kernel {
           }
         }
 
-        p->GeneratePass(plHandle, fwd, str, tw3Step, inIlvd, outIlvd, inRl, outRl, ins, outs, s, lWorkSize[0], count, gIn, gOut);
+        p->GeneratePass(plHandle, fwd, str, tw3Step, params.fft_twiddleFront, inIlvd, outIlvd, inRl, outRl, ins, outs, s, lWorkSize[0], count, gIn, gOut);
       }
 
       // if real transform we do only 1 direction
@@ -3200,7 +3256,7 @@ class Kernel {
             str += "]);\n";
             arg++;
             str += rType;
-            str += " *gbOutImP = static_cast<";
+            str += " *gbOutIm = static_cast<";
             str += rType;
             str += " *> (vectArr[";
             str += SztToStr(arg);
@@ -3261,39 +3317,49 @@ class Kernel {
       }
 
       // Twiddle table
-      if(length > 1) {
-        TwiddleTable twTable(length);
+      if(length > 1 ) {
         str += "\n\n";
-        str += twType;
-        str += " twiddlev";
-        str += "[";
-        str += SztToStr(length - 1);
-        str += "] = {\n";
-        twTable.GenerateTwiddleTable<PR>(radices, str);
-        str += "};\n\n";
-        // Construct array view from twiddle array
-        str += twType;
+        str += r2Type;
         str += " *";
         str += TwTableName();
-        str += " = hc::am_alloc(sizeof(";
-        str += twType;
-        str += ") * ";
-        str += SztToStr(length - 1);
-        str += ", acc, 0);";
-        str += "hc::am_copy(";
-        str += TwTableName();
-        str += ", twiddlev, sizeof(";
-        str += twType;
-        str += ") * ";
-        str += SztToStr(length - 1);
-        str += ");";
+        str += " = static_cast< ";
+        str += r2Type;
+        str += " *> (vectArr[";
+        str += SztToStr(arg);
+        str += "]);\n";
+        arg++;
+        if(PR == P_SINGLE)
+        {
+          if ( d == 0 )
+          {
+            TwiddleTable<hc::short_vector::float_2> twTable(length);
+            twTable.GenerateTwiddleTable(twiddles, acc, radices);
+          }
+        }
+        else
+        {
+          if ( d == 0 )
+          {
+            TwiddleTable<hc::short_vector::double_2> twTable(length);
+            twTable.GenerateTwiddleTable(twiddles, acc, radices);
+          }
+        }
       }
 
       str += "\n";
 
       // twiddle factors for 1d-large 3-step algorithm
       if(params.fft_3StepTwiddle) {
-        twLarge.TwiddleLargeAV<PR>(str);
+        str += "\n\n";
+        str += r2Type;
+        str += " *";
+        str += TwTableLargeName();
+        str += " = static_cast< ";
+        str += r2Type;
+        str += " *> (vectArr[";
+        str += SztToStr(arg);
+        str += "]);\n";
+        arg++;
       }
 
       str += "\thc::extent<2> grdExt( ";
@@ -3419,8 +3485,8 @@ class Kernel {
 	      str += rType; str += " *lwbOutRe;\n\t";
 	      str += rType; str += " *lwbOutIm;\n";
 	    }
-	  }
 	  str += "\n";
+	  }
    }
 
       // Setup registers if needed
@@ -3536,22 +3602,23 @@ class Kernel {
 					  str += "lwbInRe = gbInRe + iOffset;\n\t";
 					  str += "lwbInIm = gbInIm + iOffset;\n\t";
 		      }
-        }
 
-	      if(outInterleaved || outReal)
-	      {
-	        if(!rcSimple) {	str += "lwbOut2 = gbOut + oOffset2;\n\t"; }
-	        str += "lwbOut = gbOut + oOffset;\n";
-	      }
-	      else
-	      {
-		      if(!rcSimple) {	str += "lwbOutRe2 = gbOutRe + oOffset2;\n\t"; }
-		      if(!rcSimple) {	str += "lwbOutIm2 = gbOutIm + oOffset2;\n\t"; }
-						      str += "lwbOutRe = gbOutRe + oOffset;\n\t";
-							      str += "lwbOutIm = gbOutIm + oOffset;\n";
-	      }
-        str += "\n";
-	    } else {
+          if(outInterleaved || outReal)
+	        {
+	          if(!rcSimple) {	str += "lwbOut2 = gbOut + oOffset2;\n\t"; }
+	          str += "lwbOut = gbOut + oOffset;\n";
+	        }
+	        else
+	        {
+		        if(!rcSimple) {	str += "lwbOutRe2 = gbOutRe + oOffset2;\n\t"; }
+		        if(!rcSimple) {	str += "lwbOutIm2 = gbOutIm + oOffset2;\n\t"; }
+						str += "lwbOutRe = gbOutRe + oOffset;\n\t";
+						str += "lwbOutIm = gbOutIm + oOffset;\n";
+	        }
+          str += "\n";
+	    }
+      }
+      else {
         if(params.fft_placeness == HCFFT_INPLACE) {
           if(blockCompute) {
             str += OffsetCalcBlock("ioOffset", true);
@@ -3583,41 +3650,41 @@ class Kernel {
 
           str += "\t";
 
-					if(inInterleaved)
-					{
-						str += "lwbIn = gbIn + iOffset;\n\t";
-					}
-					else
-					{
-						str += "lwbInRe = gbInRe + iOffset;\n\t";
-						str += "lwbInIm = gbInIm + iOffset;\n\t";
-					}
+	if(inInterleaved)
+	{
+		str += "lwbIn = gbIn + iOffset;\n\t";
+	}
+	else
+	{
+		str += "lwbInRe = gbInRe + iOffset;\n\t";
+		str += "lwbInIm = gbInIm + iOffset;\n\t";
+	}
 
-				  if(outInterleaved)
-				  {
-						  str += "lwbOut = gbOut + oOffset;\n";
-				  }
-				  else
-				  {
-					  str += "lwbOutRe = gbOutRe + oOffset;\n\t";
-					  str += "lwbOutIm = gbOutIm + oOffset;\n";
-				  }
-				  str += "\n";
+	  if(outInterleaved)
+	  {
+			  str += "lwbOut = gbOut + oOffset;\n";
+	  }
+	  else
+	  {
+		  str += "lwbOutRe = gbOutRe + oOffset;\n\t";
+		  str += "lwbOutIm = gbOutIm + oOffset;\n";
+	  }
+	  str += "\n";
         }
       }
 
-			std::string inOffset;
-			std::string outOffset;
-			if (params.fft_placeness == HCFFT_INPLACE && !r2c2r)
-			{
-				inOffset += "ioOffset";
-				outOffset += "ioOffset";
-			}
-			else
-			{
-				inOffset += "iOffset";
-				outOffset += "oOffset";
-			}
+	std::string inOffset;
+	std::string outOffset;
+	if (params.fft_placeness == HCFFT_INPLACE && !r2c2r)
+	{
+		inOffset += "ioOffset";
+		outOffset += "ioOffset";
+	}
+	else
+	{
+		inOffset += "iOffset";
+		outOffset += "oOffset";
+	}
 
       // Read data into LDS for blocked access
       if(blockCompute) {
@@ -3625,6 +3692,9 @@ class Kernel {
         str += "\n\tfor(uint t=0; t<";
         str += SztToStr(loopCount);
         str += "; t++)\n\t{\n";
+
+				//get offset 
+				std::string bufOffset;
 
         for(size_t c = 0; c < 2; c++) {
           std::string comp = "";
@@ -3638,55 +3708,36 @@ class Kernel {
             readBuf = (params.fft_placeness == HCFFT_INPLACE) ? (c ? "lwbIm" : "lwbImRe") : (c ? "lwbIm" : "lwbImRe");
           }
 
-          if(blockComputeType == BCT_C2R) {
-            str += "\t\tR0";
-            str += comp;
-            str += " = ";
-            str += readBuf;
-            str += "[(me%";
-            str += SztToStr(blockWidth);
-            str += ") + ";
-            str += "(me/";
-            str += SztToStr(blockWidth);
-            str += ")*";
-            str += SztToStr(params.fft_inStride[0]);
-            str += " + t*";
-            str += SztToStr(params.fft_inStride[0] * blockWGS / blockWidth);
-            str += "];\n";
-          } else {
-            str += "\t\tR0";
-            str += comp;
-            str += " = ";
-            str += readBuf;
-            str += "[me + t*";
-            str += SztToStr(blockWGS);
-            str += "];\n";
-          }
+	if( (blockComputeType == BCT_C2C) || (blockComputeType == BCT_C2R) )
+	{
+		bufOffset.clear();
+		bufOffset += "(me%"; bufOffset += SztToStr(blockWidth); bufOffset += ") + ";
+		bufOffset += "(me/"; bufOffset+= SztToStr(blockWidth); bufOffset+= ")*"; bufOffset += SztToStr(params.fft_inStride[0]);
+		bufOffset += " + t*"; bufOffset += SztToStr(params.fft_inStride[0]*blockWGS/blockWidth);
+
+	str += "\t\tR0"; str+= comp; str+= " = "; 
+		str += readBuf; str += "[";	str += bufOffset; str += "];\n";
+	}
+	else
+	{
+		str += "\t\tR0"; str+= comp; str+= " = "; str += readBuf; str += "[me + t*"; str += SztToStr(blockWGS); str += "];\n";
+	}
 
           if(inInterleaved) {
             break;
           }
         }
 
-        if(blockComputeType == BCT_C2R) {
-          str += "\t\tlds[t*";
-          str += SztToStr(blockWGS / blockWidth);
-          str += " + ";
-          str += "(me%";
-          str += SztToStr(blockWidth);
-          str += ")*";
-          str += SztToStr(length);
-          str += " + ";
-          str += "(me/";
-          str += SztToStr(blockWidth);
-          str += ")] = R0;";
-          str += "\n";
-        } else {
-          str += "\t\tlds[t*";
-          str += SztToStr(blockWGS);
-          str += " + me] = R0;";
-          str += "\n";
-        }
+	if( (blockComputeType == BCT_C2C) || (blockComputeType == BCT_C2R) )
+	{
+		str += "\t\tlds[t*"; str += SztToStr(blockWGS/blockWidth); str += " + ";
+		str += "(me%"; str+= SztToStr(blockWidth); str+= ")*"; str += SztToStr(length); str += " + ";
+		str += "(me/"; str+= SztToStr(blockWidth); str+= ")] = R0;"; str +="\n";
+	}
+	else
+	{
+		str += "\t\tlds[t*"; str += SztToStr(blockWGS); str += " + me] = R0;"; str +="\n";
+	}
 
         str += "\t}\n\n";
         str += "\t tidx.barrier.wait_with_tile_static_memory_fence();\n\n";
@@ -3699,7 +3750,7 @@ class Kernel {
       if(r2c2r && !rcSimple) {
         rw = "rw, b, ";
       } else {
-        rw = (numTrans > 1) ? "rw, b, " : "1, b, ";
+        rw = ((numTrans > 1) || realSpecial) ? "rw, b, " : "1, b, ";
       }
 
       if(numTrans > 1)  {
@@ -3709,6 +3760,8 @@ class Kernel {
       } else        {
         me += "me, ";
       }
+
+	if(blockCompute) { me = "me%"; me += SztToStr(workGroupSizePerTrans); me += ", "; }
 
       // Buffer strings
       std::string inBuf, outBuf;
@@ -3980,7 +4033,7 @@ class Kernel {
         str += SztToStr(loopCount);
         str += "; t++)\n\t{\n";
 
-        if(blockComputeType == BCT_R2C) {
+					if( (blockComputeType == BCT_C2C) || (blockComputeType == BCT_R2C) ) {
           str += "\t\tR0 = lds[t*";
           str += SztToStr(blockWGS / blockWidth);
           str += " + ";
@@ -4002,17 +4055,17 @@ class Kernel {
 
         for(size_t c = 0; c < 2; c++) {
           std::string comp = "";
-          std::string writeBuf = (params.fft_placeness == HCFFT_INPLACE) ? "gb" : "gbOut";
+          std::string writeBuf = (params.fft_placeness == HCFFT_INPLACE) ? "lwb" : "lwbOut";
 
           if(!outInterleaved) {
             comp = c ? ".y" : ".x";
           }
 
           if(!outInterleaved) {
-            writeBuf = (params.fft_placeness == HCFFT_INPLACE) ? (c ? "gbIm" : "gbRe") : (c ? "gbOutIm" : "gbOutRe");
+            writeBuf = (params.fft_placeness == HCFFT_INPLACE) ? (c ? "lwbIm" : "lwbRe") : (c ? "lwbOutIm" : "lwbOutRe");
           }
 
-          if(blockComputeType == BCT_R2C) {
+					if( (blockComputeType == BCT_C2C) || (blockComputeType == BCT_R2C) ) {
             str += "\t\t";
             str += writeBuf;
             str += "[(me%";
@@ -4046,18 +4099,6 @@ class Kernel {
       }
 
       str += " }).wait();\n";
-
-      if(length > 1) {
-        str += "hc::am_free(";
-        str += TwTableName();
-        str += ");";
-      }
-
-      if(params.fft_3StepTwiddle) {
-         str += "hc::am_free(";
-        str += TwTableLargeName();
-        str += ");";
-      }
 
       str += "}}\n\n";
 
@@ -4173,7 +4214,7 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Stockham> (FFTKernelGenKeyParams & param
     wgs = t_wgs;
     nt = t_nt;
   } else {
-    DetermineSizes(this->envelope.limit_WorkGroupSize, params.fft_N[0], wgs, nt);
+    DetermineSizes(this->envelope.limit_WorkGroupSize, params.fft_N[0], wgs, nt, pr);
   }
 
   assert((nt * params.fft_N[0]) >= wgs);
@@ -4236,31 +4277,128 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS, 
 }
 
 template<>
-hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const {
+hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const {
   FFTKernelGenKeyParams params;
   this->GetKernelGenKeyPvt<Stockham> (params);
-  std::vector< size_t > gWorkSize;
-  std::vector< size_t > lWorkSize;
-  this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);
-  std::string programCode;
-  programCode = hcHeader();
-  Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
+  if(!exist)
+  {
+    vector< size_t > gWorkSize;
+    vector< size_t > lWorkSize;
+    this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);
+    std::string programCode;
+    programCode = hcHeader();
+    Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
 
-  switch(pr) {
-    case P_SINGLE: {
-        Kernel<P_SINGLE> kernel(params);
-        kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
-      }
-      break;
+    switch(pr) {
+      case P_SINGLE: {
+          Kernel<P_SINGLE> kernel(params);
+          kernel.GenerateKernel((void**)&twiddles, (void**)&twiddleslarge, acc, plHandle, programCode, gWorkSize, lWorkSize, count);
+        }
+        break;
 
-    case P_DOUBLE: {
-        Kernel<P_DOUBLE> kernel(params);
-        kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
+      case P_DOUBLE: {
+          Kernel<P_DOUBLE> kernel(params);
+          kernel.GenerateKernel((void**)&twiddles, (void**)&twiddleslarge, acc, plHandle, programCode, gWorkSize, lWorkSize, count);
+        }
+        break;
+     }
+
+    fftRepo.setProgramCode( Stockham, plHandle, params, programCode);
+    fftRepo.setProgramEntryPoints( Stockham, plHandle, params, "fft_fwd", "fft_back");
+  }
+  else
+  {
+    size_t large1D = 0;
+    size_t length = params.fft_N[0];
+    size_t R = length;
+    const size_t* pRadices = NULL;
+    size_t nPasses;
+
+    if(params.fft_realSpecial) {
+      large1D = params.fft_N[0] * params.fft_realSpecial_Nr;
+    } else {
+      large1D = params.fft_N[0] * params.fft_N[1];
+    }
+
+    std::vector<size_t> radices;
+    KernelCoreSpecs<P_SINGLE> kcs;
+    kcs.GetRadices(length, nPasses, pRadices);
+
+    if((params.fft_MaxWorkGroupSize >= 256) && (pRadices != NULL))
+    {
+      for(size_t i = 0; i < nPasses; i++) {
+        size_t rad = pRadices[i];
+        R /= rad;
+        radices.push_back(rad);
       }
-      break;
+
+      assert(R == 1); // this has to be true for correct radix composition of the length
+    }
+    else
+    {
+      size_t numTrans = (params.fft_SIMD * params.fft_R) / length;
+      size_t cnPerWI = (numTrans * length) / params.fft_SIMD;
+
+      // Possible radices
+      size_t cRad[] = {13, 11, 10, 8, 7, 6, 5, 4, 3, 2, 1}; // Must be in descending order
+      size_t cRadSize = (sizeof(cRad) / sizeof(cRad[0]));
+
+      while(true) {
+        size_t rad;
+        assert(cRadSize >= 1);
+
+        for(size_t r = 0; r < cRadSize; r++) {
+          rad = cRad[r];
+
+          if((rad > cnPerWI) || (cnPerWI % rad)) {
+            continue;
+          }
+
+          if(!(R % rad)) {
+            break;
+          }
+        }
+
+        assert((cnPerWI % rad) == 0);
+        R /= rad;
+        radices.push_back(rad);
+        assert(R >= 1);
+
+        if(R == 1) {
+          break;
+        }
+      }
+    }
+
+    if(params.fft_precision == HCFFT_SINGLE)
+    {
+      // Twiddle table
+      if(length > 1) {
+        TwiddleTable<hc::short_vector::float_2> twTable(length);
+        twTable.GenerateTwiddleTable((void**)&twiddles, acc, radices);
+      }
+
+      // twiddle factors for 1d-large 3-step algorithm
+      if(params.fft_3StepTwiddle && !twiddleslarge) {
+        TwiddleTableLarge<hc::short_vector::float_2, P_SINGLE> twLarge(large1D);
+        twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+      }
+    }
+    else
+    {
+      // Twiddle table
+      if(length > 1) {
+        TwiddleTable<hc::short_vector::double_2> twTable(length);
+        twTable.GenerateTwiddleTable((void**)&twiddles, acc, radices);
+      }
+
+      // twiddle factors for 1d-large 3-step algorithm
+      if(params.fft_3StepTwiddle && !twiddleslarge) {
+        TwiddleTableLarge<hc::short_vector::double_2, P_DOUBLE> twLarge(large1D);
+        twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+      }
+    }
   }
 
-  fftRepo.setProgramCode( Stockham, plHandle, params, programCode);
-  fftRepo.setProgramEntryPoints( Stockham, plHandle, params, "fft_fwd", "fft_back");
   return HCFFT_SUCCEEDS;
 }

@@ -45,36 +45,6 @@ hcfftResult hcfftCreate(hcfftHandle *&plan) {
   }
 }
 
-/* Function checkLength()
-Check if given size is a multiple of 2,3,5 or 7.
-If not, returns the next integer that satisfies it.
-*/
-int checkLength(int x)
-{
-  size_t baseRadix[] = {7, 5, 3, 2}; // list only supported primes
-  size_t baseRadixSize = sizeof(baseRadix) / sizeof(baseRadix[0]);
-
-  do
-  {
-  int len = x;
-  for(size_t r = 0; r < baseRadixSize; r++) {
-    size_t rad = baseRadix[r];
-
-    while(!(len % rad)) {
-      len /= rad;
-    }
-  }
-
-  if( len != 1)
-    ++x;
-  else
-    break;
-
-  }while(1);
-
-  return x;
-}
-
 /******************************************************************************************************************
  * <i>  Function hcfftPlan1d()
    Description:
@@ -164,8 +134,6 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
     return HCFFT_SETUP_FAILED;
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
-
-  nx = checkLength(length[0]);
 
   switch (libType) {
     case HCFFT_R2CD2Z:
@@ -332,9 +300,6 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
     return HCFFT_SETUP_FAILED;
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
-
-  nx = checkLength(length[0]);
-  ny = checkLength(length[1]);
 
   switch (libType) {
     case HCFFT_R2CD2Z:
@@ -511,10 +476,6 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
 
-  nx = checkLength(length[0]);
-  ny = checkLength(length[1]);
-  nz = checkLength(length[2]);
-
   switch (libType) {
     case HCFFT_R2CD2Z:
       ipStrides[0] = 1;
@@ -667,7 +628,16 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata
   hcfftDirection dir = HCFFT_FORWARD;
   hcfftReal *odataR = (hcfftReal*)odata;
 
+  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  if(idata == odataR)
+    loc = HCFFT_INPLACE;
+
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetResultLocation(plan, loc);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
@@ -697,21 +667,27 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal *idata, hcfftDoubleCo
   hcfftDirection dir = HCFFT_FORWARD;
   hcfftDoubleReal *odataR = (hcfftDoubleReal*)odata;
 
+  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  if(idata == odataR)
+    loc = HCFFT_INPLACE;
+
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
   if(status != HCFFT_SUCCEEDS) {
-    std::cout << " set layout failed "<<std::endl;
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetResultLocation(plan, loc);
+  if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftBakePlan(plan);
   if(status != HCFFT_SUCCEEDS) {
-    std::cout << " bake plan failed "<<std::endl;
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftEnqueueTransform(plan, dir, idata, odataR, NULL);
   if (status != HCFFT_SUCCEEDS) {
-    std::cout << " enqueuetransform failed "<<std::endl;
     return HCFFT_EXEC_FAILED;
   }
 
@@ -759,7 +735,16 @@ hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata
   hcfftDirection dir = HCFFT_BACKWARD;
   hcfftReal *idataR = (hcfftReal*)idata;
 
+  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  if(idataR == odata)
+    loc = HCFFT_INPLACE;
+
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetResultLocation(plan, loc);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
@@ -789,7 +774,16 @@ hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubl
   hcfftDirection dir = HCFFT_BACKWARD;
   hcfftDoubleReal *idataR = (hcfftDoubleReal*)idata;
 
+  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  if(idataR == odata)
+    loc = HCFFT_INPLACE;
+
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetResultLocation(plan, loc);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
@@ -846,7 +840,16 @@ hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex *idata, hcfftComplex *od
   hcfftReal *idataR = (hcfftReal*)idata;
   hcfftReal *odataR = (hcfftReal*)odata;
 
+  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  if(idataR == odataR)
+    loc = HCFFT_INPLACE;
+
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetResultLocation(plan, loc);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
@@ -877,7 +880,16 @@ hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubl
   hcfftDoubleReal *idataR = (hcfftDoubleReal*)idata;
   hcfftDoubleReal *odataR = (hcfftDoubleReal*)odata;
 
+  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  if(idataR == odataR)
+    loc = HCFFT_INPLACE;
+
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
+  if(status != HCFFT_SUCCEEDS) {
+    return HCFFT_SETUP_FAILED;
+  }
+
+  status = planObject.hcfftSetResultLocation(plan, loc);
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }

@@ -1,78 +1,92 @@
-#include <math.h>
-#include <iomanip>
-
-#include "stockham.h"
+#include "generator.transpose.h"
 
 // A structure that represents a bounding box or tile, with convenient names for the row and column addresses
 // local work sizes
-struct tile {
-  union {
-    size_t x;
-    size_t col;
-  };
+struct tile
+{
+    union
+    {
+        size_t x;
+        size_t col;
+    };
 
-  union {
-    size_t y;
-    size_t row;
-  };
+    union
+    {
+        size_t y;
+        size_t row;
+    };
 };
 
-inline std::stringstream& hcKernWrite( std::stringstream& rhs, const size_t tabIndex ) {
-  rhs << std::setw( tabIndex ) << "";
-  return rhs;
-}
+static void OffsetCalc(std::stringstream& transKernel, const FFTKernelGenKeyParams& params, bool input )
+{
+	const size_t *stride = input ? params.fft_inStride : params.fft_outStride;
+	std::string offset = input ? "iOffset" : "oOffset";
 
-static void OffsetCalc(std::stringstream& transKernel, const FFTKernelGenKeyParams& params, bool input ) {
-  const size_t* stride = input ? params.fft_inStride : params.fft_outStride;
-  std::string offset = input ? "iOffset" : "oOffset";
-  hcKernWrite( transKernel, 3 ) << "size_t " << offset << " = 0;" << std::endl;
-  hcKernWrite( transKernel, 3 ) << "currDimIndex = groupIndex.y;" << std::endl;
 
-  for(size_t i = params.fft_DataDim - 2; i > 0 ; i--) {
-    hcKernWrite( transKernel, 3 ) << offset << " += (currDimIndex/numGroupsY_" << i << ")*" << stride[i + 1] << ";" << std::endl;
-    hcKernWrite( transKernel, 3 ) << "currDimIndex = currDimIndex % numGroupsY_" << i << ";" << std::endl;
-  }
+	hcKernWrite( transKernel, 3 ) << "size_t " << offset << " = 0;" << std::endl;
+	hcKernWrite( transKernel, 3 ) << "currDimIndex = groupIndex.y;" << std::endl;
 
-  hcKernWrite( transKernel, 3 ) << "rowSizeinUnits = " << stride[1] << ";" << std::endl;
 
-  if(params.transOutHorizontal) {
-    if(input) {
-      hcKernWrite( transKernel, 3 ) << offset << " += rowSizeinUnits * wgTileExtent.y * wgUnroll * groupIndex.x;" << std::endl;
-      hcKernWrite( transKernel, 3 ) << offset << " += currDimIndex * wgTileExtent.x;" << std::endl;
-    } else {
-      hcKernWrite( transKernel, 3 ) << offset << " += rowSizeinUnits * wgTileExtent.x * currDimIndex;" << std::endl;
-      hcKernWrite( transKernel, 3 ) << offset << " += groupIndex.x * wgTileExtent.y * wgUnroll;" << std::endl;
-    }
-  } else {
-    if(input) {
-      hcKernWrite( transKernel, 3 ) << offset << " += rowSizeinUnits * wgTileExtent.y * wgUnroll * currDimIndex;" << std::endl;
-      hcKernWrite( transKernel, 3 ) << offset << " += groupIndex.x * wgTileExtent.x;" << std::endl;
-    } else {
-      hcKernWrite( transKernel, 3 ) << offset << " += rowSizeinUnits * wgTileExtent.x * groupIndex.x;" << std::endl;
-      hcKernWrite( transKernel, 3 ) << offset << " += currDimIndex * wgTileExtent.y * wgUnroll;" << std::endl;
-    }
-  }
+	for(size_t i = params.fft_DataDim - 2; i > 0 ; i--)
+	{
+		hcKernWrite( transKernel, 3 ) << offset << " += (currDimIndex/numGroupsY_" << i << ")*" << stride[i+1] << ";" << std::endl;
+		hcKernWrite( transKernel, 3 ) << "currDimIndex = currDimIndex % numGroupsY_" << i << ";" << std::endl;
+	}
 
-  hcKernWrite( transKernel, 3 ) << std::endl;
+	hcKernWrite( transKernel, 3 ) << "rowSizeinUnits = " << stride[1] << ";" << std::endl;
+
+	if(params.transOutHorizontal)
+	{
+		if(input)
+		{	
+			hcKernWrite( transKernel, 3 ) << offset << " += rowSizeinUnits * wgTileExtent.y * wgUnroll * groupIndex.x;" << std::endl;
+			hcKernWrite( transKernel, 3 ) << offset << " += currDimIndex * wgTileExtent.x;" << std::endl;  
+		}
+		else
+		{
+			hcKernWrite( transKernel, 3 ) << offset << " += rowSizeinUnits * wgTileExtent.x * currDimIndex;" << std::endl;
+			hcKernWrite( transKernel, 3 ) << offset << " += groupIndex.x * wgTileExtent.y * wgUnroll;" << std::endl;
+		}
+	}
+	else
+	{
+		if(input)
+		{	
+			hcKernWrite( transKernel, 3 ) << offset << " += rowSizeinUnits * wgTileExtent.y * wgUnroll * currDimIndex;" << std::endl;
+			hcKernWrite( transKernel, 3 ) << offset << " += groupIndex.x * wgTileExtent.x;" << std::endl;
+		}
+		else
+		{
+			hcKernWrite( transKernel, 3 ) << offset << " += rowSizeinUnits * wgTileExtent.x * groupIndex.x;" << std::endl;
+			hcKernWrite( transKernel, 3 ) << offset << " += currDimIndex * wgTileExtent.y * wgUnroll;" << std::endl;  
+		}
+	}
+
+	hcKernWrite( transKernel, 3 ) << std::endl;
 }
 
 // Small snippet of code that multiplies the twiddle factors into the butterfiles.  It is only emitted if the plan tells
 // the generator that it wants the twiddle factors generated inside of the transpose
-static hcfftStatus genTwiddleMath( const FFTKernelGenKeyParams& params, std::stringstream& transKernel, const std::string& dtComplex, bool fwd ) {
-  hcKernWrite( transKernel, 9 ) << dtComplex << " W = TW3step( (groupIndex.x * wgTileExtent.x + xInd) * (currDimIndex * wgTileExtent.y * wgUnroll + yInd) );" << std::endl;
-  hcKernWrite( transKernel, 9 ) << dtComplex << " T;" << std::endl;
+static hcfftStatus genTwiddleMath(const hcfftPlanHandle plHandle, const FFTKernelGenKeyParams& params, std::stringstream& transKernel, const std::string& dtComplex, bool fwd )
+{
+    hcKernWrite( transKernel, 9 ) << dtComplex << " W = TW3step" << plHandle << "( (groupIndex.x * wgTileExtent.x + xInd) * (currDimIndex * wgTileExtent.y * wgUnroll + yInd) " <<  ", " << TwTableLargeName() << ");" << std::endl;
+    hcKernWrite( transKernel, 9 ) << dtComplex << " T;" << std::endl;
 
-  if(fwd) {
-    hcKernWrite( transKernel, 9 ) << "T.x = ( W.x * tmp.x ) - ( W.y * tmp.y );" << std::endl;
-    hcKernWrite( transKernel, 9 ) << "T.y = ( W.y * tmp.x ) + ( W.x * tmp.y );" << std::endl;
-  } else {
-    hcKernWrite( transKernel, 9 ) << "T.x =  ( W.x * tmp.x ) + ( W.y * tmp.y );" << std::endl;
-    hcKernWrite( transKernel, 9 ) << "T.y = -( W.y * tmp.x ) + ( W.x * tmp.y );" << std::endl;
-  }
+	if(fwd)
+	{
+		hcKernWrite( transKernel, 9 ) << "T.x = ( W.x * tmp.x ) - ( W.y * tmp.y );" << std::endl;
+		hcKernWrite( transKernel, 9 ) << "T.y = ( W.y * tmp.x ) + ( W.x * tmp.y );" << std::endl;
+	}
+	else
+	{
+		hcKernWrite( transKernel, 9 ) << "T.x =  ( W.x * tmp.x ) + ( W.y * tmp.y );" << std::endl;
+		hcKernWrite( transKernel, 9 ) << "T.y = -( W.y * tmp.x ) + ( W.x * tmp.y );" << std::endl;
+	}
 
-  hcKernWrite( transKernel, 9 ) << "tmp.x = T.x;" << std::endl;
-  hcKernWrite( transKernel, 9 ) << "tmp.y = T.y;" << std::endl;
-  return HCFFT_SUCCEEDS;
+    hcKernWrite( transKernel, 9 ) << "tmp.x = T.x;" << std::endl;
+    hcKernWrite( transKernel, 9 ) << "tmp.y = T.y;" << std::endl;
+
+    return HCFFT_SUCCEEDS;
 }
 
 // These strings represent the names that are used as strKernel parameters
@@ -84,7 +98,7 @@ const std::string pmComplexIn( "pmComplexIn" );
 const std::string pmComplexOut( "pmComplexOut" );
 
 static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const tile& lwSize, const std::string& dtPlanar, const std::string& dtComplex,
-    const std::string &funcName, std::stringstream& transKernel, std::string& dtInput, std::string& dtOutput ) {
+    const std::string &funcName, std::stringstream& transKernel, std::string& dtInput, std::string& dtOutput, bool genTwiddle) {
   uint arg = 0;
   // Declare and define the function
   hcKernWrite( transKernel, 0 ) << "extern \"C\"\n { void" << std::endl;
@@ -208,12 +222,19 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
       return HCFFT_INVALID;
   }
 
+  if(genTwiddle)
+  {
+    hcKernWrite( transKernel, 0 ) << dtComplex << " *" << TwTableLargeName() << " = static_cast<" << dtComplex << "*> (vectArr[" << arg++ << "]);";
+  }
+
   return HCFFT_SUCCEEDS;
 }
 
-static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernelGenKeyParams & params, std::string& strKernel, const tile& lwSize, const size_t reShapeFactor,
-                                       const size_t loopCount, const tile& blockSize, const size_t outRowPadding, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize,
-                                       size_t count) {
+
+static hcfftStatus genTransposeKernel( void **twiddleslarge, accelerator acc, const hcfftPlanHandle plHandle, FFTKernelGenKeyParams & params, std::string& strKernel,
+                                       const tile& lwSize, const size_t reShapeFactor, const size_t loopCount, const tile& blockSize,
+                                       vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count) {
+//std::cout << " generate gcn transpose kernel "<< strKernel << std::endl;
   strKernel.reserve( 4096 );
   std::stringstream transKernel( std::stringstream::out );
   // These strings represent the various data types we read or write in the kernel, depending on how the plan
@@ -222,6 +243,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
   std::string dtOutput;       // The type written as output from kernel
   std::string dtPlanar;       // Fundamental type for planar arrays
   std::string dtComplex;      // Fundamental type for complex arrays
+  bool genTwiddle = false;
 
   switch( params.fft_precision ) {
     case HCFFT_SINGLE:
@@ -242,39 +264,40 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
   //  If twiddle computation has been requested, generate the lookup function
   if(params.fft_3StepTwiddle) {
     std::string str;
-    StockhamGenerator::TwiddleTableLarge twLarge(params.fft_N[0] * params.fft_N[1]);
-
+    genTwiddle = true;
     if(params.fft_precision == HCFFT_SINGLE) {
-      twLarge.GenerateTwiddleTable<StockhamGenerator::P_SINGLE>(str);
+    StockhamGenerator::TwiddleTableLarge<hc::short_vector::float_2, StockhamGenerator::P_SINGLE> twLarge(params.fft_N[0] * params.fft_N[1]);
+    twLarge.GenerateTwiddleTable(str, plHandle);
+    twLarge.TwiddleLargeAV(twiddleslarge, acc);
     } else {
-      twLarge.GenerateTwiddleTable<StockhamGenerator::P_DOUBLE>(str);
+      StockhamGenerator::TwiddleTableLarge<hc::short_vector::double_2, StockhamGenerator::P_DOUBLE> twLarge(params.fft_N[0] * params.fft_N[1]);
+      twLarge.GenerateTwiddleTable(str, plHandle);
+      twLarge.TwiddleLargeAV(twiddleslarge, acc);
     }
 
     hcKernWrite( transKernel, 0 ) << str << std::endl;
     hcKernWrite( transKernel, 0 ) << std::endl;
   }
 
-  // This detects whether the input matrix is square
-  bool notSquare = ( params.fft_N[ 0 ] == params.fft_N[ 1 ] ) ? false : true;
-
-  if( notSquare && (params.fft_placeness == HCFFT_INPLACE) ) {
+  if( params.fft_placeness == HCFFT_INPLACE) {
     return HCFFT_INVALID;
   }
 
   for(size_t bothDir = 0; bothDir < 2; bothDir++) {
     //  Generate the kernel entry point and parameter list
     //
+
     bool fwd = bothDir ? false : true;
     std::string funcName;
 
     if(params.fft_3StepTwiddle) {
-      funcName = fwd ? "transpose_tw_fwd" : "transpose_tw_back";
+      funcName = fwd ? "transpose_gcn_tw_fwd" : "transpose_gcn_tw_back";
     } else {
-      funcName = "transpose";
+      funcName = "transpose_gcn";
     }
 
     funcName += SztToStr(count);
-    genTransposePrototype( params, lwSize, dtPlanar, dtComplex, funcName, transKernel, dtInput, dtOutput );
+    genTransposePrototype( params, lwSize, dtPlanar, dtComplex, funcName, transKernel, dtInput, dtOutput, genTwiddle);
     hcKernWrite( transKernel, 3 ) << "\thc::extent<2> grdExt( ";
     hcKernWrite( transKernel, 3 ) <<  SztToStr(gWorkSize[0]) << ", " << SztToStr(gWorkSize[1]) << "); \n" << "\thc::tiled_extent<2> t_ext = grdExt.tile(";
     hcKernWrite( transKernel, 3 ) <<  SztToStr(lwSize.x) << ", " << SztToStr(lwSize.y) << ");\n";
@@ -288,7 +311,6 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
     hcKernWrite( transKernel, 3 ) << "const size_t reShapeFactor = " << reShapeFactor << ";" << std::endl;
     hcKernWrite( transKernel, 3 ) << "const size_t wgUnroll = " << loopCount << ";" << std::endl;
     hcKernWrite( transKernel, 3 ) << "const uint_2 wgTileExtent (localExtent.x * reShapeFactor, localExtent.y / reShapeFactor );" << std::endl;
-    hcKernWrite( transKernel, 3 ) << "const size_t tileSizeinUnits = wgTileExtent.x * wgTileExtent.y * wgUnroll;" << std::endl << std::endl;
     // This is the size of a matrix in the y dimension in units of group size; used to calculate stride[2] indexing
     //size_t numGroupsY = DivRoundingUp( params.fft_N[ 1 ], lwSize.y / reShapeFactor * loopCount );
     //numGroupY_1 is the number of cumulative work groups up to 1st dimension
@@ -310,7 +332,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 
     // Generate the amount of local data share we need
     // Assumption: Even for planar data, we will still store values in LDS as interleaved
-    tile ldsSize = { {blockSize.x}, {blockSize.y} };
+    tile ldsSize = { blockSize.x, blockSize.y};
 
     switch( params.fft_outputLayout ) {
       case HCFFT_COMPLEX_INTERLEAVED:
@@ -334,12 +356,11 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 
     switch( params.fft_inputLayout ) {
       case HCFFT_COMPLEX_INTERLEAVED:
-      	hcKernWrite( transKernel, 3 ) << dtInput << "* tileIn = " << pmComplexIn << " + iOffset;" << std::endl;
+      	hcKernWrite( transKernel, 3 ) << "uint inOffset = iOffset;" << std::endl;
         break;
 
       case HCFFT_COMPLEX_PLANAR:
-	      hcKernWrite( transKernel, 3 ) << dtInput << "* realTileIn = " << pmRealIn << " + iOffset;" << std::endl;
-      	hcKernWrite( transKernel, 3 ) << dtInput << "* imagTileIn = " << pmImagIn << " + iOffset;" << std::endl;
+	      hcKernWrite( transKernel, 3 ) << "uint inOffset = iOffset;" << std::endl;
         break;
 
       case HCFFT_HERMITIAN_INTERLEAVED:
@@ -347,7 +368,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
         return HCFFT_INVALID;
 
       case HCFFT_REAL:
-	      hcKernWrite( transKernel, 3 ) << dtInput << "* tileIn = " << pmRealIn << " + iOffset;" << std::endl;
+	      hcKernWrite( transKernel, 3 ) << "uint inOffset = iOffset;" << std::endl;
         break;
     }
 
@@ -497,20 +518,20 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 			{
 			case HCFFT_COMPLEX_INTERLEAVED:
 				{
-				  hcKernWrite( transKernel, 9 ) << "tmp = tileIn[ gInd ];" << std::endl;
+				  hcKernWrite( transKernel, 9 ) << "tmp = pmComplexIn[ gInd + inOffset];" << std::endl;
 				}
 				break;
 			case HCFFT_COMPLEX_PLANAR:
 				{
-					hcKernWrite( transKernel, 9 ) << "tmp.s0 = realTileIn[ gInd ];" << std::endl;
-					hcKernWrite( transKernel, 9 ) << "tmp.s1 = imagTileIn[ gInd ];" << std::endl;
+					hcKernWrite( transKernel, 9 ) << "tmp.x = pmRealIn[ gInd + inOffset];" << std::endl;
+					hcKernWrite( transKernel, 9 ) << "tmp.y = pmImagIn[ gInd + inOffset];" << std::endl;
 				}
 				break;
 			case HCFFT_HERMITIAN_INTERLEAVED:
 			case HCFFT_HERMITIAN_PLANAR:
 				return HCFFT_INVALID;
 			case HCFFT_REAL:
-				hcKernWrite( transKernel, 9 ) << "tmp = tileIn[ gInd ];" << std::endl;
+				hcKernWrite( transKernel, 9 ) << "tmp = pmRealIn[ gInd + inOffset];" << std::endl;
 				break;
 			}
 
@@ -518,7 +539,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 
 			// If requested, generate the Twiddle math to multiply constant values
 			if( params.fft_3StepTwiddle )
-				genTwiddleMath( params, transKernel, dtComplex, fwd );
+				genTwiddleMath(plHandle, params, transKernel, dtComplex, fwd );
 
 			hcKernWrite( transKernel, 9 ) << "lds[ xInd ][ yInd ] = tmp; " << std::endl;
 
@@ -541,12 +562,11 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 
     switch( params.fft_outputLayout ) {
       case HCFFT_COMPLEX_INTERLEAVED:
-     	  hcKernWrite( transKernel, 3 ) << dtOutput << "* tileOut = " << pmComplexOut << " + oOffset;" << std::endl << std::endl;
+     	  hcKernWrite( transKernel, 3 ) << "uint outOffset = oOffset;" << std::endl << std::endl;
         break;
 
       case HCFFT_COMPLEX_PLANAR:
-       	hcKernWrite( transKernel, 3 ) << dtOutput << "* realTileOut = " << pmRealOut << " + oOffset;" << std::endl;
-      	hcKernWrite( transKernel, 3 ) << dtOutput << "* imagTileOut = " << pmImagOut << " + oOffset;" << std::endl;
+       	hcKernWrite( transKernel, 3 ) << "uint outOffset = oOffset;" << std::endl;
         break;
 
       case HCFFT_HERMITIAN_INTERLEAVED:
@@ -554,7 +574,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
         return HCFFT_INVALID;
 
       case HCFFT_REAL:
-	      hcKernWrite( transKernel, 3 ) << dtOutput << "* tileOut = " << pmRealOut << " + oOffset;" << std::endl << std::endl;
+	      hcKernWrite( transKernel, 3 ) << "uint outOffset = oOffset;" << std::endl << std::endl;
         break;
     }
 
@@ -658,6 +678,8 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 			}
 			else if(branchingInAny)
 			{
+				std::string limitToWGForRealSpecial = params.transOutHorizontal ? "groupIndex.x" : "currDimIndex";
+
 				if(i == 0)
 				{
 					if(branchingInGroupX)
@@ -666,7 +688,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 						if(params.fft_realSpecial)
 						{
 							hcKernWrite( transKernel, 9 ) << "if( ((" << wIndexY << " == " << wIndexXEnd - 1 << ") && (" <<
-								wIndexX << " < 1)) ";
+								wIndexX << " < 1) && (" << limitToWGForRealSpecial << " == 0)) ";
 							if(wIndexXEnd > 1)
 							{
 								hcKernWrite( transKernel, 0 ) << "|| (" << wIndexY << " < " << wIndexXEnd - 1 << ") )" << std::endl;
@@ -688,7 +710,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 						if(params.fft_realSpecial)
 						{
 							hcKernWrite( transKernel, 9 ) << "if( ((" << wIndexX << " == " << wIndexYEnd - 1 << ") && (" <<
-								wIndexY << " < 1)) ";
+								wIndexY << " < 1) && (" << limitToWGForRealSpecial << " == 0)) ";
 							if(wIndexYEnd > 1)
 							{
 								hcKernWrite( transKernel, 0 ) << "|| (" << wIndexX << " < " << wIndexYEnd - 1 << ") )" << std::endl;
@@ -712,17 +734,17 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 			switch( params.fft_outputLayout )
 			{
 			case HCFFT_COMPLEX_INTERLEAVED:
-				hcKernWrite( transKernel, 9 ) << "tileOut[ gInd ] = tmp;" << std::endl;
+				hcKernWrite( transKernel, 9 ) << "pmComplexOut[ gInd + outOffset] = tmp;" << std::endl;
 				break;
 			case HCFFT_COMPLEX_PLANAR:
-				hcKernWrite( transKernel, 9 ) << "realTileOut[ gInd ] = tmp.x;" << std::endl;
-				hcKernWrite( transKernel, 9 ) << "imagTileOut[ gInd ] = tmp.y;" << std::endl;
+				hcKernWrite( transKernel, 9 ) << "pmRealOut[ gInd + outOffset] = tmp.x;" << std::endl;
+				hcKernWrite( transKernel, 9 ) << "pmImagOut[ gInd + outOffset] = tmp.y;" << std::endl;
 				break;
 			case HCFFT_HERMITIAN_INTERLEAVED:
 			case HCFFT_HERMITIAN_PLANAR:
 				return HCFFT_INVALID;
 			case HCFFT_REAL:
-				hcKernWrite( transKernel, 9 ) << "tileOut[ gInd ] = tmp;" << std::endl;
+				hcKernWrite( transKernel, 9 ) << "pmRealOut[ gInd + outOffset] = tmp;" << std::endl;
 				break;
 			}
 
@@ -739,7 +761,7 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
 
     hcKernWrite( transKernel, 0 ) << "}).wait();\n}}\n" << std::endl;
 
-		strKernel += transKernel.str( );
+		strKernel = transKernel.str( );
 
 		if(!params.fft_3StepTwiddle)
 			break;
@@ -748,9 +770,8 @@ static hcfftStatus genTransposeKernel( const hcfftPlanHandle plHandle, FFTKernel
   return HCFFT_SUCCEEDS;
 }
 
-
 template<>
-hcfftStatus FFTPlan::GetKernelGenKeyPvt<Transpose> (FFTKernelGenKeyParams & params) const {
+hcfftStatus FFTPlan::GetKernelGenKeyPvt<Transpose_GCN> (FFTKernelGenKeyParams & params) const {
   params.fft_precision    = this->precision;
   params.fft_placeness    = this->location;
   params.fft_inputLayout  = this->ipLayout;
@@ -804,40 +825,46 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Transpose> (FFTKernelGenKeyParams & para
   // CL_DEVICE_MAX_WORK_ITEM_SIZES
   params.fft_R = 1; // Dont think i'll use
   params.fft_SIMD = pEnvelope->limit_WorkGroupSize; // Use devices maximum workgroup size
+	params.limit_LocalMemSize = this->envelope.limit_LocalMemSize;
+
   return HCFFT_SUCCEEDS;
 }
 
 // Constants that specify the bounding sizes of the block that each workgroup will transpose
-const tile lwSize = { {16}, {16} };
-const size_t reShapeFactor = 4;   // wgTileSize = { lwSize.x * reShapeFactor, lwSize.y / reShapeFactor }
-const size_t outRowPadding = 0;
+static const tile lwSize = { {16}, {16} };
+static const size_t reShapeFactor = 4;   // wgTileSize = { lwSize.x * reShapeFactor, lwSize.y / reShapeFactor }
 
-// This is global, but should consider to be part of FFTPlan
-size_t loopCount = 0;
-tile blockSize = {{0}, {0}};
+static hcfftStatus CalculateBlockSize(const hcfftPrecision precision, size_t &loopCount, tile &blockSize)
+{
+    switch( precision )
+    {
+    case HCFFT_SINGLE:
+        loopCount = 16;
+        break;
+    case HCFFT_DOUBLE:
+        // Double precisions need about half the amount of LDS space as singles do
+        loopCount = 8;
+        break;
+    default:
+        return HCFFT_INVALID;
+        break;
+    }
+
+	blockSize.x = lwSize.x * reShapeFactor;
+	blockSize.y = lwSize.y / reShapeFactor * loopCount;
+
+	return HCFFT_SUCCEEDS;
+}
 
 template<>
-hcfftStatus FFTPlan::GetWorkSizesPvt<Transpose> (std::vector<size_t> & globalWS, std::vector<size_t> & localWS) const {
+hcfftStatus FFTPlan::GetWorkSizesPvt<Transpose_GCN> (std::vector<size_t> & globalWS, std::vector<size_t> & localWS) const {
   FFTKernelGenKeyParams fftParams;
-  this->GetKernelGenKeyPvt<Transpose>( fftParams );
+  this->GetKernelGenKeyPvt<Transpose_GCN>( fftParams );
 
-  switch( fftParams.fft_precision ) {
-    case HCFFT_SINGLE:
-      loopCount = 16;
-      break;
+	size_t loopCount = 0;
+	tile blockSize = {0, 0};
+	CalculateBlockSize(fftParams.fft_precision, loopCount, blockSize);
 
-    case HCFFT_DOUBLE:
-      // Double precisions need about half the amount of LDS space as singles do
-      loopCount = 8;
-      break;
-
-    default:
-      return HCFFT_INVALID;
-      break;
-  }
-
-  blockSize.x = lwSize.x * reShapeFactor;
-  blockSize.y = lwSize.y / reShapeFactor * loopCount;
   // We need to make sure that the global work size is evenly divisible by the local work size
   // Our transpose works in tiles, so divide tiles in each dimension to get count of blocks, rounding up for remainder items
   size_t numBlocksX = fftParams.transOutHorizontal ?
@@ -868,41 +895,58 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Transpose> (std::vector<size_t> & globalWS,
 //  OpenCL does not take unicode strings as input, so this routine returns only ASCII strings
 //  Feed this generator the FFTPlan, and it returns the generated program as a string
 template<>
-hcfftStatus FFTPlan::GenerateKernelPvt<Transpose>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const {
+hcfftStatus FFTPlan::GenerateKernelPvt<Transpose_GCN>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const {
   FFTKernelGenKeyParams fftParams;
-  this->GetKernelGenKeyPvt<Transpose>( fftParams );
+  this->GetKernelGenKeyPvt<Transpose_GCN>( fftParams );
 
-  switch( fftParams.fft_precision ) {
-    case HCFFT_SINGLE:
-      loopCount = 16;
-      break;
+  if(!exist)
+  {
+  	size_t loopCount = 0;
+	  tile blockSize = {0, 0};
+  	CalculateBlockSize(fftParams.fft_precision, loopCount, blockSize);
 
-    case HCFFT_DOUBLE:
-      // Double precisions need about half the amount of LDS space as singles do
-      loopCount = 8;
-      break;
+    vector< size_t > gWorkSize;
+    vector< size_t > lWorkSize;
+    this->GetWorkSizesPvt<Transpose_GCN> (gWorkSize, lWorkSize);
+    std::string programHeader, programCode;
+    programHeader = hcHeader();
+    genTransposeKernel((void**)&twiddleslarge, acc, plHandle, fftParams, programCode, lwSize, reShapeFactor, loopCount, blockSize, gWorkSize, lWorkSize, count);
+    programHeader += programCode;
+    fftRepo.setProgramCode(Transpose_GCN, plHandle, fftParams, programHeader);
 
-    default:
-      return HCFFT_INVALID;
-      break;
+    // Note:  See genFunctionPrototype( )
+    if( fftParams.fft_3StepTwiddle ) {
+      fftRepo.setProgramEntryPoints( Transpose_GCN, plHandle, fftParams, "transpose_gcn_tw_fwd", "transpose_gcn_tw_back");
+    } else {
+      fftRepo.setProgramEntryPoints( Transpose_GCN, plHandle, fftParams, "transpose_gcn", "transpose_gcn");
+    }
   }
+  else
+  {
+    size_t large1D = 0;
 
-  blockSize.x = lwSize.x * reShapeFactor;
-  blockSize.y = lwSize.y / reShapeFactor * loopCount;
-  std::vector< size_t > gWorkSize;
-  std::vector< size_t > lWorkSize;
-  this->GetWorkSizesPvt<Transpose> (gWorkSize, lWorkSize);
-  std::string programCode;
-  programCode = hcHeader();
-  genTransposeKernel( plHandle, fftParams, programCode, lwSize, reShapeFactor, loopCount, blockSize, outRowPadding, gWorkSize, lWorkSize, count);
-  fftRepo.setProgramCode(Transpose, plHandle, fftParams, programCode);
+    if(fftParams.fft_realSpecial) {
+      large1D = fftParams.fft_N[0] * fftParams.fft_realSpecial_Nr;
+    } else {
+      large1D = fftParams.fft_N[0] * fftParams.fft_N[1];
+    }
 
-  // Note:  See genFunctionPrototype( )
-  if( fftParams.fft_3StepTwiddle ) {
-    fftRepo.setProgramEntryPoints( Transpose, plHandle, fftParams, "transpose_tw_fwd", "transpose_tw_back");
-  } else {
-    fftRepo.setProgramEntryPoints( Transpose, plHandle, fftParams, "transpose", "transpose");
+    if(fftParams.fft_precision == HCFFT_SINGLE)
+    {
+      // twiddle factors for 1d-large 3-step algorithm
+      if(fftParams.fft_3StepTwiddle && !twiddleslarge) {
+        StockhamGenerator::TwiddleTableLarge<hc::short_vector::float_2, StockhamGenerator::P_SINGLE> twLarge(large1D);
+        twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+      }
+    }
+    else
+    {
+      // twiddle factors for 1d-large 3-step algorithm
+      if(fftParams.fft_3StepTwiddle && !twiddleslarge) {
+        StockhamGenerator::TwiddleTableLarge<hc::short_vector::double_2, StockhamGenerator::P_DOUBLE> twLarge(large1D);
+        twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
+      }
+    }
   }
-
   return HCFFT_SUCCEEDS;
 }

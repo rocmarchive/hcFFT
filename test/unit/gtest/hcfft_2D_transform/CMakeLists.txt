@@ -6,7 +6,7 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../../../
 # Find HCC compiler
 FIND_PACKAGE(HC++ 1.0 REQUIRED)
 
-SET (HCSRCS hcfft_2D_transform.cpp hcfft_2D_transform_double.cpp hcfft_2D_transform_padding.cpp)
+SET (HCSRCS hcfft_2D_transform.cpp hcfft_2D_transform_double.cpp)
 
 execute_process(COMMAND ${HCC_CONFIG} --install --cxxflags
                           OUTPUT_VARIABLE HCC_CXXFLAGS)

@@ -19534,4 +19534,7 @@ bool StaticAssertTypeEq() {
 
 }  // namespace testing
 
+extern int my_argc;
+extern char** my_argv;
+
 #endif  // GTEST_INCLUDE_GTEST_GTEST_H_

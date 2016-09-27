@@ -2,14 +2,18 @@
 #include "../gtest/gtest.h"
 #include "clFFT.h"
 
-#define VECTOR_SIZE 8
 TEST(hcfft_2D_transform_test, func_correct_2D_transform_R2C ) {
   putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
+
+  size_t N1, N2;
+  N1 = my_argc > 1 ? atoi(my_argv[1]) : 8;
+  N2 = my_argc > 2 ? atoi(my_argv[2]) : 8;
+
   hcfftHandle *plan = NULL;
-  hcfftResult status  = hcfftPlan2d(plan, VECTOR_SIZE, VECTOR_SIZE,  HCFFT_R2C);
+  hcfftResult status  = hcfftPlan2d(plan, N1, N2,  HCFFT_R2C);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  int Rsize = VECTOR_SIZE * VECTOR_SIZE;
-  int Csize = VECTOR_SIZE * (1 + VECTOR_SIZE / 2);
+  int Rsize = N1 * N2;
+  int Csize = N2 * (1 + N1 / 2);
   hcfftReal *input = (hcfftReal*)calloc(Rsize, sizeof(hcfftReal));
   int seed = 123456789;
   srand(seed);
@@ -47,8 +51,6 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_R2C ) {
   float *X, *Y;
   cl_event event = NULL;
   int ret = 0;
-  size_t N1, N2;
-  N1 = N2 = VECTOR_SIZE;
 
   /* FFT library realted declarations */
   clfftPlanHandle planHandle;
@@ -183,11 +185,16 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_R2C ) {
 }
 
 TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2R ) {
+
+  size_t N1, N2;
+  N1 = my_argc > 1 ? atoi(my_argv[1]) : 8;
+  N2 = my_argc > 2 ? atoi(my_argv[2]) : 8;
+
   hcfftHandle *plan = NULL;
-  hcfftResult status  = hcfftPlan2d(plan, VECTOR_SIZE, VECTOR_SIZE, HCFFT_C2R);
+  hcfftResult status  = hcfftPlan2d(plan, N1, N2, HCFFT_C2R);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  int Csize = VECTOR_SIZE * (1 + VECTOR_SIZE / 2);
-  int Rsize = VECTOR_SIZE * VECTOR_SIZE;
+  int Csize = N2 * (1 + N1 / 2);
+  int Rsize = N2 * N1;
   hcfftComplex *input = (hcfftComplex*)calloc(Csize, sizeof(hcfftComplex));
   hcfftReal *output = (hcfftReal*)calloc(Rsize, sizeof(hcfftReal));
   int seed = 123456789;
@@ -227,8 +234,6 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2R ) {
   float *X, *Y;
   cl_event event = NULL;
   int ret = 0;
-  size_t N1, N2;
-  N1 = N2 = VECTOR_SIZE;
 
   /* FFT library realted declarations */
   clfftPlanHandle planHandle;
@@ -367,10 +372,15 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2R ) {
 }
 
 TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
+
+  size_t N1, N2;
+  N1 = my_argc > 1 ? atoi(my_argv[1]) : 8;
+  N2 = my_argc > 2 ? atoi(my_argv[2]) : 8;
+
   hcfftHandle *plan = NULL;
-  hcfftResult status  = hcfftPlan2d(plan, VECTOR_SIZE, VECTOR_SIZE, HCFFT_C2C);
+  hcfftResult status  = hcfftPlan2d(plan, N1, N2, HCFFT_C2C);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  int hSize = VECTOR_SIZE * VECTOR_SIZE;
+  int hSize = N1 * N2;
   hcfftComplex *input = (hcfftComplex*)calloc(hSize, sizeof(hcfftComplex));
   hcfftComplex *output = (hcfftComplex*)calloc(hSize, sizeof(hcfftComplex));
   int seed = 123456789;
@@ -410,8 +420,6 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   float *X, *Y;
   cl_event event = NULL;
   int ret = 0;
-  size_t N1, N2;
-  N1 = N2 = VECTOR_SIZE;
 
   /* FFT library realted declarations */
   clfftPlanHandle planHandle;

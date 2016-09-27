@@ -2,15 +2,19 @@
 #include "../gtest/gtest.h"
 #include "clFFT.h"
 
-#define VECTOR_SIZE 4
-
 TEST(hcfft_3D_transform_test, func_correct_3D_transform_D2Z ) {
   putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
+
+  size_t N1, N2, N3;
+  N1 = my_argc > 1 ? atoi(my_argv[1]) : 4;
+  N2 = my_argc > 2 ? atoi(my_argv[2]) : 4;
+  N3 = my_argc > 3 ? atoi(my_argv[3]) : 4;
+
   hcfftHandle *plan = NULL;
-  hcfftResult status  = hcfftPlan3d(plan, VECTOR_SIZE, VECTOR_SIZE, VECTOR_SIZE, HCFFT_D2Z);
+  hcfftResult status  = hcfftPlan3d(plan, N1, N2, N3, HCFFT_D2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  int Rsize = VECTOR_SIZE * VECTOR_SIZE * VECTOR_SIZE;
-  int Csize = VECTOR_SIZE * VECTOR_SIZE * (1 + VECTOR_SIZE / 2);
+  int Rsize = N1 * N2 * N3;
+  int Csize = N3 * N2 * (1 + N1 / 2);
   hcfftDoubleReal *input = (hcfftDoubleReal*)calloc(Rsize, sizeof(hcfftDoubleReal));
   int seed = 123456789;
   srand(seed);
@@ -48,8 +52,6 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_D2Z ) {
   double *X, *Y;
   cl_event event = NULL;
   int ret = 0;
-  size_t N1, N2, N3;
-  N1 = N2 = N3 = VECTOR_SIZE;
 
   /* FFT library realted declarations */
   clfftPlanHandle planHandle;
@@ -185,11 +187,17 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_D2Z ) {
 }
 
 TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2D ) {
+
+  size_t N1, N2, N3;
+  N1 = my_argc > 1 ? atoi(my_argv[1]) : 4;
+  N2 = my_argc > 2 ? atoi(my_argv[2]) : 4;
+  N3 = my_argc > 3 ? atoi(my_argv[3]) : 4;
+
   hcfftHandle *plan = NULL;
-  hcfftResult status  = hcfftPlan3d(plan, VECTOR_SIZE, VECTOR_SIZE, VECTOR_SIZE, HCFFT_Z2D);
+  hcfftResult status  = hcfftPlan3d(plan, N1, N2, N3, HCFFT_Z2D);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  int Csize = VECTOR_SIZE * VECTOR_SIZE * (1 + VECTOR_SIZE / 2);
-  int Rsize = VECTOR_SIZE * VECTOR_SIZE * VECTOR_SIZE;
+  int Csize = N3 * N2 * (1 + N1 / 2);
+  int Rsize = N1 * N2 * N3;
   hcfftDoubleComplex *input = (hcfftDoubleComplex*)calloc(Csize, sizeof(hcfftDoubleComplex));
   hcfftDoubleReal *output = (hcfftDoubleReal*)calloc(Rsize, sizeof(hcfftDoubleReal));
   int seed = 123456789;
@@ -229,8 +237,6 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2D ) {
   double *X, *Y;
   cl_event event = NULL;
   int ret = 0;
-  size_t N1, N2, N3;
-  N1 = N2 = N3 = VECTOR_SIZE;
 
   /* FFT library realted declarations */
   clfftPlanHandle planHandle;
@@ -370,10 +376,16 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2D ) {
 }
 
 TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2Z ) {
+
+  size_t N1, N2, N3;
+  N1 = my_argc > 1 ? atoi(my_argv[1]) : 4;
+  N2 = my_argc > 2 ? atoi(my_argv[2]) : 4;
+  N3 = my_argc > 3 ? atoi(my_argv[3]) : 4;
+
   hcfftHandle *plan = NULL;
-  hcfftResult status  = hcfftPlan3d(plan, VECTOR_SIZE, VECTOR_SIZE, VECTOR_SIZE, HCFFT_Z2Z);
+  hcfftResult status  = hcfftPlan3d(plan, N1, N2, N3, HCFFT_Z2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  int hSize = VECTOR_SIZE * VECTOR_SIZE * VECTOR_SIZE;
+  int hSize = N1 * N2 * N3;
   hcfftDoubleComplex *input = (hcfftDoubleComplex*)calloc(hSize, sizeof(hcfftDoubleComplex));
   hcfftDoubleComplex *output = (hcfftDoubleComplex*)calloc(hSize, sizeof(hcfftDoubleComplex));
   int seed = 123456789;
@@ -413,8 +425,6 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2Z ) {
   double *X, *Y;
   cl_event event = NULL;
   int ret = 0;
-  size_t N1, N2, N3;
-  N1 = N2 = N3 = VECTOR_SIZE;
 
   /* FFT library realted declarations */
   clfftPlanHandle planHandle;

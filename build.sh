@@ -77,6 +77,8 @@ fi
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$hcfft_installlib/hcfft
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CLFFT_LIBRARY_PATH
 export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$hcfft_install/include/hcfft
+export HCFFT_LIBRARY_PATH=$PWD/build/lib/src
+export LD_LIBRARY_PATH=$HCFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
 
 set +e
 # MAKE BUILD DIR
@@ -108,7 +110,6 @@ elif ( [ "$testing" = "on" ] ); then
 
   set +e
   mkdir -p $current_work_dir/build/test
-  mkdir -p $current_work_dir/build/test/examples/bin/
   mkdir -p $current_work_dir/build/test/src/bin/
   mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_1D_transform/bin/
   mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_2D_transform/bin/

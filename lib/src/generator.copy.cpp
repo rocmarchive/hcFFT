@@ -14,123 +14,26 @@ class CopyKernel {
   bool h2c, c2h;
   bool general;
 
-  inline std::string OffsetCalc(const std::string &off, bool input = true) {
+  inline std::string OffsetCalc(const std::string &off, bool input = true)
+  {
     std::string str;
-    const size_t* pStride = input ? params.fft_inStride : params.fft_outStride;
-    std::string batch = "batch";
 
-    switch(params.fft_DataDim) {
-      case 5: {
-          str += "\t{\n\tuint ocalc1 = ";
-          str += batch;
-          str += "%";
-          str += SztToStr(params.fft_N[1] * params.fft_N[2] * params.fft_N[3]);
-          str += ";\n";
-          str += "\tuint ocalc0 = ";
-          str += "ocalc1";
-          str += "%";
-          str += SztToStr(params.fft_N[1] * params.fft_N[2]);
-          str += ";\n";
-          str += "\t";
-          str += off;
-          str += " = ";
-          str += "(";
-          str += batch;
-          str += "/";
-          str += SztToStr(params.fft_N[1] * params.fft_N[2] * params.fft_N[3]);
-          str += ")*";
-          str += SztToStr(pStride[4]);
-          str += " + ";
-          str += "(ocalc1";
-          str += "/";
-          str += SztToStr(params.fft_N[1] * params.fft_N[2]);
-          str += ")*";
-          str += SztToStr(pStride[3]);
-          str += " + ";
-          str += "(ocalc0";
-          str += "/";
-          str += SztToStr(params.fft_N[1]);
-          str += ")*";
-          str += SztToStr(pStride[2]);
-          str += " + ";
-          str += "(ocalc0";
-          str += "%";
-          str += SztToStr(params.fft_N[1]);
-          str += ")*";
-          str += SztToStr(pStride[1]);
-          str += ";\n";
-          str += "\t}\n";
-        }
-        break;
+    const size_t *pStride = input ? params.fft_inStride : params.fft_outStride;
 
-      case 4: {
-          str += "\t{\n\tuint ocalc0 = ";
-          str += batch;
-          str += "%";
-          str += SztToStr(params.fft_N[1] * params.fft_N[2]);
-          str += ";\n";
-          str += "\t";
-          str += off;
-          str += " = ";
-          str += "(";
-          str += batch;
-          str += "/";
-          str += SztToStr(params.fft_N[1] * params.fft_N[2]);
-          str += ")*";
-          str += SztToStr(pStride[3]);
-          str += " + ";
-          str += "(ocalc0";
-          str += "/";
-          str += SztToStr(params.fft_N[1]);
-          str += ")*";
-          str += SztToStr(pStride[2]);
-          str += " + ";
-          str += "(ocalc0";
-          str += "%";
-          str += SztToStr(params.fft_N[1]);
-          str += ")*";
-          str += SztToStr(pStride[1]);
-          str += ";\n";
-          str += "\t}\n";
-        }
-        break;
+    str += "\t"; str += off; str += " = ";
+    std::string nextBatch = "batch";
+    for(size_t i=(params.fft_DataDim - 1); i>1; i--)
+    {
+      size_t currentLength = 1;
+      for(int j=1; j<i; j++) currentLength *= params.fft_N[j];
 
-      case 3: {
-          str += "\t";
-          str += off;
-          str += " = ";
-          str += "(";
-          str += batch;
-          str += "/";
-          str += SztToStr(params.fft_N[1]);
-          str += ")*";
-          str += SztToStr(pStride[2]);
-          str += " + ";
-          str += "(";
-          str += batch;
-          str += "%";
-          str += SztToStr(params.fft_N[1]);
-          str += ")*";
-          str += SztToStr(pStride[1]);
-          str += ";\n";
-        }
-        break;
+      str += "("; str += nextBatch; str += "/"; str += SztToStr(currentLength);
+      str += ")*"; str += SztToStr(pStride[i]); str += " + ";
 
-      case 2: {
-          str += "\t";
-          str += off;
-          str += " = ";
-          str += batch;
-          str += "*";
-          str += SztToStr(pStride[1]);
-          str += ";\n";
-        }
-        break;
-
-      default:
-        assert(false);
+      nextBatch = "(" + nextBatch + "%" + SztToStr(currentLength) + ")";
     }
 
+    str += nextBatch; str += "*"; str += SztToStr(pStride[1]); str += ";\n";
     return str;
   }
 
@@ -150,7 +53,7 @@ class CopyKernel {
     assert(params.fft_placeness == HCFFT_OUTOFPLACE);
   }
 
-  void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize, size_t count) {
+  void GenerateKernel(const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count) {
     std::string rType  = RegBaseType<PR>(1);
     std::string r2Type  = RegBaseType<PR>(2);
     bool inIlvd; // Input is interleaved format
@@ -472,6 +375,8 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Copy> (FFTKernelGenKeyParams & params) c
   params.fft_outStride[i] = this->oDist;
   params.fft_fwdScale  = this->forwardScale;
   params.fft_backScale = this->backwardScale;
+  params.limit_LocalMemSize = this->envelope.limit_LocalMemSize;
+
   return HCFFT_SUCCEEDS;
 }
 
@@ -513,48 +418,46 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Copy> (std::vector<size_t> & globalWS, std:
   return    HCFFT_SUCCEEDS;
 }
 
-template<>
-hcfftStatus FFTPlan::GetMax1DLengthPvt<Copy> (size_t* longest) const {
-  return FFTPlan::GetMax1DLengthPvt<Stockham>(longest);
-}
-
 using namespace CopyGenerator;
 
 template<>
-hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count) const {
-  FFTKernelGenKeyParams params;
-  this->GetKernelGenKeyPvt<Copy> (params);
-  std::vector< size_t > gWorkSize;
-  std::vector< size_t > lWorkSize;
-  this->GetWorkSizesPvt<Copy> (gWorkSize, lWorkSize);
-  bool h2c, c2h;
-  h2c = ( (params.fft_inputLayout == HCFFT_HERMITIAN_PLANAR) || (params.fft_inputLayout == HCFFT_HERMITIAN_INTERLEAVED) );
-  c2h = ( (params.fft_outputLayout == HCFFT_HERMITIAN_PLANAR) || (params.fft_outputLayout == HCFFT_HERMITIAN_INTERLEAVED) );
-  bool general = !(h2c || c2h);
-  std::string programCode;
-  programCode = hcHeader();
-  Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
+hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const {
+  if(!exist)
+  {
+    FFTKernelGenKeyParams params;
+    this->GetKernelGenKeyPvt<Copy> (params);
+    vector< size_t > gWorkSize;
+    vector< size_t > lWorkSize;
+    this->GetWorkSizesPvt<Copy> (gWorkSize, lWorkSize);
+    bool h2c, c2h;
+    h2c = ( (params.fft_inputLayout == HCFFT_HERMITIAN_PLANAR) || (params.fft_inputLayout == HCFFT_HERMITIAN_INTERLEAVED) );
+    c2h = ( (params.fft_outputLayout == HCFFT_HERMITIAN_PLANAR) || (params.fft_outputLayout == HCFFT_HERMITIAN_INTERLEAVED) );
+    bool general = !(h2c || c2h);
+    std::string programCode;
+    programCode = hcHeader();
+    Precision pr = (params.fft_precision == HCFFT_SINGLE) ? P_SINGLE : P_DOUBLE;
 
-  switch(pr) {
-    case P_SINGLE: {
-        CopyKernel<P_SINGLE> kernel(params);
-        kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
-      }
-      break;
+    switch(pr) {
+      case P_SINGLE: {
+          CopyKernel<P_SINGLE> kernel(params);
+          kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
+        }
+        break;
 
-    case P_DOUBLE: {
-        CopyKernel<P_DOUBLE> kernel(params);
-        kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
-      }
-      break;
-  }
+      case P_DOUBLE: {
+          CopyKernel<P_DOUBLE> kernel(params);
+          kernel.GenerateKernel(plHandle, programCode, gWorkSize, lWorkSize, count);
+        }
+        break;
+    }
 
-  fftRepo.setProgramCode( Copy, plHandle, params, programCode);
+    fftRepo.setProgramCode( Copy, plHandle, params, programCode);
 
-  if( general) {
-    fftRepo.setProgramEntryPoints( Copy, plHandle, params, "copy_general", "copy_general");
-  } else {
-    fftRepo.setProgramEntryPoints( Copy, plHandle, params, "copy_c2h", "copy_h2c");
+    if( general) {
+      fftRepo.setProgramEntryPoints( Copy, plHandle, params, "copy_general", "copy_general");
+    } else {
+      fftRepo.setProgramEntryPoints( Copy, plHandle, params, "copy_c2h", "copy_h2c");
+    }
   }
 
   return HCFFT_SUCCEEDS;

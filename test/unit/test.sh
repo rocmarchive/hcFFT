@@ -44,51 +44,57 @@ fi
 
 testdirectories=(hcfft_1D_transform hcfft_2D_transform hcfft_3D_transform)
 
+while read line; do
+  N1=$(echo $line | cut -f1 -d" " )
+  N2=$(echo $line | cut -f2 -d" " )
+
 ## now loop through the above array
-for i in 0 1 2
-do
-  working_dir1="$current_work_dir/../../build/test/unit/gtest/${testdirectories[$i]}/bin/"
-  cd $working_dir1
-  rm -f $working_dir1/gtestlog.txt
+  for i in 0 1 2
+  do
+    working_dir1="$current_work_dir/../../build/test/unit/gtest/${testdirectories[$i]}/bin/"
+    cd $working_dir1
+    rm -f $working_dir1/gtestlog.txt
 
-  #Gtest functions
-  unittest="$working_dir1/${testdirectories[$i]}"
+    #Gtest functions
+    unittest="$working_dir1/${testdirectories[$i]} $N1 $N2"
 
-  runcmd1="$unittest >> gtestlog.txt"
-  eval $runcmd1
+    runcmd1="$unittest >> gtestlog.txt"
+    eval $runcmd1
 
-  Log_file="$working_dir1/gtestlog.txt"
-  if [ ! -s "$Log_file" ]; then
-    echo "${red}GTEST IS NOT WORKING....${reset}"
-  else
-    if grep -q FAILED "$Log_file";
-    then
-      echo "${red}${testdirectories[$i]}               ----- [ FAILED ]${reset}"
-    elif grep -q PASSED "$Log_file";
-    then
-      echo "${green}${testdirectories[$i]}             ----- [ PASSED ]${reset}"
-      rm -f $working_dir1/gtestlog.txt
+    Log_file="$working_dir1/gtestlog.txt"
+    if [ ! -s "$Log_file" ]; then
+      echo "${red}GTEST IS NOT WORKING....${reset}"
+    else
+      if grep -q FAILED "$Log_file";
+      then
+        echo "${red}${testdirectories[$i]} $N1 $N2             ----- [ FAILED ]${reset}"
+      elif grep -q PASSED "$Log_file";
+      then
+        echo "${green}${testdirectories[$i]} $N1 $N2           ----- [ PASSED ]${reset}"
+        rm -f $working_dir1/gtestlog.txt
+      fi
     fi
-  fi
 
-  #Gtest functions
-  unittest="$working_dir1/${testdirectories[$i]}_double"
+    #Gtest functions
+    unittest="$working_dir1/${testdirectories[$i]}_double $N1 $N2"
 
-  runcmd1="$unittest >> gtestlog.txt"
-  eval $runcmd1
+    runcmd1="$unittest >> gtestlog.txt"
+    eval $runcmd1
 
-  Log_file="$working_dir1/gtestlog.txt"
-  if [ ! -s "$Log_file" ]; then
-    echo "${red}GTEST IS NOT WORKING....${reset}"
-  else
-    if grep -q FAILED "$Log_file";
-    then
-      echo "${red}${testdirectories[$i]}_double             ----- [ FAILED ]${reset}"
-    elif grep -q PASSED "$Log_file";
-    then
-      echo "${green}${testdirectories[$i]}_double           ----- [ PASSED ]${reset}"
-      rm -f $working_dir1/gtestlog.txt
+    Log_file="$working_dir1/gtestlog.txt"
+    if [ ! -s "$Log_file" ]; then
+      echo "${red}GTEST IS NOT WORKING....${reset}"
+    else
+      if grep -q FAILED "$Log_file";
+      then
+       echo "${red}${testdirectories[$i]}_double $N1 $N2       ----- [ FAILED ]${reset}"
+      elif grep -q PASSED "$Log_file";
+      then
+        echo "${green}${testdirectories[$i]}_double $N1 $N2    ----- [ PASSED ]${reset}"
+        rm -f $working_dir1/gtestlog.txt
+      fi
     fi
-  fi
+  done
 
-done
+#Input file
+done < $current_work_dir/Input.txt

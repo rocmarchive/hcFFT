@@ -24,6 +24,7 @@ a. Installing Debian ROCM repositories
   Steps to install rocm package are,
 
 
+
   ``wget -qO - http://packages.amd.com/rocm/apt/debian/rocm.gpg.key | sudo apt-key add -``
 
  
@@ -32,6 +33,7 @@ a. Installing Debian ROCM repositories
 
   ``sudo apt-get update``
 
+ 
 
   ``sudo apt-get install rocm``
 
@@ -57,6 +59,7 @@ a. Install using Prebuilt debian
 
 
     ``wget https://bitbucket.org/multicoreware/hcfft/downloads/hcfft-master-9607fd5-Linux.deb``
+
 
 
     ``sudo dpkg -i hcfft-master-9607fd5-Linux.deb``
