@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 0.8)
+
+add_subdirectory(hipfft_1D_transform)
+add_subdirectory(hipfft_2D_transform)
+add_subdirectory(hipfft_3D_transform)
