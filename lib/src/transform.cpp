@@ -8,7 +8,7 @@ lockRAII FFTRepo::lockRepo( _T( "FFTRepo" ) );
 size_t FFTRepo::planCount = 1;
 static size_t beforeCompile = 99999999;
 static size_t countKernel,bakedPlanCount;
-static string sfilename, skernellib;
+static std::string sfilename, skernellib;
 static void *kernelHandle = NULL;
 
 bool has_suffix(const std::string& s, const std::string& suffix) {
@@ -226,13 +226,13 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
       // check if user has specified compiler build path
       // build_mode = true;
       std::string Path = "/opt/rocm/hcc-lc/bin/";
-      execCmd = Path + "clang++ `" + Path + "hcc-config --build --cxxflags --ldflags --shared` -lhc_am " + filename + " -o " + kernellib ;
+      execCmd = Path + "clang++ `" + Path + "hcc-config --build --cxxflags --ldflags --shared` -lhc_am " + fftPlan->filename + " -o " + fftPlan->kernellib ;
     }
     else if( access( fname, F_OK ) != -1 ) {
       // compiler exists
       // install_mode = true;
       std::string Path = "/opt/rocm/hcc-hsail/bin/";
-      execCmd = Path + "clang++ `" + Path + "hcc-config --install --cxxflags --ldflags --shared` " + filename + " -o " + kernellib ;
+      execCmd = Path + "clang++ `" + Path + "hcc-config --install --cxxflags --ldflags --shared` " + fftPlan->filename + " -o " + fftPlan->kernellib ;
     }
     else {
       // No compiler found
@@ -414,7 +414,7 @@ hcfftStatus FFTPlan::hcfftCreateDefaultPlan( hcfftPlanHandle* plHandle, const hc
   return ret;
 }
 
-hcfftStatus FFTPlan::hcfftSetAcclView( hcfftPlanHandle plHandle, accelerator_view acc_view)
+hcfftStatus FFTPlan::hcfftSetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view acc_view)
 {
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
@@ -428,7 +428,7 @@ hcfftStatus FFTPlan::hcfftSetAcclView( hcfftPlanHandle plHandle, accelerator_vie
   return HCFFT_SUCCEEDS;
 }
 
-hcfftStatus FFTPlan::hcfftGetAcclView( hcfftPlanHandle plHandle, accelerator_view *acc_view)
+hcfftStatus FFTPlan::hcfftGetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view *acc_view)
 {
   FFTRepo& fftRepo  = FFTRepo::getInstance( );
   FFTPlan* fftPlan = NULL;
@@ -1434,7 +1434,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
 
   if(fftPlan->transformed == false )
   {
-    typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
+    typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, hc::accelerator_view &acc_view, hc::accelerator &acc);
     FUNC_FFTFwd* FFTcall = NULL;
 
     if(fftPlan->gen == Copy) {
@@ -1576,8 +1576,8 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
     fftPlan->transformed = true;
   }
 
-  vector< size_t > gWorkSize;
-  vector< size_t > lWorkSize;
+  std::vector< size_t > gWorkSize;
+  std::vector< size_t > lWorkSize;
   hcfftStatus result = fftPlan->GetWorkSizes (gWorkSize, lWorkSize);
 
   if (HCFFT_ERROR == result) {
@@ -2584,7 +2584,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
 
   if(fftPlan->transformed == false )
   {
-    typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, accelerator_view &acc_view, accelerator &acc);
+    typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, hc::accelerator_view &acc_view, hc::accelerator &acc);
     FUNC_FFTFwd* FFTcall = NULL;
 
     if(fftPlan->gen == Copy) {
@@ -2726,8 +2726,8 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
     fftPlan->transformed = true;
   }
 
-  vector< size_t > gWorkSize;
-  vector< size_t > lWorkSize;
+  std::vector< size_t > gWorkSize;
+  std::vector< size_t > lWorkSize;
   hcfftStatus result = fftPlan->GetWorkSizes (gWorkSize, lWorkSize);
 
   if (HCFFT_ERROR == result) {
@@ -6999,7 +6999,7 @@ hcfftStatus FFTRepo::createPlan( hcfftPlanHandle* plHandle, FFTPlan*& fftPlan ) 
   //  The lifetime of the lock is the same as the lifetime of the plan
   lockRAII* lockPlan  = new lockRAII;
   //  Add and remember the fftPlan in our map
-  repoPlans[ planCount ] = make_pair( fftPlan, lockPlan );
+  repoPlans[ planCount ] = std::make_pair( fftPlan, lockPlan );
   //  Assign the user handle the plan count (unique identifier), and bump the count for the next plan
   *plHandle = planCount++;
   return  HCFFT_SUCCEEDS;

@@ -368,7 +368,7 @@ void permutation_calculation(size_t m, size_t n, std::vector<std::vector<size_t>
 }
 //swap lines. This kind of kernels are using with combination of square transpose kernels to perform nonsqaure transpose
 //this function assumes a 1:2 ratio
-hcfftStatus genSwapKernel(const FFTKernelGenKeyParams & params, std::string& strKernel, std::string& KernelFuncName, const size_t& lwSize, const size_t reShapeFactor, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count)
+hcfftStatus genSwapKernel(const FFTKernelGenKeyParams & params, std::string& strKernel, std::string& KernelFuncName, const size_t& lwSize, const size_t reShapeFactor, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize, size_t count)
 {
 	strKernel.reserve(4096);
 	std::stringstream transKernel(std::stringstream::out);
@@ -687,7 +687,7 @@ hcfftStatus genSwapKernel(const FFTKernelGenKeyParams & params, std::string& str
 
 //swap lines. a more general kernel generator.
 //this function accepts any ratio in theory. But in practice we restrict it to 1:2, 1:3, 1:5 and 1:10 ration
-hcfftStatus genSwapKernelGeneral(void **twiddleslarge, accelerator acc, const hcfftPlanHandle plHandle, const FFTKernelGenKeyParams & params, std::string& strKernel, std::string& KernelFuncName, const size_t& lwSize, const size_t reShapeFactor, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count)
+hcfftStatus genSwapKernelGeneral(void **twiddleslarge, hc::accelerator acc, const hcfftPlanHandle plHandle, const FFTKernelGenKeyParams & params, std::string& strKernel, std::string& KernelFuncName, const size_t& lwSize, const size_t reShapeFactor, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize, size_t count)
 {
 	if (params.fft_placeness == HCFFT_OUTOFPLACE)
 		return HCFFT_INVALID;
@@ -1611,7 +1611,7 @@ The transpose will be done within each sub matrix.
  M1
  M2]
 */
-hcfftStatus genTransposeKernelBatched(void **twiddleslarge, accelerator acc, const hcfftPlanHandle plHandle, const FFTKernelGenKeyParams & params, std::string& strKernel, const size_t& lwSize, const size_t reShapeFactor, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count)
+hcfftStatus genTransposeKernelBatched(void **twiddleslarge, hc::accelerator acc, const hcfftPlanHandle plHandle, const FFTKernelGenKeyParams & params, std::string& strKernel, const size_t& lwSize, const size_t reShapeFactor, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize, size_t count)
 {
 	strKernel.reserve(4096);
 	std::stringstream transKernel(std::stringstream::out);
@@ -2038,7 +2038,7 @@ hcfftStatus genTransposeKernelBatched(void **twiddleslarge, accelerator acc, con
 Below is a matrix(row major) contaning three square sub matrix along row
 [M0 M2 M2]
 */
-hcfftStatus genTransposeKernelLeadingDimensionBatched(void **twiddleslarge, accelerator acc, const hcfftPlanHandle plHandle, const FFTKernelGenKeyParams & params, std::string& strKernel, const size_t& lwSize, const size_t reShapeFactor, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count)
+hcfftStatus genTransposeKernelLeadingDimensionBatched(void **twiddleslarge, hc::accelerator acc, const hcfftPlanHandle plHandle, const FFTKernelGenKeyParams & params, std::string& strKernel, const size_t& lwSize, const size_t reShapeFactor, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize, size_t count)
 {
 	strKernel.reserve(4096);
 	std::stringstream transKernel(std::stringstream::out);

@@ -231,9 +231,9 @@ static hcfftStatus genTransposePrototype( FFTKernelGenKeyParams& params, const t
 }
 
 
-static hcfftStatus genTransposeKernel( void **twiddleslarge, accelerator acc, const hcfftPlanHandle plHandle, FFTKernelGenKeyParams & params, std::string& strKernel,
+static hcfftStatus genTransposeKernel( void **twiddleslarge, hc::accelerator acc, const hcfftPlanHandle plHandle, FFTKernelGenKeyParams & params, std::string& strKernel,
                                        const tile& lwSize, const size_t reShapeFactor, const size_t loopCount, const tile& blockSize,
-                                       vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count) {
+                                       std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize, size_t count) {
 //std::cout << " generate gcn transpose kernel "<< strKernel << std::endl;
   strKernel.reserve( 4096 );
   std::stringstream transKernel( std::stringstream::out );
@@ -905,8 +905,8 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Transpose_GCN>(const hcfftPlanHandle plHa
 	  tile blockSize = {0, 0};
   	CalculateBlockSize(fftParams.fft_precision, loopCount, blockSize);
 
-    vector< size_t > gWorkSize;
-    vector< size_t > lWorkSize;
+    std::vector< size_t > gWorkSize;
+    std::vector< size_t > lWorkSize;
     this->GetWorkSizesPvt<Transpose_GCN> (gWorkSize, lWorkSize);
     std::string programHeader, programCode;
     programHeader = hcHeader();

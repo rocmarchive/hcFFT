@@ -110,8 +110,8 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Transpose_SQUARE>(const hcfftPlanHandle p
   if(!exist)
   {
 	  std::string programCode;
-    vector< size_t > gWorkSize;
-    vector< size_t > lWorkSize;
+    std::vector< size_t > gWorkSize;
+    std::vector< size_t > lWorkSize;
     this->GetWorkSizesPvt<Transpose_SQUARE> (gWorkSize, lWorkSize);
 
 	  hcfft_transpose_generator::genTransposeKernelBatched((void**)&twiddleslarge, acc, plHandle, params, programCode, lwSize, reShapeFactor, gWorkSize, lWorkSize, count);

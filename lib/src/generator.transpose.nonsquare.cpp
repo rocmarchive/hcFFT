@@ -281,8 +281,8 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Transpose_NONSQUARE>(const hcfftPlanHandl
     std::string programCode;
 	  std::string kernelFuncName;//applied to swap kernel for now
 
-    vector< size_t > gWorkSize;
-    vector< size_t > lWorkSize;
+    std::vector< size_t > gWorkSize;
+    std::vector< size_t > lWorkSize;
     this->GetWorkSizesPvt<Transpose_NONSQUARE> (gWorkSize, lWorkSize);
 
     if (params.nonSquareKernelType == NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING)

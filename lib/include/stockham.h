@@ -204,7 +204,7 @@ class TwiddleTableLarge {
     delete[] wc;
   }
 
-  void TwiddleLargeAV(void **twiddleslarge, accelerator acc) {
+  void TwiddleLargeAV(void **twiddleslarge, hc::accelerator acc) {
     const double TWO_PI = -6.283185307179586476925286766559;
     // Generate the table
     size_t nt = 0;

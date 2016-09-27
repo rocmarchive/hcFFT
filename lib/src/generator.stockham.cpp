@@ -335,7 +335,7 @@ class TwiddleTable {
     delete[] wc;
   }
 
-  void GenerateTwiddleTable(void **twiddles, accelerator acc, const std::vector<size_t> &radices) {
+  void GenerateTwiddleTable(void **twiddles, hc::accelerator acc, const std::vector<size_t> &radices) {
     const double TWO_PI = -6.283185307179586476925286766559;
     // Make sure the radices vector sums up to N
     size_t sz = 1;
@@ -2876,7 +2876,7 @@ class Kernel {
     }
   };
 
-  void GenerateKernel(void **twiddles, void **twiddleslarge, accelerator acc, const hcfftPlanHandle plHandle, std::string &str, vector< size_t > gWorkSize, vector< size_t > lWorkSize, size_t count) {
+  void GenerateKernel(void **twiddles, void **twiddleslarge, hc::accelerator acc, const hcfftPlanHandle plHandle, std::string &str, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize, size_t count) {
     std::string twType = RegBaseType<PR>(2);
     std::string rType  = RegBaseType<PR>(1);
     std::string r2Type  = RegBaseType<PR>(2);
@@ -3033,7 +3033,7 @@ class Kernel {
 
     if(PR == P_SINGLE)
     {
-       TwiddleTableLarge<float_2, PR> twLarge(large1D);
+       TwiddleTableLarge<hc::short_vector::float_2, PR> twLarge(large1D);
        // twiddle factors for 1d-large 3-step algorithm
        if(params.fft_3StepTwiddle) {
          twLarge.GenerateTwiddleTable(str, plHandle);
@@ -3042,7 +3042,7 @@ class Kernel {
     }
     else
     {
-       TwiddleTableLarge<double_2, PR> twLarge(large1D);
+       TwiddleTableLarge<hc::short_vector::double_2, PR> twLarge(large1D);
 
        // twiddle factors for 1d-large 3-step algorithm
        if(params.fft_3StepTwiddle) {
@@ -4282,8 +4282,8 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
   this->GetKernelGenKeyPvt<Stockham> (params);
   if(!exist)
   {
-    vector< size_t > gWorkSize;
-    vector< size_t > lWorkSize;
+    std::vector< size_t > gWorkSize;
+    std::vector< size_t > lWorkSize;
     this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);
     std::string programCode;
     programCode = hcHeader();
