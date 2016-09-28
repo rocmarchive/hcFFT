@@ -21,9 +21,8 @@ int main(int argc, char* argv[]) {
   hcfftResLocation location = HCFFT_OUTOFPLACE;
   hcfftResTransposed transposeType = HCFFT_NOTRANSPOSE;
   size_t* length = (size_t*)malloc(sizeof(size_t) * dimension);
-  size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
-  size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
-
+  size_t* ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t* opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   hcfftPlanHandle planhandle;
   hcfftPrecision precision = HCFFT_SINGLE;
   size_t N1, N2;
@@ -31,31 +30,26 @@ int main(int argc, char* argv[]) {
   N2 = argc > 2 ? atoi(argv[2]) : 1024;
   length[0] = N1;
   length[1] = N2;
-
   ipStrides[0] = 1;
   ipStrides[1] = length[0];
-
   opStrides[0] = 1;
-  opStrides[1] = 1 + length[0]/2;
-
+  opStrides[1] = 1 + length[0] / 2;
   size_t ipDistance = length[1] * length[0];
-  size_t opDistance = length[1] * (1 + length[0]/2);
-
+  size_t opDistance = length[1] * (1 + length[0] / 2);
   int realsize, cmplexsize;
   realsize = length[0] * length[1];
   cmplexsize = length[1] * (1 + (length[0] / 2)) * 2;
-
   std::vector<accelerator> accs = accelerator::get_all();
-
   std::wcout << "Size: " << accs.size() << std::endl;
+
   if(accs.size() == 0) {
     std::wcout << "There is no acclerator!\n";
     // Since this case is to test on GPU device, skip if there is CPU only
     return 0;
   }
+
   assert(accs.size() && "Number of Accelerators == 0!");
-  std::for_each(accs.begin(), accs.end(), [&] (accelerator acc)
-  {
+  std::for_each(accs.begin(), accs.end(), [&] (accelerator acc) {
     std::wcout << "New accelerator: " << acc.get_description() << std::endl;
     std::wcout << "device_path = " << acc.get_device_path() << std::endl;
     std::wcout << "version = " << (acc.get_version() >> 16) << '.' << (acc.get_version() & 0xFFFF) << std::endl;
@@ -67,13 +61,12 @@ int main(int argc, char* argv[]) {
     std::wcout << "is_debug = " << ((acc.get_is_debug()) ? "true" : "false") << std::endl;
     std::cout << std::endl;
   });
-
   // Initialize host variables ----------------------------------------------
   float* ipHost = (float*)calloc(realsize, sizeof(float));
   float* ipzHost = (float*)calloc(realsize, sizeof(float));
   float* opHost = (float*)calloc(cmplexsize, sizeof(float));
-
   printf("ip\n");
+
   for(int  i = 0; i < N2 ; i++) {
     for(int  j = 0; j < N1 ; j++) {
       ipHost[i * N1 + j] = i * N1 + j + 1;
@@ -83,20 +76,19 @@ int main(int argc, char* argv[]) {
   float* ipDev = (float*)am_alloc(realsize * sizeof(float), accs[1], 0);
   float* ipzDev = (float*)am_alloc(realsize * sizeof(float), accs[1], 0);
   float* opDev = (float*)am_alloc(cmplexsize * sizeof(float), accs[1], 0);
-
   // Copy input contents to device from host
   hc::am_copy(ipDev, ipHost, realsize * sizeof(float));
   hc::am_copy(ipzDev, ipzHost, realsize * sizeof(float));
   hc::am_copy(opDev, opHost, cmplexsize * sizeof(float));
-
   hcfftLibType libtype = HCFFT_R2CD2Z;
-
   hcfftStatus status = plan.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, precision, libtype);
+
   if(status != HCFFT_SUCCEEDS) {
     cout << " Create plan error " << endl;
   }
 
   status = plan.hcfftSetAcclView(planhandle, accs[1].create_view());
+
   if(status != HCFFT_SUCCEEDS) {
     cout << " set accleration view error " << endl;
   }
@@ -122,19 +114,19 @@ int main(int argc, char* argv[]) {
   status = plan.hcfftSetPlanInStride(planhandle, dimension, ipStrides );
 
   if(status != HCFFT_SUCCEEDS) {
-    cout<<" hcfftSetPlanInStride error "<<endl;
+    cout << " hcfftSetPlanInStride error " << endl;
   }
 
   status = plan.hcfftSetPlanOutStride(planhandle, dimension, opStrides );
 
   if(status != HCFFT_SUCCEEDS) {
-    cout<<"hcfftSetPlanOutStride error "<<endl;
+    cout << "hcfftSetPlanOutStride error " << endl;
   }
 
   status = plan.hcfftSetPlanDistance(planhandle, ipDistance, opDistance );
 
   if(status != HCFFT_SUCCEEDS) {
-    cout<<"hcfftSetPlanDistance error "<<endl;
+    cout << "hcfftSetPlanDistance error " << endl;
   }
 
   /*---------------------R2C--------------------------------------*/
@@ -152,52 +144,49 @@ int main(int argc, char* argv[]) {
 
   std::cout << " Starting R2C " << std::endl;
   status = plan.hcfftEnqueueTransform(planhandle, dir, ipDev, opDev, NULL);
+
   if(status != HCFFT_SUCCEEDS) {
     cout << " Transform error " << endl;
   }
-  std::cout << " R2C done " << std::endl;
 
+  std::cout << " R2C done " << std::endl;
   // Copy Device output  contents back to host
   hc::am_copy(opHost, opDev, cmplexsize * sizeof(float));
-
   status = plan.hcfftDestroyPlan(&planhandle);
+
   if(status != HCFFT_SUCCEEDS) {
     cout << " destroy plan error " << endl;
   }
 
 #if PRINT
-
   printf("r2c\n");
 
   /* Print Output */
-    for(int  i = 0; i < N2 ; i++) {
-      for(int  j = 0; j < (N1 / 2 + 1) * 2; j++) {
-        printf("%lf\n", opHost[i * (N1 / 2 + 1) * 2 + j]);
-      }
+  for(int  i = 0; i < N2 ; i++) {
+    for(int  j = 0; j < (N1 / 2 + 1) * 2; j++) {
+      printf("%lf\n", opHost[i * (N1 / 2 + 1) * 2 + j]);
     }
+  }
 
 #endif
   /*---------------------C2R---------------------------------------*/
-
   FFTPlan plan1;
   libtype = HCFFT_C2RZ2D;
   dir = HCFFT_BACKWARD;
-
   ipStrides[0] = 1;
-  ipStrides[1] = 1 + length[0]/2;
-
+  ipStrides[1] = 1 + length[0] / 2;
   opStrides[0] = 1;
   opStrides[1] = length[0];
-
-  ipDistance = length[1] * (1 + length[0]/2);
+  ipDistance = length[1] * (1 + length[0] / 2);
   opDistance = length[0] * length[1];
-
   status = plan1.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, precision, libtype);
+
   if(status != HCFFT_SUCCEEDS) {
     cout << " Create plan error " << endl;
   }
 
   status = plan1.hcfftSetAcclView(planhandle, accs[1].create_view());
+
   if(status != HCFFT_SUCCEEDS) {
     cout << " set accleration view error " << endl;
   }
@@ -229,65 +218,68 @@ int main(int argc, char* argv[]) {
   status = plan1.hcfftSetPlanInStride(planhandle, dimension, ipStrides );
 
   if(status != HCFFT_SUCCEEDS) {
-    cout<<" hcfftSetPlanInStride error "<<endl;
+    cout << " hcfftSetPlanInStride error " << endl;
   }
 
   status = plan1.hcfftSetPlanOutStride(planhandle, dimension, opStrides );
 
   if(status != HCFFT_SUCCEEDS) {
-    cout<<"hcfftSetPlanOutStride error "<<endl;
+    cout << "hcfftSetPlanOutStride error " << endl;
   }
 
   status = plan1.hcfftSetPlanDistance(planhandle, ipDistance, opDistance );
 
   if(status != HCFFT_SUCCEEDS) {
-    cout<<"hcfftSetPlanDistance error "<<endl;
+    cout << "hcfftSetPlanDistance error " << endl;
   }
 
   status = plan1.hcfftSetPlanScale(planhandle, dir, 1.0 );
+
   if( status != HCFFT_SUCCEEDS) {
     cout << " setplan scale error " << endl;;
   }
 
   status = plan1.hcfftBakePlan(planhandle);
+
   if(status != HCFFT_SUCCEEDS) {
     cout << " bake plan error " << endl;
   }
 
   std::cout << " Starting C2R " << std::endl;
   status = plan1.hcfftEnqueueTransform(planhandle, dir, opDev, ipzDev, NULL);
+
   if(status != HCFFT_SUCCEEDS) {
     cout << " Transform error " << endl;
   }
-  std::cout << " C2R done " << std::endl;
 
+  std::cout << " C2R done " << std::endl;
   // Copy Device output  contents back to host
   hc::am_copy(ipzHost, ipzDev, realsize * sizeof(float));
-
 #if PRINT
 
   /* Print Output */
   for(int  i = 0; i < N2 ; i++) {
     for(int  j = 0; j < N1 ; j++) {
-      std::cout << " ipzHost[" << i * N1 + j << "] " << ipzHost[i * N1 + j] << std::endl;
+      std::cout << " ipzHost[" << i* N1 + j << "] " << ipzHost[i * N1 + j] << std::endl;
     }
   }
 
 #endif
-
   std::cout <<  " Comparing results " << std::endl;
+
   for(int  i = 0; i < N2 ; i++) {
     for(int  j = 0; j < N1 ; j++) {
-    if((round(ipzHost[i * N1 + j]) != (ipHost[i * N1 + j]) * N1 * N2) || isnan(ipzHost[i * N1 + j])) {
-      cout << " Mismatch at  " << i * N1 + j << " input " << ipHost[i * N1 + j] << " amp " << round(ipzHost[i * N1 + j]) << endl;
-      cout << " TEST FAILED " << std::endl;
-      exit(0);
-    }
+      if((round(ipzHost[i * N1 + j]) != (ipHost[i * N1 + j]) * N1 * N2) || isnan(ipzHost[i * N1 + j])) {
+        cout << " Mismatch at  " << i* N1 + j << " input " << ipHost[i * N1 + j] << " amp " << round(ipzHost[i * N1 + j]) << endl;
+        cout << " TEST FAILED " << std::endl;
+        exit(0);
+      }
     }
   }
 
   cout << " TEST PASSED " << std::endl;
   status = plan1.hcfftDestroyPlan(&planhandle);
+
   if(status != HCFFT_SUCCEEDS) {
     cout << " destroy plan error " << endl;
   }
@@ -295,7 +287,6 @@ int main(int argc, char* argv[]) {
   hc::am_free(ipDev);
   hc::am_free(ipzDev);
   hc::am_free(opDev);
-
   free(ipHost);
   free(ipzHost);
   free(opHost);

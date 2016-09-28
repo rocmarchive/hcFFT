@@ -29,10 +29,9 @@ inline size_t PrecisionWidth() {
   }
 }
 
-inline std::stringstream& hcKernWrite( std::stringstream& rhs, const size_t tabIndex )
-{
-    rhs << std::setw( tabIndex ) << "";
-    return rhs;
+inline std::stringstream& hcKernWrite( std::stringstream& rhs, const size_t tabIndex ) {
+  rhs << std::setw( tabIndex ) << "";
+  return rhs;
 }
 
 inline std::string FloatToStr(double f) {
@@ -45,9 +44,7 @@ inline std::string FloatToStr(double f) {
 typedef std::pair<std::string, std::string> stringpair;
 inline stringpair ComplexMul(const char* type, const char* a, const char* b, bool forward = true) {
   stringpair result;
-
   result.first += type;
-
   result.first += " ((";
   result.first += a;
   result.first += ".x * ";
@@ -204,7 +201,7 @@ class TwiddleTableLarge {
     delete[] wc;
   }
 
-  void TwiddleLargeAV(void **twiddleslarge, hc::accelerator acc) {
+  void TwiddleLargeAV(void** twiddleslarge, hc::accelerator acc) {
     const double TWO_PI = -6.283185307179586476925286766559;
     // Generate the table
     size_t nt = 0;
@@ -223,13 +220,13 @@ class TwiddleTableLarge {
         wc[nt++].y = s;
       }
     }
+
     *twiddleslarge = hc::am_alloc(Y * X * sizeof(T), acc, 0);
     hc::am_copy(*twiddleslarge, wc, Y * X * sizeof(T));
     assert(*twiddleslarge != NULL);
   }
 
-  void GenerateTwiddleTable(std::string &twStr, const hcfftPlanHandle plHandle)
-  {
+  void GenerateTwiddleTable(std::string &twStr, const hcfftPlanHandle plHandle) {
     std::stringstream ss;
     // Twiddle calc function
     ss << "inline ";
@@ -318,8 +315,7 @@ class Butterfly {
     // Temporary variables
     // Allocate temporary variables if we are not using complex registers (cReg = 0) or if cReg is true, then
     // allocate temporary variables only for non power-of-2 radices
-	  if (!( (radix == 7 && cReg) || (radix == 11 && cReg) || (radix == 13 && cReg) ))
-		{
+    if (!( (radix == 7 && cReg) || (radix == 11 && cReg) || (radix == 13 && cReg) )) {
       if( (radix & (radix - 1)) || (!cReg) ) {
         bflyStr += "\t";
 
@@ -1394,9 +1390,9 @@ class Butterfly {
           }
         }
         break;
-			case 11:
-				{
-					static const char *radix11str = " \
+
+      case 11: {
+          static const char* radix11str = " \
 						fptype p0, p1, p2, p3, p4, p5, p6, p7, p8, p9; \n\
 						p0 = (R1[0].x - R10[0].x)*dir; \n\
 						p1 = R1[0].x + R10[0].x; \n\
@@ -1550,22 +1546,18 @@ class Butterfly {
 						R10[0].x = z1 - w14* b11_0; \n\
 						R10[0].y = z7 - w1* b11_0; \n";
 
-					if (fwd)
-					{
-						bflyStr += "fptype dir = -1;\n\n";
-					}
-					else
-					{
-						bflyStr += "fptype dir = 1;\n\n";
-					}
+          if (fwd) {
+            bflyStr += "fptype dir = -1;\n\n";
+          } else {
+            bflyStr += "fptype dir = 1;\n\n";
+          }
 
-					bflyStr += radix11str;
+          bflyStr += radix11str;
+        }
+        break;
 
-				} break;
-			case 13:
-				{
-
-					static const char *radix13str = " \
+      case 13: {
+          static const char* radix13str = " \
 						fptype p0, p1, p2, p3, p4, p5, p6, p7, p8, p9;\n\
 						p0 = R7[0].x - R2[0].x;\n\
 						p1 = R7[0].x + R2[0].x;\n\
@@ -1770,19 +1762,15 @@ class Butterfly {
 						R12[0].x =  e6 -  f2 * dir * b13_9 ;\n\
 						R12[0].y = e12 + f12 * dir * b13_9 ;\n";
 
-						if (fwd)
-						{
-							bflyStr += "fptype dir = -1;\n\n";
-						}
-						else
-						{
-							bflyStr += "fptype dir = 1;\n\n";
-						}
+          if (fwd) {
+            bflyStr += "fptype dir = -1;\n\n";
+          } else {
+            bflyStr += "fptype dir = 1;\n\n";
+          }
 
-						bflyStr += radix13str;
-
-				} break;
-
+          bflyStr += radix13str;
+        }
+        break;
 
       default:
         assert(false);
@@ -1795,7 +1783,7 @@ class Butterfly {
       if( (radix != 10) && (radix != 6) ) {
         for(size_t i = 0; i < radix; i++) {
           if(cReg) {
-						if ( (radix != 7) && (radix != 11) && (radix != 13) ) {
+            if ( (radix != 7) && (radix != 11) && (radix != 13) ) {
               bflyStr += "((R";
               bflyStr += SztToStr(i);
               bflyStr += "[0]).x) = TR";

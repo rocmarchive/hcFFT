@@ -14,26 +14,35 @@ class CopyKernel {
   bool h2c, c2h;
   bool general;
 
-  inline std::string OffsetCalc(const std::string &off, bool input = true)
-  {
+  inline std::string OffsetCalc(const std::string &off, bool input = true) {
     std::string str;
-
-    const size_t *pStride = input ? params.fft_inStride : params.fft_outStride;
-
-    str += "\t"; str += off; str += " = ";
+    const size_t* pStride = input ? params.fft_inStride : params.fft_outStride;
+    str += "\t";
+    str += off;
+    str += " = ";
     std::string nextBatch = "batch";
-    for(size_t i=(params.fft_DataDim - 1); i>1; i--)
-    {
+
+    for(size_t i = (params.fft_DataDim - 1); i > 1; i--) {
       size_t currentLength = 1;
-      for(int j=1; j<i; j++) currentLength *= params.fft_N[j];
 
-      str += "("; str += nextBatch; str += "/"; str += SztToStr(currentLength);
-      str += ")*"; str += SztToStr(pStride[i]); str += " + ";
+      for(int j = 1; j < i; j++) {
+        currentLength *= params.fft_N[j];
+      }
 
+      str += "(";
+      str += nextBatch;
+      str += "/";
+      str += SztToStr(currentLength);
+      str += ")*";
+      str += SztToStr(pStride[i]);
+      str += " + ";
       nextBatch = "(" + nextBatch + "%" + SztToStr(currentLength) + ")";
     }
 
-    str += nextBatch; str += "*"; str += SztToStr(pStride[1]); str += ";\n";
+    str += nextBatch;
+    str += "*";
+    str += SztToStr(pStride[1]);
+    str += ";\n";
     return str;
   }
 
@@ -376,7 +385,6 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Copy> (FFTKernelGenKeyParams & params) c
   params.fft_fwdScale  = this->forwardScale;
   params.fft_backScale = this->backwardScale;
   params.limit_LocalMemSize = this->envelope.limit_LocalMemSize;
-
   return HCFFT_SUCCEEDS;
 }
 
@@ -422,8 +430,7 @@ using namespace CopyGenerator;
 
 template<>
 hcfftStatus FFTPlan::GenerateKernelPvt<Copy>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const {
-  if(!exist)
-  {
+  if(!exist) {
     FFTKernelGenKeyParams params;
     this->GetKernelGenKeyPvt<Copy> (params);
     std::vector< size_t > gWorkSize;

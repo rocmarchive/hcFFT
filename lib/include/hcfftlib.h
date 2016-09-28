@@ -42,12 +42,11 @@ enum BlockComputeType {
 };
 
 //NonSquareKernelType
-enum NonSquareTransposeKernelType
-{
-    NON_SQUARE_TRANS_PARENT,
-    NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING,
-    NON_SQUARE_TRANS_TRANSPOSE_BATCHED,
-    NON_SQUARE_TRANS_SWAP
+enum NonSquareTransposeKernelType {
+  NON_SQUARE_TRANS_PARENT,
+  NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING,
+  NON_SQUARE_TRANS_TRANSPOSE_BATCHED,
+  NON_SQUARE_TRANS_SWAP
 };
 
 /*
@@ -63,20 +62,18 @@ Note that the twiddle computation has to go at the begining of the first kernel 
 if leading dimension is bigger, it makes more sense (faster) to swap line first and then conduct batched square transpose
 if leading dimension is smaller, it makes more sense (faster) to conduct batched transpose and then swap lines.
 */
-enum NON_SQUARE_KERNEL_ORDER
-{
-	NOT_A_TRANSPOSE,
-	SWAP_AND_TRANSPOSE, // A.
-	TRANSPOSE_AND_SWAP, // B.
-	TRANSPOSE_LEADING_AND_SWAP, // C.
+enum NON_SQUARE_KERNEL_ORDER {
+  NOT_A_TRANSPOSE,
+  SWAP_AND_TRANSPOSE, // A.
+  TRANSPOSE_AND_SWAP, // B.
+  TRANSPOSE_LEADING_AND_SWAP, // C.
 };
 
-typedef enum hcfftLibType_
-{
+typedef enum hcfftLibType_ {
   HCFFT_R2CD2Z = 1,
   HCFFT_C2RZ2D,
   HCFFT_C2CZ2Z
-}hcfftLibType;
+} hcfftLibType;
 
 typedef size_t hcfftPlanHandle;
 
@@ -134,7 +131,7 @@ static inline bool IsPo2 (size_t u) {
 }
 
 inline void BSF( unsigned long* index, size_t& mask ) {
-		*index = __builtin_ctz( mask );
+  *index = __builtin_ctz( mask );
 }
 
 template<typename T>
@@ -149,23 +146,26 @@ static inline size_t BitScanF (size_t n) {
   return (size_t) tmp;
 }
 
-static bool Is1DPossible(size_t length, size_t large1DThreshold)
-{
-	if (length > large1DThreshold)
-		return false;
+static bool Is1DPossible(size_t length, size_t large1DThreshold) {
+  if (length > large1DThreshold) {
+    return false;
+  }
 
-	if ( (length%7 == 0) && (length%5 == 0) && (length%3 == 0) )
-		return false;
+  if ( (length % 7 == 0) && (length % 5 == 0) && (length % 3 == 0) ) {
+    return false;
+  }
 
-	// radix 11 & 2 is ok, anything else we cannot do in 1 kernel
-	if ( (length % 11 == 0) && ((length % 13 == 0) || (length % 7 == 0) || (length % 5 == 0) || (length % 3 == 0)) )
-		return false;
+  // radix 11 & 2 is ok, anything else we cannot do in 1 kernel
+  if ( (length % 11 == 0) && ((length % 13 == 0) || (length % 7 == 0) || (length % 5 == 0) || (length % 3 == 0)) ) {
+    return false;
+  }
 
-	// radix 13 & 2 is ok, anything else we cannot do in 1 kernel
-	if ( (length % 13 == 0) && ((length % 11 == 0) || (length % 7 == 0) || (length % 5 == 0) || (length % 3 == 0)) )
-		return false;
+  // radix 13 & 2 is ok, anything else we cannot do in 1 kernel
+  if ( (length % 13 == 0) && ((length % 11 == 0) || (length % 7 == 0) || (length % 5 == 0) || (length % 3 == 0)) ) {
+    return false;
+  }
 
-	return true;
+  return true;
 }
 
 //  Find the smallest power of 2 that is >= n; return its power of 2 factor
@@ -228,10 +228,8 @@ static size_t width(hcfftPrecision precision) {
   }
 }
 
-inline std::string getHomeDir()
-{
-  char *homedir = getenv("HOME");
-
+inline std::string getHomeDir() {
+  char* homedir = getenv("HOME");
   std::string pwd(homedir);
   return pwd;
 }
@@ -241,9 +239,8 @@ namespace ARBITRARY {
 //  being used.  These values are probably OK for Radeon 58xx and 68xx.
 enum {
   MAX_DIMS  = 3,
-  //  The clEnqueuNDRangeKernel accepts a multi-dimensional domain array.
   //  The # of dimensions is arbitrary, but limited by the OpenCL implementation
-  //  usually to 3 dimensions (CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS).
+  //  usually to 3 dimensions.
   //  The kernel generator also assumes a limit on the # of dimensions.
 
   SIMD_WIDTH = 64,
@@ -314,7 +311,7 @@ class tofstreamRAII {
 };
 
 //  The "envelope" is a set of limits imposed by the hardware
-//  This will depend on the GPU(s) in the OpenCL context.
+//  This will depend on the GPU(s).
 //  If there are multiple devices, this should be the least
 //  common denominators.
 //
@@ -328,8 +325,6 @@ struct FFTEnvelope {
   size_t     limit_WorkGroupSize;
   //  this is the minimum of CL_DEVICE_MAX_WORK_GROUP_SIZE
 
-  // ??  CL_KERNEL_PREFERRED_WORK_GROUP_SIZE_MULTIPLE
-
   FFTEnvelope ()
     : limit_LocalMemSize (0)
     , limit_Dimensions (0)
@@ -341,7 +336,7 @@ struct FFTEnvelope {
 struct FFTKernelGenKeyParams {
   /*
    *  This structure distills a subset of the fftPlan data,
-   *  including all information that is used to generate the OpenCL kernel.
+   *  including all information that is used to generate the HCC kernel.
    *  This structure can be used as a key to reusing kernels that have already
    *  been compiled.
    */
@@ -576,7 +571,7 @@ class FFTPlan {
     userPlan(false), allOpsInplace(false), blockCompute(false), blockComputeType(BCT_C2C),
     nonSquareKernelType(NON_SQUARE_TRANS_PARENT), transposeMiniBatchSize(1),
     nonSquareKernelOrder(NOT_A_TRANSPOSE), hcfftlibtype(HCFFT_R2CD2Z), exist(false), transformed(false) {
-      originalLength.clear();
+    originalLength.clear();
   };
 
   hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, hcfftPrecision precision, hcfftLibType libType);
@@ -594,14 +589,14 @@ class FFTPlan {
                                     double* outputBuffers, double* tmpBuffer);
 
   hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, float* inputBuffers,
-                                            float* outputBuffers, float* tmpBuffer);
+      float* outputBuffers, float* tmpBuffer);
 
   hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, double* inputBuffers,
-                                            double* outputBuffers, double* tmpBuffer);
+      double* outputBuffers, double* tmpBuffer);
 
   hcfftStatus hcfftSetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view accl_view);
 
-  hcfftStatus hcfftGetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view *accl_view);
+  hcfftStatus hcfftGetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view* accl_view);
 
   hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
 
@@ -619,17 +614,17 @@ class FFTPlan {
 
   hcfftStatus hcfftSetPlanDim(hcfftPlanHandle plHandle, const hcfftDim dim );
 
-  hcfftStatus hcfftGetPlanLength(const hcfftPlanHandle plHandle, const hcfftDim dim, size_t* clLengths );
+  hcfftStatus hcfftGetPlanLength(const hcfftPlanHandle plHandle, const hcfftDim dim, size_t* hcLengths );
 
-  hcfftStatus hcfftSetPlanLength(hcfftPlanHandle plHandle, const hcfftDim dim, const size_t* clLengths );
+  hcfftStatus hcfftSetPlanLength(hcfftPlanHandle plHandle, const hcfftDim dim, const size_t* hcLengths );
 
-  hcfftStatus hcfftGetPlanInStride(const hcfftPlanHandle plHandle, const hcfftDim dim, size_t* clStrides );
+  hcfftStatus hcfftGetPlanInStride(const hcfftPlanHandle plHandle, const hcfftDim dim, size_t* hcStrides );
 
-  hcfftStatus hcfftSetPlanInStride(hcfftPlanHandle plHandle, const hcfftDim dim, size_t* clStrides );
+  hcfftStatus hcfftSetPlanInStride(hcfftPlanHandle plHandle, const hcfftDim dim, size_t* hcStrides );
 
-  hcfftStatus hcfftGetPlanOutStride(const hcfftPlanHandle plHandle, const hcfftDim dim, size_t* clStrides );
+  hcfftStatus hcfftGetPlanOutStride(const hcfftPlanHandle plHandle, const hcfftDim dim, size_t* hcStrides );
 
-  hcfftStatus hcfftSetPlanOutStride(hcfftPlanHandle plHandle, const hcfftDim dim, size_t* clStrides );
+  hcfftStatus hcfftSetPlanOutStride(hcfftPlanHandle plHandle, const hcfftDim dim, size_t* hcStrides );
 
   hcfftStatus hcfftGetPlanDistance(const hcfftPlanHandle plHandle, size_t* iDist, size_t* oDist );
 

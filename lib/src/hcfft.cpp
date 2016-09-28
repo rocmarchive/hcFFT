@@ -6,14 +6,15 @@ FFTPlan planObject;
 /* Function hcfftXtSetGPUs()
 Returns GPUs are to be used with the plan
 */
-hcfftResult hcfftXtSetGPUs(hc::accelerator &acc)
-{
+hcfftResult hcfftXtSetGPUs(hc::accelerator &acc) {
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
+
   if(accs.size() == 0) {
     std::wcout << "There is no acclerator!\n";
     // Since this case is to test on GPU device, skip if there is CPU only
     return HCFFT_SETUP_FAILED;
   }
+
   assert(accs.size() && "Number of Accelerators == 0!");
   acc = accs[1];
   return HCFFT_SUCCESS;
@@ -22,18 +23,20 @@ hcfftResult hcfftXtSetGPUs(hc::accelerator &acc)
 /* Function hcfftSetStream()
 Associate FFT Plan with an accelerator_view
 */
-hcfftResult hcfftSetStream(hcfftHandle *&plan, hc::accelerator_view &acc_view) {
+hcfftResult hcfftSetStream(hcfftHandle*&plan, hc::accelerator_view &acc_view) {
   hcfftStatus status = planObject.hcfftSetAcclView(*plan, acc_view);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
+
   return HCFFT_SUCCESS;
 }
 
 /* Function hcfftCreate()
 Creates only an opaque handle, and allocates small data structures on the host.
 */
-hcfftResult hcfftCreate(hcfftHandle *&plan) {
+hcfftResult hcfftCreate(hcfftHandle*&plan) {
   if(plan == NULL) {
     // create new plan
     plan = new hcfftHandle;
@@ -74,64 +77,74 @@ hcfftResult hcfftCreate(hcfftHandle *&plan) {
 
 hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
   // Set dimension as 1D
-  hcfftDim dimension = HCFFT_1D; 
-  
+  hcfftDim dimension = HCFFT_1D;
   // Check the input type and set appropriate direction and precision
   hcfftDirection direction;
   hcfftPrecision precision;
+
   switch (type) {
     case HCFFT_R2C:
-                     precision = HCFFT_SINGLE;
-                     direction = HCFFT_FORWARD;
-                     break;
+      precision = HCFFT_SINGLE;
+      direction = HCFFT_FORWARD;
+      break;
+
     case HCFFT_C2R:
-                     precision = HCFFT_SINGLE;
-                     direction = HCFFT_BACKWARD;
-                     break;
+      precision = HCFFT_SINGLE;
+      direction = HCFFT_BACKWARD;
+      break;
+
     case HCFFT_C2C:
-                     precision = HCFFT_SINGLE;
-                     direction = HCFFT_BOTH;
-                     break;
+      precision = HCFFT_SINGLE;
+      direction = HCFFT_BOTH;
+      break;
+
     case HCFFT_D2Z:
-                     precision = HCFFT_DOUBLE;
-                     direction = HCFFT_FORWARD;
-                     break;
+      precision = HCFFT_DOUBLE;
+      direction = HCFFT_FORWARD;
+      break;
+
     case HCFFT_Z2D:
-                     precision = HCFFT_DOUBLE;
-                     direction = HCFFT_BACKWARD;
-                     break;
+      precision = HCFFT_DOUBLE;
+      direction = HCFFT_BACKWARD;
+      break;
+
     case HCFFT_Z2Z:
-                     precision = HCFFT_DOUBLE;
-                     direction = HCFFT_BOTH;
-                     break;
+      precision = HCFFT_DOUBLE;
+      direction = HCFFT_BOTH;
+      break;
+
     default:
-                     // Invalid type
-                     return HCFFT_INVALID_VALUE;
+      // Invalid type
+      return HCFFT_INVALID_VALUE;
   }
-  
+
   // length array to bookkeep dimension info
   size_t* length = (size_t*)malloc(sizeof(size_t) * dimension);
-  size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
-  size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t* ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t* opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t ipDistance, opDistance;
   float scale;
 
   if ( nx < 0 ) {
-     // invalid size
-     return HCFFT_INVALID_SIZE;
+    // invalid size
+    return HCFFT_INVALID_SIZE;
   } else {
     length[0] = nx;
   }
 
   // Allocate Rawplan
   hcfftResult res = hcfftCreate(plan);
-  if(res != HCFFT_SUCCESS)
+
+  if(res != HCFFT_SUCCESS) {
     return HCFFT_ALLOC_FAILED;
+  }
 
   hc::accelerator acc;
   res = hcfftXtSetGPUs(acc);
-  if(res != HCFFT_SUCCESS)
+
+  if(res != HCFFT_SUCCESS) {
     return HCFFT_SETUP_FAILED;
+  }
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
 
@@ -140,68 +153,79 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
       ipStrides[0] = 1;
       opStrides[0] = 1;
       ipDistance = nx;
-      opDistance = 1 + nx/2;
+      opDistance = 1 + nx / 2;
       break;
+
     case HCFFT_C2RZ2D:
       ipStrides[0] = 1;
       opStrides[0] = 1;
-      ipDistance = 1 + nx/2;
+      ipDistance = 1 + nx / 2;
       opDistance = nx;
       scale = 1.0;
       break;
+
     case HCFFT_C2CZ2Z:
       ipStrides[0] = 1;
       opStrides[0] = 1;
       ipDistance = nx;
       opDistance = nx;
       break;
+
     default:
       // Invalid type
       return HCFFT_INVALID_VALUE;
   }
 
   hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, precision, libType);
+
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
   }
-  
+
   // Default options
   // set certain properties of plan with default values
   // Set Precision
   status = planObject.hcfftSetPlanPrecision(*plan, precision);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   // Set Transpose type
   status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
-  
+
   // Set Result location data layout
-  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
+  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetPlanInStride(*plan, dimension, ipStrides);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetPlanOutStride(*plan, dimension, opStrides);
+
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetPlanDistance(*plan, ipDistance, opDistance);
+
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   if ( libType == HCFFT_C2RZ2D) {
     status = planObject.hcfftSetPlanScale(*plan, direction, scale );
+
     if( status != HCFFT_SUCCEEDS) {
       return HCFFT_SETUP_FAILED;
     }
@@ -218,72 +242,78 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
 
    Input:
    ----------------------------------------------------------------------------------------------
-   #1 plan 	Pointer to a hcfftHandle object
-   #2 nx 	The transform size in the x dimension (number of rows)
-   #3 ny 	The transform size in the y dimension (number of columns)
-   #4 type 	The transform data type (e.g., HCFFT_C2R for single precision complex to real)
+   #1 plan  Pointer to a hcfftHandle object
+   #2 nx  The transform size in the x dimension (number of rows)
+   #3 ny  The transform size in the y dimension (number of columns)
+   #4 type  The transform data type (e.g., HCFFT_C2R for single precision complex to real)
 
    Output:
    ----------------------------------------------------------------------------------------------
-   #1 plan 	Contains a hcFFT 2D plan handle value
+   #1 plan  Contains a hcFFT 2D plan handle value
 
    Return Values:
    ----------------------------------------------------------------------------------------------
-   HCFFT_SUCCESS 	hcFFT successfully created the FFT plan.
-   HCFFT_ALLOC_FAILED 	The allocation of GPU resources for the plan failed.
-   HCFFT_INVALID_VALUE 	One or more invalid parameters were passed to the API.
-   HCFFT_INTERNAL_ERROR	An internal driver error was detected.
-   HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize.
-   HCFFT_INVALID_SIZE 	Either or both of the nx or ny parameters is not a supported sizek.
+   HCFFT_SUCCESS  hcFFT successfully created the FFT plan.
+   HCFFT_ALLOC_FAILED   The allocation of GPU resources for the plan failed.
+   HCFFT_INVALID_VALUE  One or more invalid parameters were passed to the API.
+   HCFFT_INTERNAL_ERROR An internal driver error was detected.
+   HCFFT_SETUP_FAILED   The hcFFT library failed to initialize.
+   HCFFT_INVALID_SIZE   Either or both of the nx or ny parameters is not a supported sizek.
 */
 
-hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
+hcfftResult hcfftPlan2d(hcfftHandle*&plan, int nx, int ny, hcfftType type) {
   // Set dimension as 2D
-  hcfftDim dimension = HCFFT_2D; 
-  
+  hcfftDim dimension = HCFFT_2D;
   // Check the input type and set appropriate direction and precision
   hcfftDirection direction;
   hcfftPrecision precision;
+
   switch (type) {
     case HCFFT_R2C:
-                     precision = HCFFT_SINGLE;
-                     direction = HCFFT_FORWARD;
-                     break;
+      precision = HCFFT_SINGLE;
+      direction = HCFFT_FORWARD;
+      break;
+
     case HCFFT_C2R:
-                     precision = HCFFT_SINGLE;
-                     direction = HCFFT_BACKWARD;
-                     break;
+      precision = HCFFT_SINGLE;
+      direction = HCFFT_BACKWARD;
+      break;
+
     case HCFFT_C2C:
-                     precision = HCFFT_SINGLE;
-                     direction = HCFFT_BOTH;
-                     break;
+      precision = HCFFT_SINGLE;
+      direction = HCFFT_BOTH;
+      break;
+
     case HCFFT_D2Z:
-                     precision = HCFFT_DOUBLE;
-                     direction = HCFFT_FORWARD;
-                     break;
+      precision = HCFFT_DOUBLE;
+      direction = HCFFT_FORWARD;
+      break;
+
     case HCFFT_Z2D:
-                     precision = HCFFT_DOUBLE;
-                     direction = HCFFT_BACKWARD;
-                     break;
+      precision = HCFFT_DOUBLE;
+      direction = HCFFT_BACKWARD;
+      break;
+
     case HCFFT_Z2Z:
-                     precision = HCFFT_DOUBLE;
-                     direction = HCFFT_BOTH;
-                     break;
+      precision = HCFFT_DOUBLE;
+      direction = HCFFT_BOTH;
+      break;
+
     default:
-                     // Invalid type
-                     return HCFFT_INVALID_VALUE;
+      // Invalid type
+      return HCFFT_INVALID_VALUE;
   }
-  
+
   // length array to bookkeep dimension info
   size_t* length = (size_t*)malloc(sizeof(size_t) * dimension);
-  size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
-  size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t* ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t* opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t ipDistance, opDistance;
   float scale;
 
   if (nx < 0 || ny < 0) {
-     // invalid size
-     return HCFFT_INVALID_SIZE;
+    // invalid size
+    return HCFFT_INVALID_SIZE;
   } else {
     length[0] = nx;
     length[1] = ny;
@@ -291,13 +321,17 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
 
   // Allocate Rawplan
   hcfftResult res = hcfftCreate(plan);
-  if(res != HCFFT_SUCCESS)
+
+  if(res != HCFFT_SUCCESS) {
     return HCFFT_ALLOC_FAILED;
+  }
 
   hc::accelerator acc;
   res = hcfftXtSetGPUs(acc);
-  if(res != HCFFT_SUCCESS)
+
+  if(res != HCFFT_SUCCESS) {
     return HCFFT_SETUP_FAILED;
+  }
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
 
@@ -306,19 +340,21 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
       ipStrides[0] = 1;
       ipStrides[1] = nx;
       opStrides[0] = 1;
-      opStrides[1] = 1 + nx/2;
+      opStrides[1] = 1 + nx / 2;
       ipDistance = ny * nx;
-      opDistance = ny * (1 + nx/2);
+      opDistance = ny * (1 + nx / 2);
       break;
+
     case HCFFT_C2RZ2D:
       ipStrides[0] = 1;
-      ipStrides[1] = 1 + nx/2;
+      ipStrides[1] = 1 + nx / 2;
       opStrides[0] = 1;
       opStrides[1] = nx;
-      ipDistance = ny * (1 + nx/2);
+      ipDistance = ny * (1 + nx / 2);
       opDistance = ny * nx;
       scale = 1.0;
       break;
+
     case HCFFT_C2CZ2Z:
       ipStrides[0] = 1;
       ipStrides[1] = nx;
@@ -327,6 +363,7 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
       ipDistance = ny * nx;
       opDistance = ny * nx;
       break;
+
     default:
       // Invalid type
       return HCFFT_INVALID_VALUE;
@@ -342,39 +379,46 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
   // set certain properties of plan with default values
   // Set Precision
   status = planObject.hcfftSetPlanPrecision(*plan, precision);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   // Set Transpose type
   status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
-  
+
   // Set Result location data layout
-  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
+  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetPlanInStride(*plan, dimension, ipStrides);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetPlanOutStride(*plan, dimension, opStrides);
+
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetPlanDistance(*plan, ipDistance, opDistance);
+
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   if ( libType == HCFFT_C2RZ2D) {
     status = planObject.hcfftSetPlanScale(*plan, direction, scale );
+
     if( status != HCFFT_SUCCEEDS) {
       return HCFFT_SETUP_FAILED;
     }
@@ -383,81 +427,87 @@ hcfftResult hcfftPlan2d(hcfftHandle *&plan, int nx, int ny, hcfftType type) {
   return HCFFT_SUCCESS;
 }
 
-/* 
+/*
  * <iii> Function hcfftPlan3d()
    Description:
-      Creates a 3D FFT plan configuration according to specified signal sizes and data type. 
+      Creates a 3D FFT plan configuration according to specified signal sizes and data type.
    This function is the same as hcfftPlan2d() except that it takes a third size parameter nz.
 
    Input:
    ----------------------------------------------------------------------------------------------
-   #1 plan 	Pointer to a hcfftHandle object
-   #2 nx 	The transform size in the x dimension
-   #3 ny 	The transform size in the y dimension
-   #4 nz 	The transform size in the z dimension
-   #5 type 	The transform data type (e.g., HCFFT_R2C for single precision real to complex)
+   #1 plan  Pointer to a hcfftHandle object
+   #2 nx  The transform size in the x dimension
+   #3 ny  The transform size in the y dimension
+   #4 nz  The transform size in the z dimension
+   #5 type  The transform data type (e.g., HCFFT_R2C for single precision real to complex)
 
    Output:
    ----------------------------------------------------------------------------------------------
-   #1 plan 	Contains a hcFFT 3D plan handle value
+   #1 plan  Contains a hcFFT 3D plan handle value
 
    Return Values:
    ----------------------------------------------------------------------------------------------
-   HCFFT_SUCCESS 	hcFFT successfully created the FFT plan.
-   HCFFT_ALLOC_FAILED 	The allocation of GPU resources for the plan failed.
-   HCFFT_INVALID_VALUE 	One or more invalid parameters were passed to the API.
-   HCFFT_INTERNAL_ERROR 	An internal driver error was detected.
-   HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize.
-   HCFFT_INVALID_SIZE 	One or more of the nx, ny, or nz parameters is not a supported size.
+   HCFFT_SUCCESS  hcFFT successfully created the FFT plan.
+   HCFFT_ALLOC_FAILED   The allocation of GPU resources for the plan failed.
+   HCFFT_INVALID_VALUE  One or more invalid parameters were passed to the API.
+   HCFFT_INTERNAL_ERROR   An internal driver error was detected.
+   HCFFT_SETUP_FAILED   The hcFFT library failed to initialize.
+   HCFFT_INVALID_SIZE   One or more of the nx, ny, or nz parameters is not a supported size.
 */
 
-hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType type) {
+hcfftResult hcfftPlan3d(hcfftHandle*&plan, int nx, int ny, int nz, hcfftType type) {
   // Set dimension as 3D
-  hcfftDim dimension = HCFFT_3D; 
-  
+  hcfftDim dimension = HCFFT_3D;
   // Check the input type and set appropriate direction and precision
   hcfftDirection direction;
   hcfftPrecision precision;
+
   switch (type) {
     case HCFFT_R2C:
-                     precision = HCFFT_SINGLE;
-                     direction = HCFFT_FORWARD;
-                     break;
+      precision = HCFFT_SINGLE;
+      direction = HCFFT_FORWARD;
+      break;
+
     case HCFFT_C2R:
-                     precision = HCFFT_SINGLE;
-                     direction = HCFFT_BACKWARD;
-                     break;
+      precision = HCFFT_SINGLE;
+      direction = HCFFT_BACKWARD;
+      break;
+
     case HCFFT_C2C:
-                     precision = HCFFT_SINGLE;
-                     direction = HCFFT_BOTH;
-                     break;
+      precision = HCFFT_SINGLE;
+      direction = HCFFT_BOTH;
+      break;
+
     case HCFFT_D2Z:
-                     precision = HCFFT_DOUBLE;
-                     direction = HCFFT_FORWARD;
-                     break;
+      precision = HCFFT_DOUBLE;
+      direction = HCFFT_FORWARD;
+      break;
+
     case HCFFT_Z2D:
-                     precision = HCFFT_DOUBLE;
-                     direction = HCFFT_BACKWARD;
-                     break;
+      precision = HCFFT_DOUBLE;
+      direction = HCFFT_BACKWARD;
+      break;
+
     case HCFFT_Z2Z:
-                     precision = HCFFT_DOUBLE;
-                     direction = HCFFT_BOTH;
-                     break;
+      precision = HCFFT_DOUBLE;
+      direction = HCFFT_BOTH;
+      break;
+
     default:
-                     // Invalid type
-                     return HCFFT_INVALID_VALUE;
+      // Invalid type
+      return HCFFT_INVALID_VALUE;
   }
-  
+
   // length array to bookkeep dimension info
   size_t* length = (size_t*)malloc(sizeof(size_t) * dimension);
-  size_t *ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
-  size_t *opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t* ipStrides = (size_t*)malloc(sizeof(size_t) * dimension);
+  size_t* opStrides = (size_t*)malloc(sizeof(size_t) * dimension);
   size_t ipDistance, opDistance;
   float scale;
 
   if (nx < 0 || ny < 0 || nz < 0) {
-     // invalid size
-     return HCFFT_INVALID_SIZE;
+    // invalid size
+    return HCFFT_INVALID_SIZE;
   } else {
     length[0] = nx;
     length[1] = ny;
@@ -466,13 +516,17 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
 
   // Allocate Rawplan
   hcfftResult res = hcfftCreate(plan);
-  if(res != HCFFT_SUCCESS)
+
+  if(res != HCFFT_SUCCESS) {
     return HCFFT_ALLOC_FAILED;
+  }
 
   hc::accelerator acc;
   res = hcfftXtSetGPUs(acc);
-  if(res != HCFFT_SUCCESS)
+
+  if(res != HCFFT_SUCCESS) {
     return HCFFT_SETUP_FAILED;
+  }
 
   hcfftLibType libType = ((type == HCFFT_R2C || type == HCFFT_D2Z) ? HCFFT_R2CD2Z : (type == HCFFT_C2R || type == HCFFT_Z2D) ? HCFFT_C2RZ2D : (type == HCFFT_C2C || type == HCFFT_Z2Z ) ? HCFFT_C2CZ2Z : (hcfftLibType)0);
 
@@ -485,8 +539,9 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
       opStrides[1] = 1 + (nx / 2);
       opStrides[2] = (1 + (nx / 2)) * ny;
       ipDistance = nz * ny * nx;
-      opDistance = nz * ny * (1 + nx/2);
+      opDistance = nz * ny * (1 + nx / 2);
       break;
+
     case HCFFT_C2RZ2D:
       ipStrides[0] = 1;
       ipStrides[1] = 1 + (nx / 2);
@@ -494,10 +549,11 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
       opStrides[0] = 1;
       opStrides[1] = nx;
       opStrides[2] = nx * ny;
-      ipDistance = nz * ny * (1 + nx/2);
+      ipDistance = nz * ny * (1 + nx / 2);
       opDistance = nz * ny * nx;
       scale = 1.0;
       break;
+
     case HCFFT_C2CZ2Z:
       ipStrides[0] = 1;
       ipStrides[1] = nx;
@@ -508,53 +564,62 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
       ipDistance = nz * ny * nx;
       opDistance = nz * ny * nx;
       break;
+
     default:
       // Invalid type
       return HCFFT_INVALID_VALUE;
   }
 
   hcfftStatus status = planObject.hcfftCreateDefaultPlan (plan, dimension, length, direction, precision, libType);
+
   if ( status == HCFFT_ERROR || status == HCFFT_INVALID ) {
     return HCFFT_INVALID_VALUE;
-  } 
+  }
 
   // Default options
   // set certain properties of plan with default values
   // Set Precision
   status = planObject.hcfftSetPlanPrecision(*plan, precision);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   // Set Transpose type
   status = planObject.hcfftSetPlanTransposeResult(*plan, HCFFT_NOTRANSPOSE);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
-  
+
   // Set Result location data layout
-  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE); 
+  status = planObject.hcfftSetResultLocation(*plan, HCFFT_OUTOFPLACE);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetPlanInStride(*plan, dimension, ipStrides);
+
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetPlanOutStride(*plan, dimension, opStrides);
+
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetPlanDistance(*plan, ipDistance, opDistance);
+
   if( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
 
   if ( libType == HCFFT_C2RZ2D) {
     status = planObject.hcfftSetPlanScale(*plan, direction, scale );
+
     if( status != HCFFT_SUCCEEDS) {
       return HCFFT_SETUP_FAILED;
     }
@@ -564,8 +629,8 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
 }
 
 /* Function hcfftDestroy()
-   Description: 
-      Frees all GPU resources associated with a hcFFT plan and destroys the internal plan data structure. 
+   Description:
+      Frees all GPU resources associated with a hcFFT plan and destroys the internal plan data structure.
    This function should be called once a plan is no longer needed, to avoid wasting GPU memory.
 
    Input:
@@ -581,9 +646,11 @@ hcfftResult hcfftPlan3d(hcfftHandle *&plan, int nx, int ny, int nz, hcfftType ty
 hcfftResult hcfftDestroy(hcfftHandle plan) {
   auto planHandle = plan;
   hcfftStatus status = planObject.hcfftDestroyPlan(&planHandle);
+
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_INVALID_PLAN;
   }
+
   return HCFFT_SUCCESS;
 }
 
@@ -598,56 +665,59 @@ hcfftResult hcfftDestroy(hcfftHandle plan) {
 
    Input:
    -----------------------------------------------------------------------------------------------------------------------
-   plan 	hcfftHandle returned by hcfftCreate
-   idata 	Pointer to the real input data (in GPU memory) to transform
-   odata 	Pointer to the complex output data (in GPU memory)
+   plan   hcfftHandle returned by hcfftCreate
+   idata  Pointer to the real input data (in GPU memory) to transform
+   odata  Pointer to the complex output data (in GPU memory)
 
    Output:
    -----------------------------------------------------------------------------------------------------------------------
-   odata 	Contains the complex Fourier coefficients
+   odata  Contains the complex Fourier coefficients
 
    Return Values:
    ------------------------------------------------------------------------------------------------------------------------
-   HCFFT_SUCCESS 	hcFFT successfully executed the FFT plan.
-   HCFFT_INVALID_PLAN 	The plan parameter is not a valid handle.
-   HCFFT_INVALID_VALUE 	At least one of the parameters idata and odata is not valid.
-   HCFFT_INTERNAL_ERROR 	An internal driver error was detected.
-   HCFFT_EXEC_FAILED 	hcFFT failed to execute the transform on the GPU.
-   HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize.
+   HCFFT_SUCCESS  hcFFT successfully executed the FFT plan.
+   HCFFT_INVALID_PLAN   The plan parameter is not a valid handle.
+   HCFFT_INVALID_VALUE  At least one of the parameters idata and odata is not valid.
+   HCFFT_INTERNAL_ERROR   An internal driver error was detected.
+   HCFFT_EXEC_FAILED  hcFFT failed to execute the transform on the GPU.
+   HCFFT_SETUP_FAILED   The hcFFT library failed to initialize.
 */
 
-hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata)
-{
+hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal* idata, hcfftComplex* odata) {
   // Nullity check
   if( idata == NULL || odata == NULL) {
     return HCFFT_INVALID_VALUE;
   }
 
   // TODO: Check validity of plan
-  
   hcfftDirection dir = HCFFT_FORWARD;
-  hcfftReal *odataR = (hcfftReal*)odata;
-
+  hcfftReal* odataR = (hcfftReal*)odata;
   hcfftResLocation loc = HCFFT_OUTOFPLACE;
-  if(idata == odataR)
+
+  if(idata == odataR) {
     loc = HCFFT_INPLACE;
+  }
 
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetResultLocation(plan, loc);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftBakePlan(plan);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftEnqueueTransform(plan, dir, idata, odataR, NULL);
+
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }
@@ -655,38 +725,41 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata
   return HCFFT_SUCCESS;
 }
 
-hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal *idata, hcfftDoubleComplex *odata)
-{
+hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal* idata, hcfftDoubleComplex* odata) {
   // Nullity check
   if( idata == NULL || odata == NULL) {
     return HCFFT_INVALID_VALUE;
   }
 
   // TODO: Check validity of plan
-
   hcfftDirection dir = HCFFT_FORWARD;
-  hcfftDoubleReal *odataR = (hcfftDoubleReal*)odata;
-
+  hcfftDoubleReal* odataR = (hcfftDoubleReal*)odata;
   hcfftResLocation loc = HCFFT_OUTOFPLACE;
-  if(idata == odataR)
+
+  if(idata == odataR) {
     loc = HCFFT_INPLACE;
+  }
 
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetResultLocation(plan, loc);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftBakePlan(plan);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftEnqueueTransform(plan, dir, idata, odataR, NULL);
+
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }
@@ -705,56 +778,59 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal *idata, hcfftDoubleCo
 
    Input:
    ------------------------------------------------------------------------------------------------------------------
-   plan 	hcfftHandle returned by hcfftCreate
-   idata 	Pointer to the complex input data (in GPU memory) to transform
-   odata 	Pointer to the real output data (in GPU memory)
+   plan   hcfftHandle returned by hcfftCreate
+   idata  Pointer to the complex input data (in GPU memory) to transform
+   odata  Pointer to the real output data (in GPU memory)
 
    Output:
    ------------------------------------------------------------------------------------------------------------------
-   odata 	Contains the real output data
+   odata  Contains the real output data
 
    Return Values:
    -------------------------------------------------------------------------------------------------------------------
-   HCFFT_SUCCESS 	hcFFT successfully executed the FFT plan.
-   HCFFT_INVALID_PLAN 	The plan parameter is not a valid handle.
-   HCFFT_INVALID_VALUE 	At least one of the parameters idata and odata is not valid.
-   HCFFT_INTERNAL_ERROR 	An internal driver error was detected.
-   HCFFT_EXEC_FAILED 	hcFFT failed to execute the transform on the GPU.
-   HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize.
+   HCFFT_SUCCESS  hcFFT successfully executed the FFT plan.
+   HCFFT_INVALID_PLAN   The plan parameter is not a valid handle.
+   HCFFT_INVALID_VALUE  At least one of the parameters idata and odata is not valid.
+   HCFFT_INTERNAL_ERROR   An internal driver error was detected.
+   HCFFT_EXEC_FAILED  hcFFT failed to execute the transform on the GPU.
+   HCFFT_SETUP_FAILED   The hcFFT library failed to initialize.
 */
 
-hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata)
-{
+hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex* idata, hcfftReal* odata) {
   // Nullity check
   if( idata == NULL || odata == NULL) {
     return HCFFT_INVALID_VALUE;
   }
 
   // TODO: Check validity of plan
-
   hcfftDirection dir = HCFFT_BACKWARD;
-  hcfftReal *idataR = (hcfftReal*)idata;
-
+  hcfftReal* idataR = (hcfftReal*)idata;
   hcfftResLocation loc = HCFFT_OUTOFPLACE;
-  if(idataR == odata)
+
+  if(idataR == odata) {
     loc = HCFFT_INPLACE;
+  }
 
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetResultLocation(plan, loc);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftBakePlan(plan);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftEnqueueTransform(plan, dir, idataR, odata, NULL);
+
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }
@@ -762,38 +838,41 @@ hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata
   return HCFFT_SUCCESS;
 }
 
-hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubleReal *odata)
-{
+hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubleReal* odata) {
   // Nullity check
   if( idata == NULL || odata == NULL) {
     return HCFFT_INVALID_VALUE;
   }
 
   // TODO: Check validity of plan
-
   hcfftDirection dir = HCFFT_BACKWARD;
-  hcfftDoubleReal *idataR = (hcfftDoubleReal*)idata;
-
+  hcfftDoubleReal* idataR = (hcfftDoubleReal*)idata;
   hcfftResLocation loc = HCFFT_OUTOFPLACE;
-  if(idataR == odata)
+
+  if(idataR == odata) {
     loc = HCFFT_INPLACE;
+  }
 
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetResultLocation(plan, loc);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftBakePlan(plan);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftEnqueueTransform(plan, dir, idataR, odata, NULL);
+
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }
@@ -810,96 +889,101 @@ hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubl
 
    Input:
    ----------------------------------------------------------------------------------------------------------
-   plan 	hcfftHandle returned by hcfftCreate
-   idata 	Pointer to the complex input data (in GPU memory) to transform
-   odata 	Pointer to the complex output data (in GPU memory)
-   direction 	The transform direction: HCFFT_FORWARD or HCFFT_INVERSE
+   plan   hcfftHandle returned by hcfftCreate
+   idata  Pointer to the complex input data (in GPU memory) to transform
+   odata  Pointer to the complex output data (in GPU memory)
+   direction  The transform direction: HCFFT_FORWARD or HCFFT_INVERSE
 
    Output:
    -----------------------------------------------------------------------------------------------------------
-   odata 	Contains the complex Fourier coefficients
+   odata  Contains the complex Fourier coefficients
 
    Return Values:
    ------------------------------------------------------------------------------------------------------------
-   HCFFT_SUCCESS 	hcFFT successfully executed the FFT plan.
-   HCFFT_INVALID_PLAN 	The plan parameter is not a valid handle.
-   HCFFT_INVALID_VALUE 	At least one of the parameters idata, odata, and direction is not valid.
-   HCFFT_INTERNAL_ERROR 	An internal driver error was detected.
-   HCFFT_EXEC_FAILED 	hcFFT failed to execute the transform on the GPU.
-   HCFFT_SETUP_FAILED 	The hcFFT library failed to initialize. */
+   HCFFT_SUCCESS  hcFFT successfully executed the FFT plan.
+   HCFFT_INVALID_PLAN   The plan parameter is not a valid handle.
+   HCFFT_INVALID_VALUE  At least one of the parameters idata, odata, and direction is not valid.
+   HCFFT_INTERNAL_ERROR   An internal driver error was detected.
+   HCFFT_EXEC_FAILED  hcFFT failed to execute the transform on the GPU.
+   HCFFT_SETUP_FAILED   The hcFFT library failed to initialize. */
 
-hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex *idata, hcfftComplex *odata, int direction)
-{
+hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex* idata, hcfftComplex* odata, int direction) {
   // Nullity check
   if( idata == NULL || odata == NULL) {
     return HCFFT_INVALID_VALUE;
   }
 
   // TODO: Check validity of plan
-
-  hcfftReal *idataR = (hcfftReal*)idata;
-  hcfftReal *odataR = (hcfftReal*)odata;
-
+  hcfftReal* idataR = (hcfftReal*)idata;
+  hcfftReal* odataR = (hcfftReal*)odata;
   hcfftResLocation loc = HCFFT_OUTOFPLACE;
-  if(idataR == odataR)
+
+  if(idataR == odataR) {
     loc = HCFFT_INPLACE;
+  }
 
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetResultLocation(plan, loc);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftBakePlan(plan);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftEnqueueTransform(plan, (hcfftDirection)direction, idataR, odataR, NULL);
+
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }
 
   return HCFFT_SUCCESS;
-
 }
 
-hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubleComplex *odata, int direction)
-{
+hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubleComplex* odata, int direction) {
   // Nullity check
   if( idata == NULL || odata == NULL) {
     return HCFFT_INVALID_VALUE;
   }
 
   // TODO: Check validity of plan
-
-  hcfftDoubleReal *idataR = (hcfftDoubleReal*)idata;
-  hcfftDoubleReal *odataR = (hcfftDoubleReal*)odata;
-
+  hcfftDoubleReal* idataR = (hcfftDoubleReal*)idata;
+  hcfftDoubleReal* odataR = (hcfftDoubleReal*)odata;
   hcfftResLocation loc = HCFFT_OUTOFPLACE;
-  if(idataR == odataR)
+
+  if(idataR == odataR) {
     loc = HCFFT_INPLACE;
+  }
 
   hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftSetResultLocation(plan, loc);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftBakePlan(plan);
+
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
   }
 
   status = planObject.hcfftEnqueueTransform(plan, (hcfftDirection)direction, idataR, odataR, NULL);
+
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
   }

@@ -229,12 +229,12 @@ void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGro
     workGroupSize = 49;
     numTrans = length >= 7 * workGroupSize ? 1 : (7 * workGroupSize) / length;
   } else if (primeFactorsExpanded[11] == length) { // Length is pure power of 11
-		workGroupSize = 121;
-		numTrans = length >= 11 * workGroupSize ? 1 : (11 * workGroupSize) / length;
-	}	else if (primeFactorsExpanded[13] == length) { // Length is pure power of 13
-		workGroupSize = 169;
-		numTrans = length >= 13 * workGroupSize ? 1 : (13 * workGroupSize) / length;
-	} else {
+    workGroupSize = 121;
+    numTrans = length >= 11 * workGroupSize ? 1 : (11 * workGroupSize) / length;
+  } else if (primeFactorsExpanded[13] == length) { // Length is pure power of 13
+    workGroupSize = 169;
+    numTrans = length >= 13 * workGroupSize ? 1 : (13 * workGroupSize) / length;
+  } else {
     size_t leastNumPerWI = 1; // least number of elements in one work item
     size_t maxWorkGroupSize = MAX_WGS; // maximum work group size desired
 
@@ -279,18 +279,20 @@ void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGro
       leastNumPerWI = 105;
       maxWorkGroupSize = 24;
     } else if (primeFactorsExpanded[2] * primeFactorsExpanded[11] == length) {
-			leastNumPerWI = 22; maxWorkGroupSize = 128;
-		}	else if (primeFactorsExpanded[2] * primeFactorsExpanded[13] == length) {
-			leastNumPerWI = 26; maxWorkGroupSize = 128;
-		} else {
+      leastNumPerWI = 22;
+      maxWorkGroupSize = 128;
+    } else if (primeFactorsExpanded[2] * primeFactorsExpanded[13] == length) {
+      leastNumPerWI = 26;
+      maxWorkGroupSize = 128;
+    } else {
       leastNumPerWI = 210;
       maxWorkGroupSize = 12;
     }
-		if (pr==P_DOUBLE)
-		{
-			//leastNumPerWI /= 2; 
-			maxWorkGroupSize /= 2;
-		}
+
+    if (pr == P_DOUBLE) {
+      //leastNumPerWI /= 2;
+      maxWorkGroupSize /= 2;
+    }
 
     if (maxWorkGroupSize > MAX_WGS) {
       maxWorkGroupSize = MAX_WGS;
@@ -335,7 +337,7 @@ class TwiddleTable {
     delete[] wc;
   }
 
-  void GenerateTwiddleTable(void **twiddles, hc::accelerator acc, const std::vector<size_t> &radices) {
+  void GenerateTwiddleTable(void** twiddles, hc::accelerator acc, const std::vector<size_t> &radices) {
     const double TWO_PI = -6.283185307179586476925286766559;
     // Make sure the radices vector sums up to N
     size_t sz = 1;
@@ -369,6 +371,7 @@ class TwiddleTable {
         }
       }
     }
+
     *twiddles = (T*)hc::am_alloc( N * sizeof(T), acc, 0);
     hc::am_copy(*twiddles, wc, N * sizeof(T));
     assert(twiddles != NULL);
@@ -556,8 +559,7 @@ class Pass {
     std::string twType = RegBaseType<PR>(2);
     std::string rType  = RegBaseType<PR>(1);
     size_t butterflyIndex = numPrev;
-  	std::string bufOffset;
-
+    std::string bufOffset;
     std::string regBase;
     RegBase(regC, regBase);
 
@@ -644,13 +646,15 @@ class Pass {
             } else {
               if(c == 0) {
                 RegBaseAndCountAndPos("", i * radix + r, regIndex);
-		hid = (i * radix + r) / ( tIter > 1 ? (tIter / 2) : 1 );
-		swapElement = swapElement && hid != 0;
-		swapElement = (oddt && ((i * radix + r) >= (tIter - 1))) ? false : swapElement;  //for c2r odd size don't swap for last register
-		if (swapElement)
-		{
-		regIndexC = regIndex; regIndexC += "[0]).y";
-		}
+                hid = (i * radix + r) / ( tIter > 1 ? (tIter / 2) : 1 );
+                swapElement = swapElement && hid != 0;
+                swapElement = (oddt && ((i * radix + r) >= (tIter - 1))) ? false : swapElement;  //for c2r odd size don't swap for last register
+
+                if (swapElement) {
+                  regIndexC = regIndex;
+                  regIndexC += "[0]).y";
+                }
+
                 regIndex += "[0]).x";
                 buffer = bufferRe;
                 tail = interleaved ? ".x;" : ";";
@@ -662,32 +666,43 @@ class Pass {
               }
             }
 
-	//get offset 
-	bufOffset.clear();
-	bufOffset += offset; bufOffset += " + ( "; bufOffset += SztToStr(numPrev); bufOffset += " + ";
-	bufOffset += "me*"; bufOffset += SztToStr(numButterfly); bufOffset += " + ";
-	bufOffset += SztToStr(i); bufOffset += " + ";
-	bufOffset += SztToStr(r*length/radix); bufOffset += " )*";
-	bufOffset += SztToStr(stride);
+            //get offset
+            bufOffset.clear();
+            bufOffset += offset;
+            bufOffset += " + ( ";
+            bufOffset += SztToStr(numPrev);
+            bufOffset += " + ";
+            bufOffset += "me*";
+            bufOffset += SztToStr(numButterfly);
+            bufOffset += " + ";
+            bufOffset += SztToStr(i);
+            bufOffset += " + ";
+            bufOffset += SztToStr(r * length / radix);
+            bufOffset += " )*";
+            bufOffset += SztToStr(stride);
 
-	if (swapElement)
-        {
-	passStr += "\n\t";
-	passStr += regIndexC; passStr += " = "; passStr += regIndex; passStr += ";";
-	}
+            if (swapElement) {
+              passStr += "\n\t";
+              passStr += regIndexC;
+              passStr += " = ";
+              passStr += regIndex;
+              passStr += ";";
+            }
 
-	passStr += "\n\t";
-	passStr += regIndex;
-	passStr += " = ";
+            passStr += "\n\t";
+            passStr += regIndex;
+            passStr += " = ";
+            passStr += buffer;
+            passStr += "[";
+            passStr += bufOffset;
+            passStr += "]";
+            passStr += tail;
 
-	passStr += buffer;
-	passStr += "["; passStr += bufOffset; passStr += "]"; passStr += tail;
-
-        // Since we read real & imag at once, we break the loop
-        if(interleaved && (component == SR_COMP_BOTH) ) {
-           break;
-        }
-        }
+            // Since we read real & imag at once, we break the loop
+            if(interleaved && (component == SR_COMP_BOTH) ) {
+              break;
+            }
+          }
         }
       }
 
@@ -712,7 +727,8 @@ class Pass {
             passStr += "\n\t}\n\tif( rw && !me)\n\t{";
           }
 
-					std::string regIndexC0;
+          std::string regIndexC0;
+
           for(size_t c = cStart; c < cEnd; c++) { // component loop: 0 - real, 1 - imaginary
             std::string tail;
             std::string regIndex;
@@ -740,8 +756,9 @@ class Pass {
               }
             }
 
-	    bufOffset.clear();
-	    bufOffset += offset; bufOffset += " + ( "; 
+            bufOffset.clear();
+            bufOffset += offset;
+            bufOffset += " + ( ";
 
             if( (numButterfly * workGroupSize) > algLS ) {
               bufOffset += "((";
@@ -770,12 +787,25 @@ class Pass {
             bufOffset += " )*";
             bufOffset += SztToStr(stride);
 
-	    if(scale != 1.0f) { regIndex += " * "; regIndex += FloatToStr(scale); regIndex += FloatSuffix<PR>(); }
-	    if (c == cStart)	regIndexC0 = regIndex;
+            if(scale != 1.0f) {
+              regIndex += " * ";
+              regIndex += FloatToStr(scale);
+              regIndex += FloatSuffix<PR>();
+            }
 
-	    passStr += "\n\t";
-	    passStr += buffer; passStr += "["; passStr += bufOffset; passStr += "]";
-	    passStr += tail; passStr += " = "; passStr += regIndex; passStr += ";";
+            if (c == cStart) {
+              regIndexC0 = regIndex;
+            }
+
+            passStr += "\n\t";
+            passStr += buffer;
+            passStr += "[";
+            passStr += bufOffset;
+            passStr += "]";
+            passStr += tail;
+            passStr += " = ";
+            passStr += regIndex;
+            passStr += ";";
 
             // Since we write real & imag at once, we break the loop
             if(interleaved && (component == SR_COMP_BOTH)) {
@@ -805,7 +835,7 @@ class Pass {
           for(size_t c = cStart; c < cEnd; c++) { // component loop: 0 - real, 1 - imaginary
             std::string tail;
             std::string regIndex;
-						std::string regIndexC;
+            std::string regIndexC;
             regIndex = linearRegs ? "(R" : regBaseCount;
             std::string buffer;
 
@@ -820,7 +850,7 @@ class Pass {
               if(c == 0) {
                 if(linearRegs) {
                   RegBaseAndCountAndPos("", i * radix + r, regIndex);
-									hid = (i * radix + r) / (numB * radix / 2);
+                  hid = (i * radix + r) / (numB * radix / 2);
                   regIndex += "[0]).x";
                 } else       {
                   RegBaseAndCountAndPos("R", r, regIndex);
@@ -848,21 +878,28 @@ class Pass {
                 regIndexSub += ((v == 0) ? ".x" : (v == 1) ? ".y " : (v == 2) ? ".z" : ".w");
               }
 
-	     //get offset 
-	     bufOffset.clear();
-	     bufOffset += offset; bufOffset += " + ( "; bufOffset += SztToStr(numPrev); bufOffset += " + ";
-	     bufOffset += "me*"; bufOffset += SztToStr(numButterfly); bufOffset += " + ";
-	     bufOffset += SztToStr(i*regC + v); bufOffset += " + ";
-	     bufOffset += SztToStr(r*length/radix); bufOffset += " )*";
-	     bufOffset += SztToStr(stride);
-
-	     passStr += "\n\t";
-	     passStr += regIndexSub;
-	     passStr += " = "; 
-
-	     passStr += buffer;
-	     passStr += "["; passStr += bufOffset; passStr += "]"; passStr += tail;
-
+              //get offset
+              bufOffset.clear();
+              bufOffset += offset;
+              bufOffset += " + ( ";
+              bufOffset += SztToStr(numPrev);
+              bufOffset += " + ";
+              bufOffset += "me*";
+              bufOffset += SztToStr(numButterfly);
+              bufOffset += " + ";
+              bufOffset += SztToStr(i * regC + v);
+              bufOffset += " + ";
+              bufOffset += SztToStr(r * length / radix);
+              bufOffset += " )*";
+              bufOffset += SztToStr(stride);
+              passStr += "\n\t";
+              passStr += regIndexSub;
+              passStr += " = ";
+              passStr += buffer;
+              passStr += "[";
+              passStr += bufOffset;
+              passStr += "]";
+              passStr += tail;
             }
 
             // Since we read real & imag at once, we break the loop
@@ -1052,7 +1089,7 @@ class Pass {
               passStr += "\n\t}\n\tif( rw && !me)\n\t{";
             }
 
-						std::string regIndexC0;
+            std::string regIndexC0;
 
             for(size_t c = cStart; c < cEnd; c++) { // component loop: 0 - real, 1 - imaginary
               std::string tail;
@@ -1097,11 +1134,19 @@ class Pass {
 
               passStr += "\n\t";
 
-	      if(scale != 1.0f) { regIndex += " * "; regIndex += FloatToStr(scale); regIndex += FloatSuffix<PR>(); }
-	      if (c == 0) regIndexC0 += regIndex;
+              if(scale != 1.0f) {
+                regIndex += " * ";
+                regIndex += FloatToStr(scale);
+                regIndex += FloatSuffix<PR>();
+              }
 
-	      bufOffset.clear();
-	      bufOffset += offset; bufOffset += " + ( ";
+              if (c == 0) {
+                regIndexC0 += regIndex;
+              }
+
+              bufOffset.clear();
+              bufOffset += offset;
+              bufOffset += " + ( ";
 
               if( (numButterfly * workGroupSize) > algLS ) {
                 bufOffset += "((";
@@ -1129,11 +1174,14 @@ class Pass {
               bufOffset += SztToStr(r * algLS);
               bufOffset += " )*";
               bufOffset += SztToStr(stride);
-
-
-	      passStr += buffer; passStr += "["; passStr += bufOffset; passStr += "]";
-	      passStr += tail; passStr += " = "; passStr += regIndex;
-	      passStr += ";";
+              passStr += buffer;
+              passStr += "[";
+              passStr += bufOffset;
+              passStr += "]";
+              passStr += tail;
+              passStr += " = ";
+              passStr += regIndex;
+              passStr += ";";
 
               // Since we write real & imag at once, we break the loop
               if(interleaved && (component == SR_COMP_BOTH) && linearRegs) {
@@ -1213,13 +1261,15 @@ class Pass {
     }
 
     for(size_t r = rStart; r < rEnd; r++) {
-			std::string val1StrExt;
+      std::string val1StrExt;
+
       for(size_t c = cStart; c < cEnd; c++) { // component loop: 0 - real, 1 - imaginary
         if(flag == SR_READ) { // read operation
           std::string tail, tail2;
           std::string regIndex = "(R";
           std::string buffer;
-					RegBaseAndCountAndPos("", r, regIndex); 
+          RegBaseAndCountAndPos("", r, regIndex);
+
           if(c == 0) {
             regIndex += "[0]).x";
             buffer = bufferRe;
@@ -1395,7 +1445,6 @@ class Pass {
               idxStrRev += idxStr;
               idxStrRev += " )";
               std::string val1Str, val2Str;
-
               val1Str += "\n\t";
               val1Str += buffer;
               val1Str += "[";
@@ -1407,7 +1456,6 @@ class Pass {
               val1Str += "]";
               val1Str += tail;
               val1Str += " = ";
-
               val2Str += "\n\t";
               val2Str += buffer;
               val2Str += "[";
@@ -1501,10 +1549,9 @@ class Pass {
 
               val1Str += sclStr;
               val2Str += sclStr;
-
               val1Str += ";";
-
               passStr += val1Str;
+
               if(rcFull)  {
                 passStr += val2Str;
                 passStr += ";";
@@ -1741,7 +1788,8 @@ class Pass {
     //  if(outInterleaved) assert(gOut);
 
     if(r2c || c2r) {
-			assert(halfLds);
+      assert(halfLds);
+
       if(gIn) {
         if(inInterleaved) {
           passStr += regB2Type;
@@ -1786,13 +1834,12 @@ class Pass {
           passStr += bufferInIm;
           passStr += ", ";
 
-            if(!rcSimple) {
-              passStr += regB1Type;
-              passStr += " *";
-              passStr += bufferInIm2;
-              passStr += ", ";
-            }
-
+          if(!rcSimple) {
+            passStr += regB1Type;
+            passStr += " *";
+            passStr += bufferInIm2;
+            passStr += ", ";
+          }
         }
       } else {
         passStr += regB1Type;
@@ -1993,26 +2040,19 @@ class Pass {
     if(r2c) {
       if(position == 0) {
         passStr += "\n\tif(rw)\n\t{";
-
         SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
-
         passStr += "\n\t}\n";
 
         if(rcSimple) {
           passStr += "\n";
-
           SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInIm2, "inOffset", passStr);
-
           passStr += "\n";
         } else {
           passStr += "\n\tif(rw > 1)\n\t{";
           SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe2, bufferInIm2, "inOffset", 1, numB1, 0, passStr);
-
           passStr += "\n\t}\n";
           passStr += "\telse\n\t{";
-
           SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInIm2, "inOffset", passStr);
-
           passStr += "\n\t}\n";
         }
       }
@@ -2035,7 +2075,6 @@ class Pass {
         passStr += "[";
         passStr += processBufOffset;
         passStr += "] = ";
-
         passStr += bufferInRe;
         passStr += "[inOffset]";
 
@@ -2047,30 +2086,20 @@ class Pass {
 
         if(length > 1) {
           passStr += "\n\n\tif(rw)\n\t{";
-
           SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInRe, "inOffset", passStr);
-
           passStr += "\n\t}\n";
           passStr += "\n\tif(rw > 1)\n\t{";
-
           SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, false, bufferInIm2, bufferInIm2, "inOffset", passStr);
-
           passStr += "\n\t}\n\telse\n\t{";
-
           SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, true, true, false, bufferInIm2, bufferInIm2, "inOffset", passStr);
-
           passStr += "\n\t}\n";
 
           if(oddp) {
             passStr += "\n\tif(rw && (me%2))\n\t{";
-
             SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInRe, "inOffset", passStr);
-
             passStr += "\n\t}";
             passStr += "\n\tif((rw > 1) && (me%2))\n\t{";
-
             SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, true, true, bufferInIm2, bufferInIm2, "inOffset", passStr);
-
             passStr += "\n\t}\n";
           }
 
@@ -2099,7 +2128,6 @@ class Pass {
         passStr += "[";
         passStr += processBufOffset;
         passStr += "] = ";
-
         passStr += bufferInRe2;
         passStr += "[inOffset]";
 
@@ -2117,34 +2145,24 @@ class Pass {
 
         if(length > 1) {
           passStr += "\n\n\tif(rw)\n\t{";
-
           SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInIm, bufferInIm, "inOffset", passStr);
-
           passStr += "\n\t}\n";
           passStr += "\n\tif(rw > 1)\n\t{";
-
           SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, false, bufferInRe2, bufferInRe2, "inOffset", passStr);
-
           passStr += "\n\t}\n\telse\n\t{";
-
           SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, true, true, false, bufferInRe2, bufferInRe2, "inOffset", passStr);
-
           passStr += "\n\t}\n";
 
           if(oddp) {
             passStr += "\n\tif(rw && (me%2))\n\t{";
-
             SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInIm, bufferInIm, "inOffset", passStr);
-
             passStr += "\n\t}";
             passStr += "\n\tif((rw > 1) && (me%2))\n\t{";
-
             SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, true, true, bufferInRe2, bufferInRe2, "inOffset", passStr);
-
             passStr += "\n\t}";
           }
-					passStr += "\n";
 
+          passStr += "\n";
           SweepRegsRC(SR_WRITE, fwd, outInterleaved, processBufStride, SR_COMP_IMAG, 1.0f, false, true, false, processBufRe, processBufIm, processBufOffset, passStr);
 
           if(oddp) {
@@ -2168,14 +2186,11 @@ class Pass {
       }
     } else {
       if( (!halfLds) || (halfLds && (position == 0)) ) {
-	bool isPrecallVector = false;
-
+        bool isPrecallVector = false;
         passStr += "\n\tif(rw)\n\t{";
-
         SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr, isPrecallVector);
         SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 2, numB2, numB1, passStr, isPrecallVector);
         SweepRegs(plHandle, SR_READ, fwd, inInterleaved, inStride, SR_COMP_BOTH, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 4, numB4, 2 * numB2 + numB1, passStr, isPrecallVector);
-
         passStr += "\n\t}\n";
       }
     }
@@ -2222,7 +2237,9 @@ class Pass {
 
     passStr += "\n";
 
-    if(!halfLds) passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n\n\n";
+    if(!halfLds) {
+      passStr += "\n\n\ttidx.barrier.wait_with_tile_static_memory_fence();\n\n\n";
+    }
 
     // 3-step twiddle multiplies
     if(fft_3StepTwiddle && !tw3Done) {
@@ -2245,16 +2262,12 @@ class Pass {
         if(r2c && !rcSimple) {
           if(!singlePass) {
             SweepRegs(plHandle, SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
-
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
-
             SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset", passStr);
 
             if(oddp) {
               passStr += "\n\tif(me%2)\n\t{";
-
               SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_REAL, 1.0f, false, false, true, bufferInRe, bufferInIm, "inOffset", passStr);
-
               passStr += "\n\t}\n";
             }
 
@@ -2263,7 +2276,6 @@ class Pass {
             if(outInterleaved) {
               passStr += bufferOutRe;
               passStr += "[outOffset].x = ";
-
               passStr += bufferInRe;
               passStr += "[inOffset]";
 
@@ -2274,43 +2286,35 @@ class Pass {
               }
 
               passStr += ";\n\t";
-
               passStr += bufferOutIm;
               passStr += "[outOffset].y = ";
               passStr += "0;\n\t}";
             } else {
-                passStr += bufferOutRe;
-                passStr += "[outOffset] = ";
+              passStr += bufferOutRe;
+              passStr += "[outOffset] = ";
+              passStr += bufferInRe;
+              passStr += "[inOffset]";
 
-                passStr += bufferInRe;
-                passStr += "[inOffset]";
+              if(scale != 1.0) {
+                passStr += " * ";
+                passStr += FloatToStr(scale);
+                passStr += FloatSuffix<PR>();
+              }
 
-                if(scale != 1.0) {
-                  passStr += " * ";
-                  passStr += FloatToStr(scale);
-                  passStr += FloatSuffix<PR>();
-                }
-
-                passStr += ";\n\t";
-
-                passStr += bufferOutIm;
-                passStr += "[outOffset] = ";
-                passStr += "0;\n\t}";
+              passStr += ";\n\t";
+              passStr += bufferOutIm;
+              passStr += "[outOffset] = ";
+              passStr += "0;\n\t}";
             }
 
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
-
             SweepRegs(plHandle, SR_WRITE, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, bufferInRe, bufferInIm, "inOffset", 1, numB1, 0, passStr);
-
             passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
-
             SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, false, bufferInRe, bufferInIm, "inOffset", passStr);
 
             if(oddp) {
               passStr += "\n\tif(me%2)\n\t{";
-
               SweepRegsRC(SR_READ, fwd, inInterleaved, inStride, SR_COMP_IMAG, 1.0f, false, false, true, bufferInRe, bufferInIm, "inOffset", passStr);
-
               passStr += "\n\t}\n";
             }
 
@@ -2319,7 +2323,6 @@ class Pass {
             if(outInterleaved) {
               passStr += bufferOutRe2;
               passStr += "[outOffset].x = ";
-
               passStr += bufferInIm;
               passStr += "[inOffset]";
 
@@ -2330,16 +2333,14 @@ class Pass {
               }
 
               passStr += ";\n\t";
-
               passStr += bufferOutIm2;
               passStr += "[outOffset].y = ";
               passStr += "0;\n\t}";
             } else {
-                passStr += bufferOutRe2;
-                passStr += "[outOffset] = ";
-
-                passStr += bufferInIm;
-                passStr += "[inOffset]";
+              passStr += bufferOutRe2;
+              passStr += "[outOffset] = ";
+              passStr += bufferInIm;
+              passStr += "[inOffset]";
 
               if(scale != 1.0) {
                 passStr += " * ";
@@ -2348,7 +2349,6 @@ class Pass {
               }
 
               passStr += ";\n\t";
-
               passStr += bufferOutIm2;
               passStr += "[outOffset] = ";
               passStr += "0;\n\t}";
@@ -2358,88 +2358,64 @@ class Pass {
           }
 
           passStr += "\n\n\tif(rw)\n\t{";
-
           SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, false, bufferOutRe, bufferOutIm, "outOffset", passStr);
-
           passStr += "\n\t}\n";
 
           if(oddp) {
             passStr += "\n\n\tbrv = ((rw != 0) & (me%2 == 1));\n\t";
             passStr += "if(brv)\n\t{";
-
             SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, false, true, bufferOutRe, bufferOutIm, "outOffset", passStr);
-
             passStr += "\n\t}\n";
           }
 
           passStr += "\n\n\tif(rw > 1)\n\t{";
-
           SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, false, bufferOutRe2, bufferOutIm2, "outOffset", passStr);
-
           passStr += "\n\t}\n";
 
           if(oddp) {
             passStr += "\n\n\tbrv = ((rw > 1) & (me%2 == 1));\n\t";
             passStr += "if(brv)\n\t{";
-
             SweepRegsRC(SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, true, true, bufferOutRe2, bufferOutIm2, "outOffset", passStr);
-
             passStr += "\n\t}\n";
           }
         } else if(c2r) {
           passStr += "\n\tif(rw)\n\t{";
-
           SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
-
           passStr += "\n\t}\n";
 
           if(!rcSimple) {
             passStr += "\n\tif(rw > 1)\n\t{";
-
             SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe2, bufferOutIm2, "outOffset", 1, numB1, 0, passStr);
-
             passStr += "\n\t}\n";
           }
         } else {
           passStr += "\n\tif(rw)\n\t{";
-
           SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
-
           passStr += "\n\t}\n";
         }
       } else {
         passStr += "\n\tif(rw)\n\t{";
-
         SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
-
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif(rw)\n\t{";
-
         nextPass->SweepRegs(plHandle, SR_READ, fwd, outInterleaved, outStride, SR_COMP_REAL, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
-
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif(rw)\n\t{";
-
         SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
-
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
         passStr += "\n\tif(rw)\n\t{";
-
         nextPass->SweepRegs(plHandle, SR_READ, fwd, outInterleaved, outStride, SR_COMP_IMAG, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, nextPass->GetNumB1(), 0, passStr);
-
         passStr += "\n\t}\n";
         passStr += "\n\ntidx.barrier.wait_with_tile_static_memory_fence();\n";
       }
     } else {
       passStr += "\n\tif(rw)\n\t{";
-
       SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 1, numB1, 0, passStr);
       SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 2, numB2, numB1, passStr);
       SweepRegs(plHandle, SR_WRITE, fwd, outInterleaved, outStride, SR_COMP_BOTH, scale, false, bufferOutRe, bufferOutIm, "outOffset", 4, numB4, 2 * numB2 + numB1, passStr);
-
       passStr += "\n\t}\n";
     }
 
@@ -2682,12 +2658,9 @@ class Kernel {
     }
 
     rcSimple = params.fft_RCsimple;
-
     halfLds = true;
-   linearRegs = true;
-
+    linearRegs = true;
     realSpecial = params.fft_realSpecial;
-
     blockCompute = params.blockCompute;
     blockComputeType = params.blockComputeType;
 
@@ -2876,7 +2849,7 @@ class Kernel {
     }
   };
 
-  void GenerateKernel(void **twiddles, void **twiddleslarge, hc::accelerator acc, const hcfftPlanHandle plHandle, std::string &str, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize, size_t count) {
+  void GenerateKernel(void** twiddles, void** twiddleslarge, hc::accelerator acc, const hcfftPlanHandle plHandle, std::string &str, std::vector< size_t > gWorkSize, std::vector< size_t > lWorkSize, size_t count) {
     std::string twType = RegBaseType<PR>(2);
     std::string rType  = RegBaseType<PR>(1);
     std::string r2Type  = RegBaseType<PR>(2);
@@ -2903,89 +2876,188 @@ class Kernel {
     }
 
     std::string sfx = FloatSuffix<PR>() + "\n";
-
     // Base type
-    str += "#define fptype "; str += RegBaseType<PR>(1); str += "\n\n";
-
+    str += "#define fptype ";
+    str += RegBaseType<PR>(1);
+    str += "\n\n";
     // Vector type
     str += "#define fvect2 ";
     str += RegBaseType<PR>(2);
     str += "\n\n";
 
     //constants
-    if (length%8 == 0)
-    {
-	str += "#define C8Q  0.70710678118654752440084436210485"; str += sfx; str += "\n";
-    }
-    if (length % 5 == 0)
-    {
-	str += "#define C5QA 0.30901699437494742410229341718282"; str += sfx; str += "\n";
-	str += "#define C5QB 0.95105651629515357211643933337938"; str += sfx; str += "\n";
-	str += "#define C5QC 0.50000000000000000000000000000000"; str += sfx; str += "\n";
-	str += "#define C5QD 0.58778525229247312916870595463907"; str += sfx; str += "\n";
-	str += "#define C5QE 0.80901699437494742410229341718282"; str += sfx; str += "\n";
-    }
-    if (length % 3 == 0)
-    {
-	str += "#define C3QA 0.50000000000000000000000000000000"; str += sfx; str += "\n";
-	str += "#define C3QB 0.86602540378443864676372317075294"; str += sfx; str += "\n";
-    }
-    if (length % 7 == 0)
-    {
-	str += "#define C7Q1 -1.16666666666666651863693004997913"; str += sfx; str += "\n";
-	str += "#define C7Q2  0.79015646852540022404554065360571"; str += sfx; str += "\n";
-	str += "#define C7Q3  0.05585426728964774240049351305970"; str += sfx; str += "\n";
-	str += "#define C7Q4  0.73430220123575240531721419756650"; str += sfx; str += "\n";
-	str += "#define C7Q5  0.44095855184409837868031445395900"; str += sfx; str += "\n";
-	str += "#define C7Q6  0.34087293062393136944265847887436"; str += sfx; str += "\n";
-	str += "#define C7Q7 -0.53396936033772524066165487965918"; str += sfx; str += "\n";
-	str += "#define C7Q8  0.87484229096165666561546458979137"; str += sfx; str += "\n";
+    if (length % 8 == 0) {
+      str += "#define C8Q  0.70710678118654752440084436210485";
+      str += sfx;
+      str += "\n";
     }
 
-    if (length % 11 == 0)
-    {
-	str += "#define b11_0 0.9898214418809327"; str += sfx; str += "\n";
-	str += "#define b11_1 0.9594929736144973"; str += sfx; str += "\n";
-	str += "#define b11_2 0.9189859472289947"; str += sfx; str += "\n";
-	str += "#define b11_3 0.8767688310025893"; str += sfx; str += "\n";
-	str += "#define b11_4 0.8308300260037728"; str += sfx; str += "\n";
-	str += "#define b11_5 0.7784344533346518"; str += sfx; str += "\n";
-	str += "#define b11_6 0.7153703234534297"; str += sfx; str += "\n";
-	str += "#define b11_7 0.6343562706824244"; str += sfx; str += "\n";
-	str += "#define b11_8 0.3425847256816375"; str += sfx; str += "\n";
-	str += "#define b11_9 0.5211085581132027"; str += sfx; str += "\n";
+    if (length % 5 == 0) {
+      str += "#define C5QA 0.30901699437494742410229341718282";
+      str += sfx;
+      str += "\n";
+      str += "#define C5QB 0.95105651629515357211643933337938";
+      str += sfx;
+      str += "\n";
+      str += "#define C5QC 0.50000000000000000000000000000000";
+      str += sfx;
+      str += "\n";
+      str += "#define C5QD 0.58778525229247312916870595463907";
+      str += sfx;
+      str += "\n";
+      str += "#define C5QE 0.80901699437494742410229341718282";
+      str += sfx;
+      str += "\n";
     }
-    if (length % 13 == 0)
-    {
-	str += "#define b13_0  0.9682872443619840"; str += sfx; str += "\n";
-	str += "#define b13_1  0.9578059925946651"; str += sfx; str += "\n";
-	str += "#define b13_2  0.8755023024091479"; str += sfx; str += "\n";
-	str += "#define b13_3  0.8660254037844386"; str += sfx; str += "\n";
-	str += "#define b13_4  0.8595425350987748"; str += sfx; str += "\n";
-	str += "#define b13_5  0.8534800018598239"; str += sfx; str += "\n";
-	str += "#define b13_6  0.7693388175729806"; str += sfx; str += "\n";
-	str += "#define b13_7  0.6865583707817543"; str += sfx; str += "\n";
-	str += "#define b13_8  0.6122646503767565"; str += sfx; str += "\n";
-	str += "#define b13_9  0.6004772719326652"; str += sfx; str += "\n";
-	str += "#define b13_10 0.5817047785105157"; str += sfx; str += "\n";
-	str += "#define b13_11 0.5751407294740031"; str += sfx; str += "\n";
-	str += "#define b13_12 0.5220263851612750"; str += sfx; str += "\n";
-	str += "#define b13_13 0.5200285718888646"; str += sfx; str += "\n";
-	str += "#define b13_14 0.5165207806234897"; str += sfx; str += "\n";
-	str += "#define b13_15 0.5149187780863157"; str += sfx; str += "\n";
-	str += "#define b13_16 0.5035370328637666"; str += sfx; str += "\n";
-	str += "#define b13_17 0.5000000000000000"; str += sfx; str += "\n";
-	str += "#define b13_18 0.3027756377319946"; str += sfx; str += "\n";
-	str += "#define b13_19 0.3014792600477098"; str += sfx; str += "\n";
-	str += "#define b13_20 0.3004626062886657"; str += sfx; str += "\n";
-	str += "#define b13_21 0.2517685164318833"; str += sfx; str += "\n";
-	str += "#define b13_22 0.2261094450357824"; str += sfx; str += "\n";
-	str += "#define b13_23 0.0833333333333333"; str += sfx; str += "\n";
-	str += "#define b13_24 0.0386329546443481"; str += sfx; str += "\n";
+
+    if (length % 3 == 0) {
+      str += "#define C3QA 0.50000000000000000000000000000000";
+      str += sfx;
+      str += "\n";
+      str += "#define C3QB 0.86602540378443864676372317075294";
+      str += sfx;
+      str += "\n";
+    }
+
+    if (length % 7 == 0) {
+      str += "#define C7Q1 -1.16666666666666651863693004997913";
+      str += sfx;
+      str += "\n";
+      str += "#define C7Q2  0.79015646852540022404554065360571";
+      str += sfx;
+      str += "\n";
+      str += "#define C7Q3  0.05585426728964774240049351305970";
+      str += sfx;
+      str += "\n";
+      str += "#define C7Q4  0.73430220123575240531721419756650";
+      str += sfx;
+      str += "\n";
+      str += "#define C7Q5  0.44095855184409837868031445395900";
+      str += sfx;
+      str += "\n";
+      str += "#define C7Q6  0.34087293062393136944265847887436";
+      str += sfx;
+      str += "\n";
+      str += "#define C7Q7 -0.53396936033772524066165487965918";
+      str += sfx;
+      str += "\n";
+      str += "#define C7Q8  0.87484229096165666561546458979137";
+      str += sfx;
+      str += "\n";
+    }
+
+    if (length % 11 == 0) {
+      str += "#define b11_0 0.9898214418809327";
+      str += sfx;
+      str += "\n";
+      str += "#define b11_1 0.9594929736144973";
+      str += sfx;
+      str += "\n";
+      str += "#define b11_2 0.9189859472289947";
+      str += sfx;
+      str += "\n";
+      str += "#define b11_3 0.8767688310025893";
+      str += sfx;
+      str += "\n";
+      str += "#define b11_4 0.8308300260037728";
+      str += sfx;
+      str += "\n";
+      str += "#define b11_5 0.7784344533346518";
+      str += sfx;
+      str += "\n";
+      str += "#define b11_6 0.7153703234534297";
+      str += sfx;
+      str += "\n";
+      str += "#define b11_7 0.6343562706824244";
+      str += sfx;
+      str += "\n";
+      str += "#define b11_8 0.3425847256816375";
+      str += sfx;
+      str += "\n";
+      str += "#define b11_9 0.5211085581132027";
+      str += sfx;
+      str += "\n";
+    }
+
+    if (length % 13 == 0) {
+      str += "#define b13_0  0.9682872443619840";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_1  0.9578059925946651";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_2  0.8755023024091479";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_3  0.8660254037844386";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_4  0.8595425350987748";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_5  0.8534800018598239";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_6  0.7693388175729806";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_7  0.6865583707817543";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_8  0.6122646503767565";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_9  0.6004772719326652";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_10 0.5817047785105157";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_11 0.5751407294740031";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_12 0.5220263851612750";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_13 0.5200285718888646";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_14 0.5165207806234897";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_15 0.5149187780863157";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_16 0.5035370328637666";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_17 0.5000000000000000";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_18 0.3027756377319946";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_19 0.3014792600477098";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_20 0.3004626062886657";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_21 0.2517685164318833";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_22 0.2261094450357824";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_23 0.0833333333333333";
+      str += sfx;
+      str += "\n";
+      str += "#define b13_24 0.0386329546443481";
+      str += sfx;
+      str += "\n";
     }
 
     str += "\n";
-
     bool cReg = linearRegs ? true : false;
     // Generate butterflies for all unique radices
     std::list<size_t> uradices;
@@ -3031,23 +3103,21 @@ class Kernel {
       }
     }
 
-    if(PR == P_SINGLE)
-    {
-       TwiddleTableLarge<hc::short_vector::float_2, PR> twLarge(large1D);
-       // twiddle factors for 1d-large 3-step algorithm
-       if(params.fft_3StepTwiddle) {
-         twLarge.GenerateTwiddleTable(str, plHandle);
-         twLarge.TwiddleLargeAV(twiddleslarge, acc);
-      }
-    }
-    else
-    {
-       TwiddleTableLarge<hc::short_vector::double_2, PR> twLarge(large1D);
+    if(PR == P_SINGLE) {
+      TwiddleTableLarge<hc::short_vector::float_2, PR> twLarge(large1D);
 
-       // twiddle factors for 1d-large 3-step algorithm
-       if(params.fft_3StepTwiddle) {
-         twLarge.GenerateTwiddleTable(str, plHandle);
-         twLarge.TwiddleLargeAV(twiddleslarge, acc);
+      // twiddle factors for 1d-large 3-step algorithm
+      if(params.fft_3StepTwiddle) {
+        twLarge.GenerateTwiddleTable(str, plHandle);
+        twLarge.TwiddleLargeAV(twiddleslarge, acc);
+      }
+    } else {
+      TwiddleTableLarge<hc::short_vector::double_2, PR> twLarge(large1D);
+
+      // twiddle factors for 1d-large 3-step algorithm
+      if(params.fft_3StepTwiddle) {
+        twLarge.GenerateTwiddleTable(str, plHandle);
+        twLarge.TwiddleLargeAV(twiddleslarge, acc);
       }
     }
 
@@ -3328,18 +3398,14 @@ class Kernel {
         str += SztToStr(arg);
         str += "]);\n";
         arg++;
-        if(PR == P_SINGLE)
-        {
-          if ( d == 0 )
-          {
+
+        if(PR == P_SINGLE) {
+          if ( d == 0 ) {
             TwiddleTable<hc::short_vector::float_2> twTable(length);
             twTable.GenerateTwiddleTable(twiddles, acc, radices);
           }
-        }
-        else
-        {
-          if ( d == 0 )
-          {
+        } else {
+          if ( d == 0 ) {
             TwiddleTable<hc::short_vector::double_2> twTable(length);
             twTable.GenerateTwiddleTable(twiddles, acc, radices);
           }
@@ -3368,9 +3434,7 @@ class Kernel {
       str += "\thc::tiled_extent<2> t_ext = grdExt.tile(";
       str += SztToStr(lWorkSize[0]);
       str += ",1);\n";
-
       str += "\thc::parallel_for_each(acc_view, t_ext, [=] (hc::tiled_index<2> tidx) [[hc]]\n\t { ";
-
       // Initialize
       str += "\t";
       str += "unsigned int me = tidx.local[0];\n\t";
@@ -3411,83 +3475,113 @@ class Kernel {
           str += "unsigned int oOffset2;\n\n\t";
         }
 
-	      if(inInterleaved)
-	      {
-	        if(!rcSimple)	{	str += r2Type; str += " *lwbIn2;\n\t"; }
-	        str += r2Type; str += " *lwbIn;\n\t";
-	      }
-	      else if(inReal)
-	      {
-	        if(!rcSimple)	{	str += rType; str += " *lwbIn2;\n\t"; }
-	        str += rType; str += " *lwbIn;\n\t";
-	      }
-	      else
-	      {
-	        if(!rcSimple)	{	str += rType; str += " *lwbInRe2;\n\t"; }
-	        if(!rcSimple)	{	str += rType; str += " *lwbInIm2;\n\t"; }
-	        str += rType; str += " *lwbInRe;\n\t";
-	        str += rType; str += " *lwbInIm;\n\t";
-	      }
+        if(inInterleaved) {
+          if(!rcSimple) {
+            str += r2Type;
+            str += " *lwbIn2;\n\t";
+          }
 
-	      if(outInterleaved)
-	      {
-          if(!rcSimple) {	str += r2Type; str += " *lwbOut2;\n\t"; }
-	        str += r2Type; str += " *lwbOut;\n";
-	      }
-	      else if(outReal)
-	      {
-	        if(!rcSimple) {	str += rType; str += " *lwbOut2;\n\t"; }
-	        str += rType; str += " *lwbOut;\n";
-	      }
-	      else
-	      {
-	        if(!rcSimple) {	str += rType; str += " *lwbOutRe2;\n\t"; }
-	        if(!rcSimple) {	str += rType; str += " *lwbOutIm2;\n\t"; }
-	        str += rType; str += " *lwbOutRe;\n\t";
-	        str += rType; str += " *lwbOutIm;\n";
-	      }
-	      str += "\n";
+          str += r2Type;
+          str += " *lwbIn;\n\t";
+        } else if(inReal) {
+          if(!rcSimple) {
+            str += rType;
+            str += " *lwbIn2;\n\t";
+          }
+
+          str += rType;
+          str += " *lwbIn;\n\t";
+        } else {
+          if(!rcSimple) {
+            str += rType;
+            str += " *lwbInRe2;\n\t";
+          }
+
+          if(!rcSimple) {
+            str += rType;
+            str += " *lwbInIm2;\n\t";
+          }
+
+          str += rType;
+          str += " *lwbInRe;\n\t";
+          str += rType;
+          str += " *lwbInIm;\n\t";
+        }
+
+        if(outInterleaved) {
+          if(!rcSimple) {
+            str += r2Type;
+            str += " *lwbOut2;\n\t";
+          }
+
+          str += r2Type;
+          str += " *lwbOut;\n";
+        } else if(outReal) {
+          if(!rcSimple) {
+            str += rType;
+            str += " *lwbOut2;\n\t";
+          }
+
+          str += rType;
+          str += " *lwbOut;\n";
+        } else {
+          if(!rcSimple) {
+            str += rType;
+            str += " *lwbOutRe2;\n\t";
+          }
+
+          if(!rcSimple) {
+            str += rType;
+            str += " *lwbOutIm2;\n\t";
+          }
+
+          str += rType;
+          str += " *lwbOutRe;\n\t";
+          str += rType;
+          str += " *lwbOutIm;\n";
+        }
+
+        str += "\n";
+      } else {
+        if(params.fft_placeness == HCFFT_INPLACE) {
+          str += "unsigned int ioOffset;\n\t";
+
+          if(inInterleaved) {
+            str += r2Type;
+            str += " *lwb;\n";
+          } else {
+            str += rType;
+            str += " *lwbRe;\n\t";
+            str += rType;
+            str += " *lwbIm;\n";
+          }
+        } else {
+          str += "unsigned int iOffset;\n\t";
+          str += "unsigned int oOffset;\n\t";
+
+          if(inInterleaved) {
+            str += r2Type;
+            str += " *lwbIn;\n\t";
+          } else {
+            str += rType;
+            str += " *lwbInRe;\n\t";
+            str += rType;
+            str += " *lwbInIm;\n\t";
+          }
+
+          if(outInterleaved) {
+            str += r2Type;
+            str += " *lwbOut;\n";
+          } else {
+            str += rType;
+            str += " *lwbOutRe;\n\t";
+            str += rType;
+            str += " *lwbOutIm;\n";
+          }
+
+          str += "\n";
+        }
       }
-     else {
-      if(params.fft_placeness == HCFFT_INPLACE) {
-        str += "unsigned int ioOffset;\n\t";
-
-      if(inInterleaved)
-	    {
-	      str += r2Type; str += " *lwb;\n";
-	    }
-	    else
-	    {
-	      str += rType; str += " *lwbRe;\n\t";
-	      str += rType; str += " *lwbIm;\n";
-	    }
-    }
-    else {
-      str += "unsigned int iOffset;\n\t";
-      str += "unsigned int oOffset;\n\t";
-
-	    if(inInterleaved)
-	    {
-	      str += r2Type; str += " *lwbIn;\n\t";
-	    }
-	    else
-	    {
-	      str += rType; str += " *lwbInRe;\n\t";
-	      str += rType; str += " *lwbInIm;\n\t";
-	    }
-
-	    if(outInterleaved)
-	    {
-	      str += r2Type; str += " *lwbOut;\n";
-	    }
-	    else
-	    {
-	      str += rType; str += " *lwbOutRe;\n\t";
-	      str += rType; str += " *lwbOutIm;\n";
-	    }
-	  str += "\n";
-	  }
-   }
 
       // Setup registers if needed
       if(linearRegs) {
@@ -3571,54 +3665,77 @@ class Kernel {
           str += OffsetCalc("oOffset2", false, true);
         }
 
-	      if(params.fft_placeness == HCFFT_INPLACE)
-	      {
-		      if(inInterleaved)
-		      {
-			      if(!rcSimple) {	str += "lwbIn2 = ( "; str += r2Type; str += " *)gb + iOffset2;\n\t"; }
-			      str += "lwbIn  = ( "; str += r2Type; str += " *)gb + iOffset;\n\t";
-		      }
-		      else
-		      {
-			      if(!rcSimple) {	str += "lwbIn2 = ( "; str += rType; str += " *)gb + iOffset2;\n\t"; }
-			      str += "lwbIn  = ( "; str += rType; str += " *)gb + iOffset;\n\t";
+        if(params.fft_placeness == HCFFT_INPLACE) {
+          if(inInterleaved) {
+            if(!rcSimple) {
+              str += "lwbIn2 = ( ";
+              str += r2Type;
+              str += " *)gb + iOffset2;\n\t";
+            }
 
-		      }
-		      if(!rcSimple) {	str += "lwbOut2 = gb + oOffset2;\n\t"; }
-		      str += "lwbOut = gb + oOffset;\n";
-		      str += "\n";
-	      }
-	      else
-	      {
-          if(inInterleaved || inReal)
-			    {
-				    if(!rcSimple) {	str += "lwbIn2 = gbIn + iOffset2;\n\t"; }
-				    str += "lwbIn = gbIn + iOffset;\n\t";
-			    }
-			    else
-		      {
-			      if(!rcSimple) {	str += "lwbInRe2 = gbInRe + iOffset2;\n\t"; }
-			      if(!rcSimple) {	str += "lwbInIm2 = gbInIm + iOffset2;\n\t"; }
-					  str += "lwbInRe = gbInRe + iOffset;\n\t";
-					  str += "lwbInIm = gbInIm + iOffset;\n\t";
-		      }
+            str += "lwbIn  = ( ";
+            str += r2Type;
+            str += " *)gb + iOffset;\n\t";
+          } else {
+            if(!rcSimple) {
+              str += "lwbIn2 = ( ";
+              str += rType;
+              str += " *)gb + iOffset2;\n\t";
+            }
 
-          if(outInterleaved || outReal)
-	        {
-	          if(!rcSimple) {	str += "lwbOut2 = gbOut + oOffset2;\n\t"; }
-	          str += "lwbOut = gbOut + oOffset;\n";
-	        }
-	        else
-	        {
-		        if(!rcSimple) {	str += "lwbOutRe2 = gbOutRe + oOffset2;\n\t"; }
-		        if(!rcSimple) {	str += "lwbOutIm2 = gbOutIm + oOffset2;\n\t"; }
-						str += "lwbOutRe = gbOutRe + oOffset;\n\t";
-						str += "lwbOutIm = gbOutIm + oOffset;\n";
-	        }
+            str += "lwbIn  = ( ";
+            str += rType;
+            str += " *)gb + iOffset;\n\t";
+          }
+
+          if(!rcSimple) {
+            str += "lwbOut2 = gb + oOffset2;\n\t";
+          }
+
+          str += "lwbOut = gb + oOffset;\n";
           str += "\n";
-	    }
-      }
-      else {
+        } else {
+          if(inInterleaved || inReal) {
+            if(!rcSimple) {
+              str += "lwbIn2 = gbIn + iOffset2;\n\t";
+            }
+
+            str += "lwbIn = gbIn + iOffset;\n\t";
+          } else {
+            if(!rcSimple) {
+              str += "lwbInRe2 = gbInRe + iOffset2;\n\t";
+            }
+
+            if(!rcSimple) {
+              str += "lwbInIm2 = gbInIm + iOffset2;\n\t";
+            }
+
+            str += "lwbInRe = gbInRe + iOffset;\n\t";
+            str += "lwbInIm = gbInIm + iOffset;\n\t";
+          }
+
+          if(outInterleaved || outReal) {
+            if(!rcSimple) {
+              str += "lwbOut2 = gbOut + oOffset2;\n\t";
+            }
+
+            str += "lwbOut = gbOut + oOffset;\n";
+          } else {
+            if(!rcSimple) {
+              str += "lwbOutRe2 = gbOutRe + oOffset2;\n\t";
+            }
+
+            if(!rcSimple) {
+              str += "lwbOutIm2 = gbOutIm + oOffset2;\n\t";
+            }
+
+            str += "lwbOutRe = gbOutRe + oOffset;\n\t";
+            str += "lwbOutIm = gbOutIm + oOffset;\n";
+          }
+
+          str += "\n";
+        }
+      } else {
         if(params.fft_placeness == HCFFT_INPLACE) {
           if(blockCompute) {
             str += OffsetCalcBlock("ioOffset", true);
@@ -3628,18 +3745,15 @@ class Kernel {
 
           str += "\t";
 
-					if(inInterleaved)
-					{
-						str += "lwb = gb + ioOffset;\n";
-					}
-					else
-					{
-						str += "lwbRe = gbRe + ioOffset;\n\t";
-						str += "lwbIm = gbIm + ioOffset;\n";
-					}
-				str += "\n";
-				}
-        else {
+          if(inInterleaved) {
+            str += "lwb = gb + ioOffset;\n";
+          } else {
+            str += "lwbRe = gbRe + ioOffset;\n\t";
+            str += "lwbIm = gbIm + ioOffset;\n";
+          }
+
+          str += "\n";
+        } else {
           if(blockCompute) {
             str += OffsetCalcBlock("iOffset", true);
             str += OffsetCalcBlock("oOffset", false);
@@ -3650,41 +3764,34 @@ class Kernel {
 
           str += "\t";
 
-	if(inInterleaved)
-	{
-		str += "lwbIn = gbIn + iOffset;\n\t";
-	}
-	else
-	{
-		str += "lwbInRe = gbInRe + iOffset;\n\t";
-		str += "lwbInIm = gbInIm + iOffset;\n\t";
-	}
+          if(inInterleaved) {
+            str += "lwbIn = gbIn + iOffset;\n\t";
+          } else {
+            str += "lwbInRe = gbInRe + iOffset;\n\t";
+            str += "lwbInIm = gbInIm + iOffset;\n\t";
+          }
 
-	  if(outInterleaved)
-	  {
-			  str += "lwbOut = gbOut + oOffset;\n";
-	  }
-	  else
-	  {
-		  str += "lwbOutRe = gbOutRe + oOffset;\n\t";
-		  str += "lwbOutIm = gbOutIm + oOffset;\n";
-	  }
-	  str += "\n";
+          if(outInterleaved) {
+            str += "lwbOut = gbOut + oOffset;\n";
+          } else {
+            str += "lwbOutRe = gbOutRe + oOffset;\n\t";
+            str += "lwbOutIm = gbOutIm + oOffset;\n";
+          }
+
+          str += "\n";
         }
       }
 
-	std::string inOffset;
-	std::string outOffset;
-	if (params.fft_placeness == HCFFT_INPLACE && !r2c2r)
-	{
-		inOffset += "ioOffset";
-		outOffset += "ioOffset";
-	}
-	else
-	{
-		inOffset += "iOffset";
-		outOffset += "oOffset";
-	}
+      std::string inOffset;
+      std::string outOffset;
+
+      if (params.fft_placeness == HCFFT_INPLACE && !r2c2r) {
+        inOffset += "ioOffset";
+        outOffset += "ioOffset";
+      } else {
+        inOffset += "iOffset";
+        outOffset += "oOffset";
+      }
 
       // Read data into LDS for blocked access
       if(blockCompute) {
@@ -3692,9 +3799,8 @@ class Kernel {
         str += "\n\tfor(uint t=0; t<";
         str += SztToStr(loopCount);
         str += "; t++)\n\t{\n";
-
-				//get offset 
-				std::string bufOffset;
+        //get offset
+        std::string bufOffset;
 
         for(size_t c = 0; c < 2; c++) {
           std::string comp = "";
@@ -3708,36 +3814,58 @@ class Kernel {
             readBuf = (params.fft_placeness == HCFFT_INPLACE) ? (c ? "lwbIm" : "lwbImRe") : (c ? "lwbIm" : "lwbImRe");
           }
 
-	if( (blockComputeType == BCT_C2C) || (blockComputeType == BCT_C2R) )
-	{
-		bufOffset.clear();
-		bufOffset += "(me%"; bufOffset += SztToStr(blockWidth); bufOffset += ") + ";
-		bufOffset += "(me/"; bufOffset+= SztToStr(blockWidth); bufOffset+= ")*"; bufOffset += SztToStr(params.fft_inStride[0]);
-		bufOffset += " + t*"; bufOffset += SztToStr(params.fft_inStride[0]*blockWGS/blockWidth);
-
-	str += "\t\tR0"; str+= comp; str+= " = "; 
-		str += readBuf; str += "[";	str += bufOffset; str += "];\n";
-	}
-	else
-	{
-		str += "\t\tR0"; str+= comp; str+= " = "; str += readBuf; str += "[me + t*"; str += SztToStr(blockWGS); str += "];\n";
-	}
+          if( (blockComputeType == BCT_C2C) || (blockComputeType == BCT_C2R) ) {
+            bufOffset.clear();
+            bufOffset += "(me%";
+            bufOffset += SztToStr(blockWidth);
+            bufOffset += ") + ";
+            bufOffset += "(me/";
+            bufOffset += SztToStr(blockWidth);
+            bufOffset += ")*";
+            bufOffset += SztToStr(params.fft_inStride[0]);
+            bufOffset += " + t*";
+            bufOffset += SztToStr(params.fft_inStride[0] * blockWGS / blockWidth);
+            str += "\t\tR0";
+            str += comp;
+            str += " = ";
+            str += readBuf;
+            str += "[";
+            str += bufOffset;
+            str += "];\n";
+          } else {
+            str += "\t\tR0";
+            str += comp;
+            str += " = ";
+            str += readBuf;
+            str += "[me + t*";
+            str += SztToStr(blockWGS);
+            str += "];\n";
+          }
 
           if(inInterleaved) {
             break;
           }
         }
 
-	if( (blockComputeType == BCT_C2C) || (blockComputeType == BCT_C2R) )
-	{
-		str += "\t\tlds[t*"; str += SztToStr(blockWGS/blockWidth); str += " + ";
-		str += "(me%"; str+= SztToStr(blockWidth); str+= ")*"; str += SztToStr(length); str += " + ";
-		str += "(me/"; str+= SztToStr(blockWidth); str+= ")] = R0;"; str +="\n";
-	}
-	else
-	{
-		str += "\t\tlds[t*"; str += SztToStr(blockWGS); str += " + me] = R0;"; str +="\n";
-	}
+        if( (blockComputeType == BCT_C2C) || (blockComputeType == BCT_C2R) ) {
+          str += "\t\tlds[t*";
+          str += SztToStr(blockWGS / blockWidth);
+          str += " + ";
+          str += "(me%";
+          str += SztToStr(blockWidth);
+          str += ")*";
+          str += SztToStr(length);
+          str += " + ";
+          str += "(me/";
+          str += SztToStr(blockWidth);
+          str += ")] = R0;";
+          str += "\n";
+        } else {
+          str += "\t\tlds[t*";
+          str += SztToStr(blockWGS);
+          str += " + me] = R0;";
+          str += "\n";
+        }
 
         str += "\t}\n\n";
         str += "\t tidx.barrier.wait_with_tile_static_memory_fence();\n\n";
@@ -3761,7 +3889,11 @@ class Kernel {
         me += "me, ";
       }
 
-	if(blockCompute) { me = "me%"; me += SztToStr(workGroupSizePerTrans); me += ", "; }
+      if(blockCompute) {
+        me = "me%";
+        me += SztToStr(workGroupSizePerTrans);
+        me += ", ";
+      }
 
       // Buffer strings
       std::string inBuf, outBuf;
@@ -3974,8 +4106,11 @@ class Kernel {
             }
 
             str += ",tidx);\n";
-            if(!halfLds) { str += exTab; str += "\ttidx.barrier.wait_with_tile_static_memory_fence();\n"; }
 
+            if(!halfLds) {
+              str += exTab;
+              str += "\ttidx.barrier.wait_with_tile_static_memory_fence();\n";
+            }
           } else { // intermediate pass
             str += ldsOff;
             str += ", ";
@@ -4033,7 +4168,7 @@ class Kernel {
         str += SztToStr(loopCount);
         str += "; t++)\n\t{\n";
 
-					if( (blockComputeType == BCT_C2C) || (blockComputeType == BCT_R2C) ) {
+        if( (blockComputeType == BCT_C2C) || (blockComputeType == BCT_R2C) ) {
           str += "\t\tR0 = lds[t*";
           str += SztToStr(blockWGS / blockWidth);
           str += " + ";
@@ -4065,7 +4200,7 @@ class Kernel {
             writeBuf = (params.fft_placeness == HCFFT_INPLACE) ? (c ? "lwbIm" : "lwbRe") : (c ? "lwbOutIm" : "lwbOutRe");
           }
 
-					if( (blockComputeType == BCT_C2C) || (blockComputeType == BCT_R2C) ) {
+          if( (blockComputeType == BCT_C2C) || (blockComputeType == BCT_R2C) ) {
             str += "\t\t";
             str += writeBuf;
             str += "[(me%";
@@ -4099,7 +4234,6 @@ class Kernel {
       }
 
       str += " }).wait();\n";
-
       str += "}}\n\n";
 
       if(r2c2r) {
@@ -4249,7 +4383,7 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Stockham> (std::vector<size_t> & globalWS, 
 
   count *= this->batchSize;
   FFTKernelGenKeyParams fftParams;
-  //    Translate the user plan into the structure that we use to map plans to clPrograms
+  //    Translate the user plan into the structure that we use to map plans to hcPrograms
   this->GetKernelGenKeyPvt<Stockham>( fftParams );
 
   if(fftParams.blockCompute) {
@@ -4280,8 +4414,8 @@ template<>
 hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const {
   FFTKernelGenKeyParams params;
   this->GetKernelGenKeyPvt<Stockham> (params);
-  if(!exist)
-  {
+
+  if(!exist) {
     std::vector< size_t > gWorkSize;
     std::vector< size_t > lWorkSize;
     this->GetWorkSizesPvt<Stockham> (gWorkSize, lWorkSize);
@@ -4301,13 +4435,11 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
           kernel.GenerateKernel((void**)&twiddles, (void**)&twiddleslarge, acc, plHandle, programCode, gWorkSize, lWorkSize, count);
         }
         break;
-     }
+    }
 
     fftRepo.setProgramCode( Stockham, plHandle, params, programCode);
     fftRepo.setProgramEntryPoints( Stockham, plHandle, params, "fft_fwd", "fft_back");
-  }
-  else
-  {
+  } else {
     size_t large1D = 0;
     size_t length = params.fft_N[0];
     size_t R = length;
@@ -4324,8 +4456,7 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
     KernelCoreSpecs<P_SINGLE> kcs;
     kcs.GetRadices(length, nPasses, pRadices);
 
-    if((params.fft_MaxWorkGroupSize >= 256) && (pRadices != NULL))
-    {
+    if((params.fft_MaxWorkGroupSize >= 256) && (pRadices != NULL)) {
       for(size_t i = 0; i < nPasses; i++) {
         size_t rad = pRadices[i];
         R /= rad;
@@ -4333,12 +4464,9 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
       }
 
       assert(R == 1); // this has to be true for correct radix composition of the length
-    }
-    else
-    {
+    } else {
       size_t numTrans = (params.fft_SIMD * params.fft_R) / length;
       size_t cnPerWI = (numTrans * length) / params.fft_SIMD;
-
       // Possible radices
       size_t cRad[] = {13, 11, 10, 8, 7, 6, 5, 4, 3, 2, 1}; // Must be in descending order
       size_t cRadSize = (sizeof(cRad) / sizeof(cRad[0]));
@@ -4370,8 +4498,7 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
       }
     }
 
-    if(params.fft_precision == HCFFT_SINGLE)
-    {
+    if(params.fft_precision == HCFFT_SINGLE) {
       // Twiddle table
       if(length > 1) {
         TwiddleTable<hc::short_vector::float_2> twTable(length);
@@ -4383,9 +4510,7 @@ hcfftStatus FFTPlan::GenerateKernelPvt<Stockham>(const hcfftPlanHandle plHandle,
         TwiddleTableLarge<hc::short_vector::float_2, P_SINGLE> twLarge(large1D);
         twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
       }
-    }
-    else
-    {
+    } else {
       // Twiddle table
       if(length > 1) {
         TwiddleTable<hc::short_vector::double_2> twTable(length);
