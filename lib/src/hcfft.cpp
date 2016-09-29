@@ -1,7 +1,7 @@
 #include "hcfft.h"
 
 // Global Static plan object
-FFTPlan planObject;
+thread_local FFTPlan planObject;
 
 /* Function hcfftXtSetGPUs()
 Returns GPUs are to be used with the plan
