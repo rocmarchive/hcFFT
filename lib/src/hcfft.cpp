@@ -692,19 +692,17 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal* idata, hcfftComplex* odata
   // TODO: Check validity of plan
   hcfftDirection dir = HCFFT_FORWARD;
   hcfftReal* odataR = (hcfftReal*)odata;
-  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  hcfftStatus status;
 
   if(idata == odataR) {
-    loc = HCFFT_INPLACE;
+    status = planObject.hcfftSetResultLocation(plan, HCFFT_INPLACE);
+
+    if(status != HCFFT_SUCCEEDS) {
+      return HCFFT_SETUP_FAILED;
+    }
   }
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
-
-  if(status != HCFFT_SUCCEEDS) {
-    return HCFFT_SETUP_FAILED;
-  }
-
-  status = planObject.hcfftSetResultLocation(plan, loc);
+  status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
 
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
@@ -734,19 +732,17 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal* idata, hcfftDoubleCo
   // TODO: Check validity of plan
   hcfftDirection dir = HCFFT_FORWARD;
   hcfftDoubleReal* odataR = (hcfftDoubleReal*)odata;
-  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  hcfftStatus status;
 
   if(idata == odataR) {
-    loc = HCFFT_INPLACE;
+    status = planObject.hcfftSetResultLocation(plan, HCFFT_INPLACE);
+
+    if(status != HCFFT_SUCCEEDS) {
+      return HCFFT_SETUP_FAILED;
+    }
   }
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
-
-  if(status != HCFFT_SUCCEEDS) {
-    return HCFFT_SETUP_FAILED;
-  }
-
-  status = planObject.hcfftSetResultLocation(plan, loc);
+  status = planObject.hcfftSetLayout(plan, HCFFT_REAL, HCFFT_HERMITIAN_INTERLEAVED);
 
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
@@ -805,19 +801,17 @@ hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex* idata, hcfftReal* odata
   // TODO: Check validity of plan
   hcfftDirection dir = HCFFT_BACKWARD;
   hcfftReal* idataR = (hcfftReal*)idata;
-  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  hcfftStatus status;
 
   if(idataR == odata) {
-    loc = HCFFT_INPLACE;
+    status = planObject.hcfftSetResultLocation(plan, HCFFT_INPLACE);
+
+   if(status != HCFFT_SUCCEEDS) {
+      return HCFFT_SETUP_FAILED;
+    }
   }
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
-
-  if(status != HCFFT_SUCCEEDS) {
-    return HCFFT_SETUP_FAILED;
-  }
-
-  status = planObject.hcfftSetResultLocation(plan, loc);
+  status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
 
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
@@ -847,19 +841,17 @@ hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubl
   // TODO: Check validity of plan
   hcfftDirection dir = HCFFT_BACKWARD;
   hcfftDoubleReal* idataR = (hcfftDoubleReal*)idata;
-  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  hcfftStatus status;
 
   if(idataR == odata) {
-    loc = HCFFT_INPLACE;
+    status = planObject.hcfftSetResultLocation(plan, HCFFT_INPLACE);
+
+    if(status != HCFFT_SUCCEEDS) {
+      return HCFFT_SETUP_FAILED;
+    }
   }
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
-
-  if(status != HCFFT_SUCCEEDS) {
-    return HCFFT_SETUP_FAILED;
-  }
-
-  status = planObject.hcfftSetResultLocation(plan, loc);
+  status = planObject.hcfftSetLayout(plan, HCFFT_HERMITIAN_INTERLEAVED, HCFFT_REAL);
 
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
@@ -916,19 +908,17 @@ hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex* idata, hcfftComplex* od
   // TODO: Check validity of plan
   hcfftReal* idataR = (hcfftReal*)idata;
   hcfftReal* odataR = (hcfftReal*)odata;
-  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  hcfftStatus status;
 
   if(idataR == odataR) {
-    loc = HCFFT_INPLACE;
+    status = planObject.hcfftSetResultLocation(plan, HCFFT_INPLACE);
+
+    if(status != HCFFT_SUCCEEDS) {
+      return HCFFT_SETUP_FAILED;
+    }
   }
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
-
-  if(status != HCFFT_SUCCEEDS) {
-    return HCFFT_SETUP_FAILED;
-  }
-
-  status = planObject.hcfftSetResultLocation(plan, loc);
+  status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
 
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
@@ -958,19 +948,17 @@ hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubl
   // TODO: Check validity of plan
   hcfftDoubleReal* idataR = (hcfftDoubleReal*)idata;
   hcfftDoubleReal* odataR = (hcfftDoubleReal*)odata;
-  hcfftResLocation loc = HCFFT_OUTOFPLACE;
+  hcfftStatus status;
 
   if(idataR == odataR) {
-    loc = HCFFT_INPLACE;
+    status = planObject.hcfftSetResultLocation(plan, HCFFT_INPLACE);
+
+    if(status != HCFFT_SUCCEEDS) {
+      return HCFFT_SETUP_FAILED;
+    }
   }
 
-  hcfftStatus status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
-
-  if(status != HCFFT_SUCCEEDS) {
-    return HCFFT_SETUP_FAILED;
-  }
-
-  status = planObject.hcfftSetResultLocation(plan, loc);
+  status = planObject.hcfftSetLayout(plan, HCFFT_COMPLEX_INTERLEAVED, HCFFT_COMPLEX_INTERLEAVED);
 
   if(status != HCFFT_SUCCEEDS) {
     return HCFFT_SETUP_FAILED;
