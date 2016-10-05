@@ -646,6 +646,9 @@ hcfftStatus genSwapKernel(const FFTKernelGenKeyParams & params, std::string& str
 			break;
 		case HCFFT_REAL:
 			hcKernWrite(transKernel, 3) << tmpBuffType << " " << dtPlanar << " *tmp_swap_ptr[2];" << std::endl;
+                case HCFFT_HERMITIAN_INTERLEAVED:
+                case HCFFT_HERMITIAN_PLANAR:
+                        break;
 		}
 		hcKernWrite(transKernel, 3) << "tmp_swap_ptr[0] = te;" << std::endl;
 		hcKernWrite(transKernel, 3) << "tmp_swap_ptr[1] = to;" << std::endl;
@@ -674,6 +677,9 @@ hcfftStatus genSwapKernel(const FFTKernelGenKeyParams & params, std::string& str
 		case HCFFT_COMPLEX_PLANAR:
 			hcKernWrite(transKernel, 6) << "swap(inputA_R, inputA_I, tmp_swap_ptr[swap_inx], tmp_swap_ptr[1 - swap_inx], swap_table[loop][0], swap_table[loop][1], swap_table[loop][2], end_indx, work_id, inOffset";
 			break;
+                case HCFFT_HERMITIAN_PLANAR:
+                case HCFFT_HERMITIAN_INTERLEAVED:
+                        break;
 		}
 		hcKernWrite(transKernel, 0) << ");" << std::endl;
 
