@@ -12,6 +12,7 @@ typedef hc::short_vector::double_2 hcfftDoubleComplex;
 
 // Typedef changes
 typedef hcfftPlanHandle* hcfftHandle;
+typedef hc::accelerator_view hcStream_t;
 
 /* The hcFFT library supports complex- and real-data transforms. The hcfftType data type is an enumeration of the types of transform data supported by hcFFT. */
 
@@ -49,7 +50,7 @@ hcfftResult hcfftCreate(hcfftHandle *plan);
 /* Function hcfftSetStream()
 Associate FFT Plan with an accelerator_view
 */
-hcfftResult hcfftSetStream(hcfftHandle *plan, hc::accelerator_view &acc_view);
+hcfftResult hcfftSetStream(hcfftHandle plan, hcStream_t acc_view);
 
 /*hcFFT Basic Plans*/
 
