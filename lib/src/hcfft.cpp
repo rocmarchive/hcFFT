@@ -22,8 +22,8 @@ hcfftResult hcfftXtSetGPUs(hc::accelerator &acc)
 /* Function hcfftSetStream()
 Associate FFT Plan with an accelerator_view
 */
-hcfftResult hcfftSetStream(hcfftHandle *plan, hc::accelerator_view &acc_view) {
-  hcfftStatus status = planObject.hcfftSetAcclView(**plan, acc_view);
+hcfftResult hcfftSetStream(hcfftHandle plan, hcStream_t acc_view) {
+  hcfftStatus status = planObject.hcfftSetAcclView(*plan, acc_view);
   if ( status != HCFFT_SUCCEEDS ) {
     return HCFFT_SETUP_FAILED;
   }
