@@ -115,14 +115,24 @@ elif ( [ "$testing" = "on" ] ); then
   mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_3D_transform/bin/
   mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_Create_Destroy_Plan/bin/
   mkdir -p $current_work_dir/build/test/FFT_benchmark_Convolution_Networks/Comparison_tests/bin/
+  mkdir -p $current_work_dir/build/test/HIP_Unit_Tests/hipfft_1D_transform/bin/
+  mkdir -p $current_work_dir/build/test/HIP_Unit_Tests/hipfft_2D_transform/bin/
+  mkdir -p $current_work_dir/build/test/HIP_Unit_Tests/hipfft_3D_transform/bin/
   set -e
 
   # Build Tests
   cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
   make
 
-  chmod +x $current_work_dir/test/unit/test.sh
-  cd $current_work_dir/test/unit/
+  # hcFFT Unit Tests
+  # chmod +x $current_work_dir/test/unit/test.sh
+  # cd $current_work_dir/test/unit/
+# Invoke test script
+  #./test.sh
+
+  # hipFFT Unit Tests
+  chmod +x $current_work_dir/test/HIP_Unit_Tests/test.sh
+  cd $current_work_dir/test/HIP_Unit_Tests/
 # Invoke test script
   ./test.sh
 fi
