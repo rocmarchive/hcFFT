@@ -1,5 +1,6 @@
 #include "generator.transpose.h"
 
+using namespace StockhamGenerator;
 // A structure that represents a bounding box or tile, with convenient names for the row and column addresses
 // local work sizes
 struct tile {
