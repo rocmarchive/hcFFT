@@ -15,12 +15,12 @@ if( MSVC OR APPLE)
   message(FATAL_ERROR "Unsupported platform.")
 endif()
 
-set(HCCLC $ENV{HCCLC})
-if(DEFINED HCCLC)
+set(HCC_HOME $ENV{HCC_HOME})
+if(EXISTS ${HCC_HOME})
   find_path(HC++_BIN_DIR clang++
-           HINTS /opt/rocm/hcc-lc/bin)
+           HINTS ${HCC_HOME}/bin)
   find_path(HC++_CONFIGURE_DIR hcc-config
-           HINTS /opt/rocm/hcc-lc/bin)
+           HINTS ${HCC_HOME}/bin)
   include(FindPackageHandleStandardArgs)
   # handle the QUIETLY and REQUIRED arguments and set HC++_FOUND to TRUE
   # if all listed variables are TRUE
@@ -48,11 +48,11 @@ if(DEFINED HCCLC)
   set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -Wall -Wno-deprecated-register -Wno-deprecated-declarations")
   set (HCC_LDFLAGS "${HCC_LDFLAGS}")
 
-elseif(EXISTS "/opt/rocm/hcc-hsail/bin/clang++")
+elseif(EXISTS "/opt/rocm/hcc/bin/clang++")
   find_path(HC++_BIN_DIR clang++
-           HINTS /opt/rocm/hcc-hsail/bin)
+           HINTS /opt/rocm/hcc/bin)
   find_path(HC++_CONFIGURE_DIR hcc-config
-           HINTS /opt/rocm/hcc-hsail/bin)
+           HINTS /opt/rocm/hcc/bin)
   include(FindPackageHandleStandardArgs)
   # handle the QUIETLY and REQUIRED arguments and set HC++_FOUND to TRUE
   # if all listed variables are TRUE

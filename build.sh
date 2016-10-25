@@ -2,7 +2,7 @@
 # Preliminary version
 
 # CHECK FOR COMPILER PATH
-if [ ! -z $HCCLC ]
+if [ ! -z $HCC_HOME ]
 then
   if [ -x "/opt/rocm/hcc-lc/bin/clang++" ]
   then
@@ -10,10 +10,10 @@ then
     cmake_cxx_compiler=/opt/rocm/hcc-lc/bin/clang++
   fi
 
-elif [ -x "/opt/rocm/hcc-hsail/bin/clang++" ]
+elif [ -x "/opt/rocm/hcc/bin/clang++" ]
 then
-  cmake_c_compiler=/opt/rocm/hcc-hsail/bin/clang
-  cmake_cxx_compiler=/opt/rocm/hcc-hsail/bin/clang++
+  cmake_c_compiler=/opt/rocm/hcc/bin/clang
+  cmake_cxx_compiler=/opt/rocm/hcc/bin/clang++
 
 else
   echo "Clang compiler not found"

@@ -203,19 +203,20 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
     WriteKernel( plHandle, gen, fftParams, fftPlan->filename, writeFlag);
     // Check if the default compiler path exists
     std::string execCmd;
-    char fname[256] = "/opt/rocm/hcc-hsail/bin/clang++";
+    char fname[256] = "/opt/rocm/hcc/bin/clang++";
 
-    if ( access ( getenv ("HCCLC"), F_OK ) != -1) {
+    if ( access ( getenv ("HCC_HOME"), F_OK ) != -1) {
       // TODO: This path shall be removed. User shall build from default path
       // compiler doesn't exist in default path
       // check if user has specified compiler build path
       // build_mode = true;
-      std::string Path = "/opt/rocm/hcc-lc/bin/";
-      execCmd = Path + "clang++ `" + Path + "hcc-config --build --cxxflags --ldflags --shared` -lhc_am " + fftPlan->filename + " -o " + fftPlan->kernellib ;
+      char* compilerPath = getenv ("HCC_HOME");
+      std::string Path(compilerPath);
+      execCmd = Path + "clang++ `" + Path + "hcc-config --install --cxxflags --ldflags --shared` -lhc_am " + fftPlan->filename + " -o " + fftPlan->kernellib ;
     } else if( access( fname, F_OK ) != -1 ) {
       // compiler exists
       // install_mode = true;
-      std::string Path = "/opt/rocm/hcc-hsail/bin/";
+      std::string Path = "/opt/rocm/hcc/bin/";
       execCmd = Path + "clang++ `" + Path + "hcc-config --install --cxxflags --ldflags --shared` " + fftPlan->filename + " -o " + fftPlan->kernellib ;
     } else {
       // No compiler found

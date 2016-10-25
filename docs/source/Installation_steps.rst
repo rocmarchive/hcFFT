@@ -77,7 +77,7 @@ b. Build debian from source
     To use LC Compiler,
 
 
-    ``export HCCLC=1``
+    ``export HCC_HOME=1``
 
 
     build.sh execution builds the library and generates a debian under build directory.
