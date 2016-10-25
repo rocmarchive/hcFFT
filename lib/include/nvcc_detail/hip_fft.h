@@ -110,9 +110,11 @@ inline static hipfftResult hipfftCreate(hipfftHandle *plan){
     return hipCUFFTResultToHIPFFTResult(cufftCreate(plan));
 }
 
-inline static hipfftResult hipfftDestroy(hipfftHandle plan){
+
+inline static  hipfftResult hipfftDestroy(hipfftHandle plan){
     return hipCUFFTResultToHIPFFTResult(cufftDestroy(plan));
 }
+
 
 inline static hipfftResult hipfftSetStream(hipfftHandle plan, hipStream_t stream){
     return hipCUFFTResultToHIPFFTResult(cufftSetStream(plan, stream));
@@ -128,6 +130,7 @@ inline static hipfftResult hipfftPlan2d(hipfftHandle *plan, int nx, int ny, hipf
     return hipCUFFTResultToHIPFFTResult(cufftPlan2d(plan, nx, ny, hipHIPFFTTypeToCUFFTType(type)));
 }
 
+
 inline static hipfftResult hipfftPlan3d(hipfftHandle *plan, int nx, int ny, int nz, hipfftType type){
     return hipCUFFTResultToHIPFFTResult(cufftPlan3d(plan, nx, ny, nz, hipHIPFFTTypeToCUFFTType(type)));
 }
@@ -135,23 +138,28 @@ inline static hipfftResult hipfftPlan3d(hipfftHandle *plan, int nx, int ny, int 
 inline static hipfftResult hipfftPlanMany(hipfftHandle *plan, int rank, int *n, int *inembed,int istride, 
                                           int idist, int *onembed, int ostride,
                                           int odist, hipfftType type, int batch){
+
     return hipCUFFTResultToHIPFFTResult(cufftPlanMany(plan, rank, n, inembed, istride, idist, onembed, 
                                                        ostride, odist, hipHIPFFTTypeToCUFFTType(type), batch));
 }
 
 /*hipFFT Extensible Plans*/
 
-inline static hipfftResult hipfftMakePlan1d(hipfftHandle *plan, int nx, hipfftType type, int batch, size_t *workSize){
+inline static hipfftResult hipfftMakePlan1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t *workSize){
     return hipCUFFTResultToHIPFFTResult(cufftMakePlan1d(plan, nx, hipHIPFFTTypeToCUFFTType(type), batch, workSize));
 }
 
-inline static hipfftResult hipfftMakePlan2d(hipfftHandle *plan, int nx, int ny, hipfftType type, size_t *workSize){
+
+inline static hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t *workSize){
     return hipCUFFTResultToHIPFFTResult(cufftMakePlan2d(plan, nx, ny, hipHIPFFTTypeToCUFFTType(type), workSize));
 }
 
-inline static hipfftResult hipfftMakePlan3d(hipfftHandle *plan, int nx, int ny, int nz, hipfftType type, size_t *workSize){
+
+inline static hipfftResult hipfftMakePlan3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, size_t *workSize){
     return hipCUFFTResultToHIPFFTResult(cufftMakePlan3d(plan, nx, ny, nz, hipHIPFFTTypeToCUFFTType(type), workSize));
 }
+
+
 
 inline static hipfftResult hipfftMakePlanMany(hipfftHandle plan, int rank, int *n, int *inembed, int istride, 
                                               int idist, int *onembed, int ostride, int odist, hipfftType type, 
@@ -160,12 +168,16 @@ inline static hipfftResult hipfftMakePlanMany(hipfftHandle plan, int rank, int *
                                                          odist, hipHIPFFTTypeToCUFFTType(type), batch, workSize));
 }
 
+
+
 inline static hipfftResult hipfftMakePlanMany64(hipfftHandle plan, int rank, long long int *n, 
                                                 long long int *inembed, long long int istride, long long int idist, 
                                                 long long int *onembed, long long int ostride, long long int odist, 
                                                 hipfftType type, long long int batch, size_t *workSize){
+
   return hipCUFFTResultToHIPFFTResult(cufftMakePlanMany64(plan, rank, n, inembed, istride, idist, onembed, ostride, 
                                                           odist, hipHIPFFTTypeToCUFFTType(type), batch, workSize));
+
 }
 
 /*hipFFT Estimated Size of Work Area*/
@@ -174,13 +186,15 @@ inline static hipfftResult hipfftEstimate1d(int nx, hipfftType type, int batch, 
   return hipCUFFTResultToHIPFFTResult(cufftEstimate1d(nx, hipHIPFFTTypeToCUFFTType(type), batch, workSize));
 }
 
-inline static hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type, int batch, size_t *workSize){
-  return hipCUFFTResultToHIPFFTResult(cufftEstimate1d(nx, ny, hipHIPFFTTypeToCUFFTType(type), batch, workSize));
+inline static hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type, size_t *workSize){
+  return hipCUFFTResultToHIPFFTResult(cufftEstimate2d(nx, ny, hipHIPFFTTypeToCUFFTType(type), workSize));
 }
 
-inline static hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type, int batch, size_t *workSize){
-  return hipCUFFTResultToHIPFFTResult(cufftEstimate1d(nx, ny, nz, hipHIPFFTTypeToCUFFTType(type), batch, workSize));
+
+inline static hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type, size_t *workSize){
+  return hipCUFFTResultToHIPFFTResult(cufftEstimate3d(nx, ny, nz, hipHIPFFTTypeToCUFFTType(type), workSize));
 }
+
 
 inline static hipfftResult hipfftEstimateMany(int rank, int *n, int *inembed, int istride, int idist, int *onembed, 
                                               int ostride, int odist, hipfftType type, int batch, size_t *workSize){
@@ -194,26 +208,29 @@ inline static hipfftResult hipfftGetSize1d(hipfftHandle plan, int nx, hipfftType
   return hipCUFFTResultToHIPFFTResult(cufftGetSize1d(plan, nx, hipHIPFFTTypeToCUFFTType(type), batch, workSize));
 }
 
-inline static hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type, int batch, size_t *workSize){
-  return hipCUFFTResultToHIPFFTResult(cufftGetSize2d(plan, nx, ny, hipHIPFFTTypeToCUFFTType(type), batch, workSize));
+
+inline static hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t *workSize){
+  return hipCUFFTResultToHIPFFTResult(cufftGetSize2d(plan, nx, ny, hipHIPFFTTypeToCUFFTType(type), workSize));
 }
 
+
 inline static hipfftResult hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, 
-                                           int batch, size_t *workSize){
-  return hipCUFFTResultToHIPFFTResult(cufftGetSize3d(plan, nx, ny, nz, hipHIPFFTTypeToCUFFTType(type), batch, workSize));
+                                           size_t *workSize){
+  return hipCUFFTResultToHIPFFTResult(cufftGetSize3d(plan, nx, ny, nz, hipHIPFFTTypeToCUFFTType(type), workSize));
 }
 
 inline static hipfftResult hipfftGetSizeMany(hipfftHandle plan, int rank, int *n, int *inembed,
                                              int istride, int idist, int *onembed, int ostride,
                                              int odist, hipfftType type, int batch, size_t *workSize){
   return hipCUFFTResultToHIPFFTResult(cufftGetSizeMany(plan, rank, n, inembed, istride, idist, onembed, 
-                                                      ostride, odist, hipHIPFFTTypeToCUFFTType(type), batch, workSize))
+                                                     ostride, odist, hipHIPFFTTypeToCUFFTType(type), batch, workSize));
 }
 
 inline static hipfftResult hipfftGetSizeMany64(hipfftHandle plan, int rank, long long int *n, 
                                               long long int *inembed, long long int istride, long long int idist, 
                                               long long int *onembed, long long int ostride, long long int odist, 
                                               hipfftType type, long long int batch, size_t *workSize){
+
   return hipCUFFTResultToHIPFFTResult(cufftGetSizeMany64(plan, rank, n, inembed, istride, idist, 
                                                          onembed, ostride, odist, hipHIPFFTTypeToCUFFTType(type), 
                                                          batch, workSize));
@@ -230,7 +247,7 @@ inline static hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAl
 }
 
 inline static hipfftResult hipfftSetWorkArea(hipfftHandle plan, void *workArea){
-  return hipCUFFTResultToHIPFFTResult(cufftSetWorkArea(cufftHandle plan, void *workArea));
+  return hipCUFFTResultToHIPFFTResult(cufftSetWorkArea(plan, workArea));
 }
 
 /*hipFFT Execution*/
