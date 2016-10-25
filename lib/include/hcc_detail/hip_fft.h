@@ -141,15 +141,15 @@ inline static hipfftResult hipfftPlanMany(hipfftHandle *plan, int rank, int *n, 
 
 /*hipFFT Extensible Plans*/
 
-inline static hipfftResult hipfftMakePlan1d(hipfftHandle *plan, int nx, hipfftType type, int batch, size_t *workSize){
+inline static hipfftResult hipfftMakePlan1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t *workSize){
     return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-inline static hipfftResult hipfftMakePlan2d(hipfftHandle *plan, int nx, int ny, hipfftType type, size_t *workSize){
+inline static hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t *workSize){
     return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-inline static hipfftResult hipfftMakePlan3d(hipfftHandle *plan, int nx, int ny, int nz, hipfftType type, size_t *workSize){
+inline static hipfftResult hipfftMakePlan3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, size_t *workSize){
     return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
@@ -173,11 +173,11 @@ inline static hipfftResult hipfftEstimate1d(int nx, hipfftType type, int batch, 
   	return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-inline static hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type, int batch, size_t *workSize){
+inline static hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type, size_t *workSize){
   	return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-inline static hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type, int batch, size_t *workSize){
+inline static hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type, size_t *workSize){
   	return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
@@ -192,12 +192,12 @@ inline static hipfftResult hipfftGetSize1d(hipfftHandle plan, int nx, hipfftType
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-inline static hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type, int batch, size_t *workSize){
+inline static hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t *workSize){
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
 inline static hipfftResult hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, 
-                                           int batch, size_t *workSize){
+                                           size_t *workSize){
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
