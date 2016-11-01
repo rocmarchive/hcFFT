@@ -212,6 +212,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
       // build_mode = true;
       char* compilerPath = getenv ("HCC_HOME");
       std::string Path(compilerPath);
+      Path.append("/bin/");
       execCmd = Path + "clang++ `" + Path + "hcc-config --install --cxxflags --ldflags --shared` -lhc_am " + fftPlan->filename + " -o " + fftPlan->kernellib ;
     } else if( access( fname, F_OK ) != -1 ) {
       // compiler exists
