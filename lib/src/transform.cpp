@@ -213,12 +213,12 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle, const hcfftGenerators
       char* compilerPath = getenv ("HCC_HOME");
       std::string Path(compilerPath);
       Path.append("/bin/");
-      execCmd = Path + "clang++ `" + Path + "hcc-config --install --cxxflags --ldflags --shared` -lhc_am " + fftPlan->filename + " -o " + fftPlan->kernellib ;
+      execCmd = Path + "clang++ `" + Path + "hcc-config --install --cxxflags --ldflags --shared` -Wno-unused-command-line-argument -lhc_am " + fftPlan->filename + " -o " + fftPlan->kernellib ;
     } else if( access( fname, F_OK ) != -1 ) {
       // compiler exists
       // install_mode = true;
       std::string Path = "/opt/rocm/hcc/bin/";
-      execCmd = Path + "clang++ `" + Path + "hcc-config --install --cxxflags --ldflags --shared` " + fftPlan->filename + " -o " + fftPlan->kernellib ;
+      execCmd = Path + "clang++ `" + Path + "hcc-config --install --cxxflags --ldflags --shared` -Wno-unused-command-line-argument " + fftPlan->filename + " -o " + fftPlan->kernellib ;
     } else {
       // No compiler found
       std::cout << "HCC compiler not found" << std::endl;
