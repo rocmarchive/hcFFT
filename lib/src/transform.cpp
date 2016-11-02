@@ -829,6 +829,7 @@ hcfftStatus FFTPlan::hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcf
                   }
                 }
               } else if(fftPlan->opLayout == HCFFT_REAL) {
+// NOTE : 2D C2R CALL COMES HERE
                 if(fftPlan->planTY) {
                   if ( (fftPlan->location == HCFFT_INPLACE) ||
                        ((fftPlan->location == HCFFT_OUTOFPLACE) && (fftPlan->length.size() > 2)) ) {

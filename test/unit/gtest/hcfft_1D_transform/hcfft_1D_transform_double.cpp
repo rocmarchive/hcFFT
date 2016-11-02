@@ -116,6 +116,7 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2D ) {
     EXPECT_NEAR(fftw_out[i] , output[i], 1); 
   }
   // Free up resources
+  fftw_destroy_plan(p);
   fftw_free(fftw_in); fftw_free(fftw_out);
   free(input);
   free(output);
@@ -177,6 +178,7 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2Z ) {
     EXPECT_NEAR(fftw_out[i][1] , output[i].y, 0.1); 
   }
   // Free up resources
+  fftw_destroy_plan(p);
   fftw_free(fftw_in); fftw_free(fftw_out);
   free(input);
   free(output);

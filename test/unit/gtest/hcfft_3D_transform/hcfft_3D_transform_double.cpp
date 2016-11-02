@@ -13,7 +13,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_D2Z ) {
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int Rsize = N1 * N2 * N3;
   int Csize = N3 * N2 * (1 + N1 / 2);
-  hcfftDoubleReal* input = (hcfftDoubleReal*)calloc(Rsize, sizeof(hcfftDoubleReal));
+  hcfftDoubleReal* input = (hcfftDoubleReal*)malloc(Rsize * sizeof(hcfftDoubleReal));
   int seed = 123456789;
   srand(seed);
 
@@ -22,7 +22,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_D2Z ) {
     input[i] = i%8;
   }
 
-  hcfftDoubleComplex* output = (hcfftDoubleComplex*)calloc(Csize, sizeof(hcfftDoubleComplex));
+  hcfftDoubleComplex* output = (hcfftDoubleComplex*)malloc(Csize * sizeof(hcfftDoubleComplex));
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
   hcfftDoubleReal* idata = hc::am_alloc(Rsize * sizeof(hcfftDoubleReal), accs[1], 0);
@@ -45,7 +45,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_D2Z ) {
   }
   out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * Csize);
   // 3D forward plan
-  p = fftw_plan_dft_r2c_3d(N1, N2, N3, in, out, FFTW_ESTIMATE | FFTW_R2HC);;
+  p = fftw_plan_dft_r2c_3d(N3, N2, N1, in, out, FFTW_ESTIMATE | FFTW_R2HC);;
   // Execute R2C
   fftw_execute(p);
   //Check Real Outputs
@@ -76,8 +76,8 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2D ) {
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int Csize = N3 * N2 * (1 + N1 / 2);
   int Rsize = N1 * N2 * N3;
-  hcfftDoubleComplex* input = (hcfftDoubleComplex*)calloc(Csize, sizeof(hcfftDoubleComplex));
-  hcfftDoubleReal* output = (hcfftDoubleReal*)calloc(Rsize, sizeof(hcfftDoubleReal));
+  hcfftDoubleComplex* input = (hcfftDoubleComplex*)malloc(Csize * sizeof(hcfftDoubleComplex));
+  hcfftDoubleReal* output = (hcfftDoubleReal*)malloc(Rsize * sizeof(hcfftDoubleReal));
   int seed = 123456789;
   srand(seed);
 
@@ -110,7 +110,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2D ) {
   }
   fftw_out = (double*) fftw_malloc(sizeof(double) * Rsize);
   // 3D forward plan
-  p = fftw_plan_dft_c2r_3d(N1, N2, N3, fftw_in, fftw_out, FFTW_ESTIMATE | FFTW_HC2R);;
+  p = fftw_plan_dft_c2r_3d(N3, N2, N1, fftw_in, fftw_out, FFTW_ESTIMATE | FFTW_HC2R);;
   // Execute C2R
   fftw_execute(p);
   //Check Real Outputs
@@ -118,6 +118,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2D ) {
     EXPECT_NEAR(fftw_out[i] , output[i], 0.1); 
   }
   // Free up resources
+  fftw_destroy_plan(p);
   fftw_free(fftw_in); fftw_free(fftw_out); 
   free( input );
   free( output );
@@ -134,8 +135,8 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2Z ) {
   hcfftResult status  = hcfftPlan3d(plan, N1, N2, N3, HCFFT_Z2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int hSize = N1 * N2 * N3;
-  hcfftDoubleComplex* input = (hcfftDoubleComplex*)calloc(hSize, sizeof(hcfftDoubleComplex));
-  hcfftDoubleComplex* output = (hcfftDoubleComplex*)calloc(hSize, sizeof(hcfftDoubleComplex));
+  hcfftDoubleComplex* input = (hcfftDoubleComplex*)malloc(hSize * sizeof(hcfftDoubleComplex));
+  hcfftDoubleComplex* output = (hcfftDoubleComplex*)malloc(hSize * sizeof(hcfftDoubleComplex));
   int seed = 123456789;
   srand(seed);
 
@@ -168,7 +169,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2Z ) {
     fftw_in[i][1] = input[i].y;
   }
   // 3D forward plan
-  p = fftw_plan_dft_3d(N1, N2, N3, fftw_in, fftw_out, FFTW_FORWARD, FFTW_ESTIMATE);
+  p = fftw_plan_dft_3d(N3, N2, N1, fftw_in, fftw_out, FFTW_FORWARD, FFTW_ESTIMATE);
   // Execute C2R
   fftw_execute(p);
   //Check Real Outputs
@@ -180,6 +181,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2Z ) {
     EXPECT_NEAR(fftw_out[i][1] , output[i].y, 0.1); 
   }
   // Free up resources
+  fftw_destroy_plan(p);
   fftw_free(fftw_in); fftw_free(fftw_out);
   free( input );
   free( output );

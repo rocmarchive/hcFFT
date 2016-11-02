@@ -44,7 +44,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_R2C ) {
   }
   out = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * Csize);
   // 2D forward plan
-  p = fftwf_plan_dft_r2c_2d(N1, N2, in, out, FFTW_ESTIMATE | FFTW_R2HC);;
+  p = fftwf_plan_dft_r2c_2d(N2, N1, in, out, FFTW_ESTIMATE | FFTW_R2HC);;
   // Execute R2C
   fftwf_execute(p);
   //Check Real Outputs
@@ -107,7 +107,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2R ) {
   }
   fftw_out = (float*) fftwf_malloc(sizeof(float) * Rsize);
   // 2D forward plan
-  p = fftwf_plan_dft_c2r_2d(N1, N2, fftw_in, fftw_out, FFTW_ESTIMATE | FFTW_HC2R);;
+  p = fftwf_plan_dft_c2r_2d(N2, N1, fftw_in, fftw_out, FFTW_ESTIMATE | FFTW_HC2R);;
   // Execute C2R
   fftwf_execute(p);
   //Check Real Outputs
@@ -115,6 +115,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2R ) {
     EXPECT_NEAR(fftw_out[i] , output[i], 0.01); 
   }
   // Free up resources
+  fftwf_destroy_plan(p);
   fftwf_free(fftw_in); fftwf_free(fftw_out); 
   free(input);
   free(output);
@@ -164,7 +165,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
     fftw_in[i][1] = input[i].y;
   }
   // 2D forward plan
-  p = fftwf_plan_dft_2d(N1, N2, fftw_in, fftw_out, FFTW_FORWARD, FFTW_ESTIMATE);
+  p = fftwf_plan_dft_2d(N2, N1, fftw_in, fftw_out, FFTW_FORWARD, FFTW_ESTIMATE);
   // Execute C2R
   fftwf_execute(p);
   //Check Real Outputs
@@ -176,6 +177,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
     EXPECT_NEAR(fftw_out[i][1] , output[i].y, 0.1); 
   }
   // Free up resources
+  fftwf_destroy_plan(p);
   fftwf_free(fftw_in); fftwf_free(fftw_out);
   free(input);
   free(output);
