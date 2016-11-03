@@ -48,8 +48,10 @@ while read line; do
   N1=$(echo $line | cut -f1 -d" " )
   N2=$(echo $line | cut -f2 -d" " )
 
+numtests=${#test_transforms[@]}
+
 ## now loop through the above array
-  for i in 0 1 2
+  for (( i=0; i<numtests; i++ ));  
   do
     working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms/bin/"
     cd $working_dir1
