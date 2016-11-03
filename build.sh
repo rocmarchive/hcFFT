@@ -111,10 +111,8 @@ elif ( [ "$testing" = "on" ] ); then
   set +e
   mkdir -p $current_work_dir/build/test
   mkdir -p $current_work_dir/build/test/src/bin/
-  mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_1D_transform/bin/
-  mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_2D_transform/bin/
-  mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_3D_transform/bin/
-  mkdir -p $current_work_dir/build/test/unit/gtest/hcfft_Create_Destroy_Plan/bin/
+  mkdir -p $current_work_dir/build/test/unit/hcfft_transforms/bin/
+  mkdir -p $current_work_dir/build/test/unit/hcfft_Create_Destroy_Plan/bin/
   mkdir -p $current_work_dir/build/test/FFT_benchmark_Convolution_Networks/Comparison_tests/bin/
   set -e
 

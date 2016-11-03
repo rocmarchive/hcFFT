@@ -1,6 +1,0 @@
-cmake_minimum_required(VERSION 2.8)
-
-add_subdirectory(hcfft_1D_transform)
-add_subdirectory(hcfft_2D_transform)
-add_subdirectory(hcfft_3D_transform)
-add_subdirectory(hcfft_Create_Destroy_Plan)
