@@ -202,6 +202,12 @@ void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGro
 
     primeFactorsExpanded[rad] = e;
   }
+ 
+  if (l!=1) {
+    std::cout<< "Unsupported vector length" <<std::endl;
+    exit(1);
+  }
+
 
   assert(l == 1); // Makes sure the number is composed of only supported primes
 
