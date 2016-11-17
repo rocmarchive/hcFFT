@@ -65,7 +65,6 @@ int main(int argc, char* argv[]) {
     // Since this case is to test on GPU device, skip if there is CPU only
     return 0;
   }
-
   assert(accs.size() && "Number of Accelerators == 0!");
   std::for_each(accs.begin(), accs.end(), [&] (accelerator acc) {
     std::wcout << "New accelerator: " << acc.get_description() << std::endl;
@@ -80,6 +79,7 @@ int main(int argc, char* argv[]) {
     std::cout << std::endl;
   });
 #endif
+  hc::accelerator_view accl_view = accs[1].get_default_view();
   // Initialize host variables ----------------------------------------------
   float* ipHost = (float*)calloc(realsize, sizeof(float));
   float* ipzHost = (float*)calloc(realsize, sizeof(float));
@@ -95,9 +95,9 @@ int main(int argc, char* argv[]) {
   float* ipzDev = (float*)am_alloc(realsize * sizeof(float), accs[1], 0);
   float* opDev = (float*)am_alloc(cmplexsize * sizeof(float), accs[1], 0);
   // Copy input contents to device from host
-  hc::am_copy(ipDev, ipHost, realsize * sizeof(float));
-  hc::am_copy(ipzDev, ipzHost, realsize * sizeof(float));
-  hc::am_copy(opDev, opHost, cmplexsize * sizeof(float));
+  accl_view.copy(ipHost, ipDev, realsize * sizeof(float));
+  accl_view.copy(ipzHost, ipzDev, realsize * sizeof(float));
+  accl_view.copy(opHost, opDev, cmplexsize * sizeof(float));
   hcfftLibType libtype = HCFFT_R2CD2Z;
   hcfftStatus status = plan.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, precision, libtype);
 
@@ -183,7 +183,7 @@ int main(int argc, char* argv[]) {
   double time_in_ms = Avg_time * 1e3;
   cout << "FFT Kernel execution time R2C Transform for size " << N1 << "x" << N2 << " in <ms>:" << time_in_ms << endl;
   // Copy Device output  contents back to host
-  hc::am_copy(opHost, opDev, cmplexsize * sizeof(float));
+  accl_view.copy(opDev, opHost, cmplexsize * sizeof(float));
   status = plan.hcfftDestroyPlan(&planhandle);
 
   if(status != HCFFT_SUCCEEDS) {
@@ -302,7 +302,7 @@ int main(int argc, char* argv[]) {
   time_in_ms = Avg_time * 1e3;
   cout << "FFT Kernel execution time C2R Transform for size " << N1 << "x" << N2 << " in <ms>:" << time_in_ms << endl;
   // Copy Device output  contents back to host
-  hc::am_copy(ipzHost, ipzDev, realsize * sizeof(float));
+  accl_view.copy(ipzDev, ipzHost, realsize * sizeof(float));
 #if PRINT
 
   /* Print Output */

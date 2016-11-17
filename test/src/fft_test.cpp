@@ -49,6 +49,7 @@ int main(int argc, char* argv[]) {
   }
 
   assert(accs.size() && "Number of Accelerators == 0!");
+  hc::accelerator_view accl_view = accs[1].get_default_view();
   std::for_each(accs.begin(), accs.end(), [&] (accelerator acc) {
     std::wcout << "New accelerator: " << acc.get_description() << std::endl;
     std::wcout << "device_path = " << acc.get_device_path() << std::endl;
@@ -77,9 +78,9 @@ int main(int argc, char* argv[]) {
   float* ipzDev = (float*)am_alloc(realsize * sizeof(float), accs[1], 0);
   float* opDev = (float*)am_alloc(cmplexsize * sizeof(float), accs[1], 0);
   // Copy input contents to device from host
-  hc::am_copy(ipDev, ipHost, realsize * sizeof(float));
-  hc::am_copy(ipzDev, ipzHost, realsize * sizeof(float));
-  hc::am_copy(opDev, opHost, cmplexsize * sizeof(float));
+  accl_view.copy(ipHost, ipDev, realsize * sizeof(float));
+  accl_view.copy(ipzHost, ipzDev, realsize * sizeof(float));
+  accl_view.copy(opHost, opDev, cmplexsize * sizeof(float));
   hcfftLibType libtype = HCFFT_R2CD2Z;
   hcfftStatus status = plan.hcfftCreateDefaultPlan (&planhandle, dimension, length, dir, precision, libtype);
 
@@ -151,7 +152,7 @@ int main(int argc, char* argv[]) {
 
   std::cout << " R2C done " << std::endl;
   // Copy Device output  contents back to host
-  hc::am_copy(opHost, opDev, cmplexsize * sizeof(float));
+  accl_view.copy(opDev, opHost, cmplexsize * sizeof(float));
   status = plan.hcfftDestroyPlan(&planhandle);
 
   if(status != HCFFT_SUCCEEDS) {
@@ -254,7 +255,7 @@ int main(int argc, char* argv[]) {
 
   std::cout << " C2R done " << std::endl;
   // Copy Device output  contents back to host
-  hc::am_copy(ipzHost, ipzDev, realsize * sizeof(float));
+  accl_view.copy(ipzDev, ipzHost, realsize * sizeof(float));
 #if PRINT
 
   /* Print Output */

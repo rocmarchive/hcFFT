@@ -379,7 +379,8 @@ class TwiddleTable {
     }
 
     *twiddles = (T*)hc::am_alloc( N * sizeof(T), acc, 0);
-    hc::am_copy(*twiddles, wc, N * sizeof(T));
+    hc::accelerator_view accl_view = acc.get_default_view();
+    accl_view.copy(wc, *twiddles, N * sizeof(T));
     assert(twiddles != NULL);
   }
 };

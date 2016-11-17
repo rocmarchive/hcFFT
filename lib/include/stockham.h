@@ -222,7 +222,8 @@ class TwiddleTableLarge {
     }
 
     *twiddleslarge = hc::am_alloc(Y * X * sizeof(T), acc, 0);
-    hc::am_copy(*twiddleslarge, wc, Y * X * sizeof(T));
+    hc::accelerator_view accl_view = acc.get_default_view();
+    accl_view.copy(wc, *twiddleslarge, Y * X * sizeof(T));
     assert(*twiddleslarge != NULL);
   }
 

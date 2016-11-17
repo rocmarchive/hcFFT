@@ -24,13 +24,14 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_D2Z ) {
   hcfftDoubleComplex* output = (hcfftDoubleComplex*)calloc(Csize, sizeof(hcfftDoubleComplex));
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
+  hc::accelerator_view accl_view = accs[1].get_default_view();
   hcfftDoubleReal* idata = hc::am_alloc(Rsize * sizeof(hcfftDoubleReal), accs[1], 0);
-  hc::am_copy(idata, input, sizeof(hcfftDoubleReal) * Rsize);
+  accl_view.copy(input, idata, sizeof(hcfftDoubleReal) * Rsize);
   hcfftDoubleComplex* odata = hc::am_alloc(Csize * sizeof(hcfftDoubleComplex), accs[1], 0);
-  hc::am_copy(odata,  output, sizeof(hcfftDoubleComplex) * Csize);
+  accl_view.copy(output, odata, sizeof(hcfftDoubleComplex) * Csize);
   status = hcfftExecD2Z(*plan, idata, odata);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  hc::am_copy(output, odata, sizeof(hcfftDoubleComplex) * Csize);
+  accl_view.copy(odata, output, sizeof(hcfftDoubleComplex) * Csize);
   status =  hcfftDestroy(*plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   //FFTW work flow
@@ -85,13 +86,14 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2D ) {
 
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
+  hc::accelerator_view accl_view = accs[1].get_default_view();
   hcfftDoubleComplex* idata = hc::am_alloc(Csize * sizeof(hcfftDoubleComplex), accs[1], 0);
-  hc::am_copy(idata, input, sizeof(hcfftDoubleComplex) * Csize);
+  accl_view.copy(input, idata, sizeof(hcfftDoubleComplex) * Csize);
   hcfftDoubleReal* odata = hc::am_alloc(Rsize * sizeof(hcfftDoubleReal), accs[1], 0);
-  hc::am_copy(odata, output, sizeof(hcfftDoubleReal) * Rsize);
+  accl_view.copy(output, odata, sizeof(hcfftDoubleReal) * Rsize);
   status = hcfftExecZ2D(*plan, idata, odata);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  hc::am_copy(output, odata, sizeof(hcfftDoubleReal) * Rsize);
+  accl_view.copy(odata, output, sizeof(hcfftDoubleReal) * Rsize);
   status =  hcfftDestroy(*plan);
   //FFTW work flow
   // input output arrays
@@ -142,13 +144,14 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
 
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
+  hc::accelerator_view accl_view = accs[1].get_default_view();
   hcfftDoubleComplex* idata = hc::am_alloc(hSize * sizeof(hcfftDoubleComplex), accs[1], 0);
-  hc::am_copy(idata, input, sizeof(hcfftDoubleComplex) * hSize);
+  accl_view.copy(input, idata, sizeof(hcfftDoubleComplex) * hSize);
   hcfftDoubleComplex* odata = hc::am_alloc(hSize * sizeof(hcfftDoubleComplex), accs[1], 0);
-  hc::am_copy(odata,  output, sizeof(hcfftDoubleComplex) * hSize);
+  accl_view.copy(output, odata, sizeof(hcfftDoubleComplex) * hSize);
   status = hcfftExecZ2Z(*plan, idata, odata, HCFFT_FORWARD);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  hc::am_copy(output, odata, sizeof(hcfftDoubleComplex) * hSize);
+  accl_view.copy(odata, output, sizeof(hcfftDoubleComplex) * hSize);
   status =  hcfftDestroy(*plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   //FFTW work flow
