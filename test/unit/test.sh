@@ -14,7 +14,7 @@ export OPENCL_LIBRARY_PATH=$AMDAPPSDKROOT/lib/x86_64/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENCL_LIBRARY_PATH
 
 # Move to gtest bin
-working_dir1="$current_work_dir/../../build/test/unit/hcfft_Create_Destroy_Plan/bin/"
+working_dir1="$current_work_dir/../../build/test/unit/hcfft_Create_Destroy_Plan"
 if [ ! -d "$working_dir1" ]; then
   echo "Please run script[test.sh] from hcfft/test/unit/"
   exit
@@ -52,7 +52,7 @@ numtests=${#test_1d_transforms[@]}
 ## now loop through the above array
   for (( i=0; i<numtests; i++ ));  
   do
-    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms/bin/"
+    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms"
     cd $working_dir1
     if [ ! -d "errlog" ]; then
       mkdir "errlog"
