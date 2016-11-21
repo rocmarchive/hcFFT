@@ -8,9 +8,7 @@ FIND_PACKAGE(HC++ 1.0 REQUIRED)
 # Find FFTW
 FIND_PACKAGE(FFTW 1.0 REQUIRED)
 
-SET (HCSRCS hcfft_1D_transform.cpp hcfft_1D_transform_double.cpp 
-            hcfft_2D_transform.cpp hcfft_2D_transform_double.cpp
-            hcfft_3D_transform.cpp hcfft_3D_transform_double.cpp)
+FILE (GLOB HCSRCS hcfft*.cpp) 
 
 execute_process(COMMAND ${HCC_CONFIG} --install --cxxflags
                           OUTPUT_VARIABLE HCC_CXXFLAGS)

@@ -42,16 +42,16 @@ else
   fi
 fi
 
-test_1d_transforms=(hcfft_1D_transform hcfft_1D_transform_double)
+test_1d_transforms_file=($current_work_dir/hcfft_transforms/hcfft_1D_transform*.cpp)
+numtests=${#test_1d_transforms_file[@]}
 
 while read line; do
   N1=$(echo $line | cut -f1 -d" " )
 
-numtests=${#test_1d_transforms[@]}
-
 ## now loop through the above array
   for (( i=0; i<numtests; i++ ));  
   do
+    test_1d_transforms=$(basename "${test_1d_transforms_file[$i]}" .cpp)
     working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms"
     cd $working_dir1
     if [ ! -d "errlog" ]; then
@@ -60,7 +60,7 @@ numtests=${#test_1d_transforms[@]}
     errlogdir="${working_dir1}/errlog"
 
     #Gtest functions
-    unittest="${working_dir1}/${test_1d_transforms[$i]} $N1"
+    unittest="${working_dir1}/${test_1d_transforms} $N1"
 
     runcmd1="$unittest >> gtestlog.txt"
     eval $runcmd1
@@ -71,11 +71,11 @@ numtests=${#test_1d_transforms[@]}
     else
       if grep -q FAILED "$Log_file";
       then
-        echo "${red}${test_1d_transforms[$i]} $N1            ----- [ FAILED ]${reset}"
-        mv "${working_dir1}/gtestlog.txt" "${errlogdir}/${test_1d_transforms[$i]}_${N1}.txt" 
+        echo "${red}${test_1d_transforms} $N1            ----- [ FAILED ]${reset}"
+        mv "${working_dir1}/gtestlog.txt" "${errlogdir}/${test_1d_transforms}_${N1}.txt" 
       elif grep -q PASSED "$Log_file";
       then
-        echo "${green}${test_1d_transforms[$i]} $N1         ----- [ PASSED ]${reset}"
+        echo "${green}${test_1d_transforms} $N1         ----- [ PASSED ]${reset}"
         rm -f $working_dir1/gtestlog.txt
       fi
     fi
@@ -85,18 +85,18 @@ numtests=${#test_1d_transforms[@]}
 done < $current_work_dir/Input1D.txt
 
 
-test_2d_transforms=(hcfft_2D_transform hcfft_2D_transform_double)
+test_2d_transforms_file=($current_work_dir/hcfft_transforms/hcfft_2D_transform*.cpp)
+numtests=${#test_2d_transforms_file[@]}
 
 while read line; do
   N1=$(echo $line | cut -f1 -d" " )
-  N2=$(echo $line | cut -f2 -d" " )
-
-numtests=${#test_2d_transforms[@]}
+  N2=$(echo $line | cut -f1 -d" " )
 
 ## now loop through the above array
   for (( i=0; i<numtests; i++ ));  
   do
-    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms/"
+    test_2d_transforms=$(basename "${test_2d_transforms_file[$i]}" .cpp)
+    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms"
     cd $working_dir1
     if [ ! -d "errlog" ]; then
       mkdir "errlog"
@@ -104,7 +104,7 @@ numtests=${#test_2d_transforms[@]}
     errlogdir="${working_dir1}/errlog"
 
     #Gtest functions
-    unittest="${working_dir1}/${test_2d_transforms[$i]} $N1 $N2"
+    unittest="${working_dir1}/${test_2d_transforms} $N1 $N2"
 
     runcmd1="$unittest >> gtestlog.txt"
     eval $runcmd1
@@ -115,11 +115,11 @@ numtests=${#test_2d_transforms[@]}
     else
       if grep -q FAILED "$Log_file";
       then
-        echo "${red}${test_2d_transforms[$i]} $N1 $N2            ----- [ FAILED ]${reset}"
-        mv "${working_dir1}/gtestlog.txt" "${errlogdir}/${test_2d_transforms[$i]}_${N1}_${N2}.txt" 
+        echo "${red}${test_2d_transforms} $N1 $N2          ----- [ FAILED ]${reset}"
+        mv "${working_dir1}/gtestlog.txt" "${errlogdir}/${test_2d_transforms}_${N1}_${N2}.txt" 
       elif grep -q PASSED "$Log_file";
       then
-        echo "${green}${test_2d_transforms[$i]} $N1 $N2          ----- [ PASSED ]${reset}"
+        echo "${green}${test_2d_transforms} $N1 $N2      ----- [ PASSED ]${reset}"
         rm -f $working_dir1/gtestlog.txt
       fi
     fi
@@ -128,19 +128,20 @@ numtests=${#test_2d_transforms[@]}
 #Input file
 done < $current_work_dir/Input2D.txt
 
-test_3d_transforms=(hcfft_3D_transform hcfft_3D_transform_double)
+
+test_3d_transforms_file=($current_work_dir/hcfft_transforms/hcfft_3D_transform*.cpp)
+numtests=${#test_3d_transforms_file[@]}
 
 while read line; do
   N1=$(echo $line | cut -f1 -d" " )
-  N2=$(echo $line | cut -f2 -d" " )
-  N3=$(echo $line | cut -f3 -d" " )
-
-numtests=${#test_2d_transforms[@]}
+  N2=$(echo $line | cut -f1 -d" " )
+  N3=$(echo $line | cut -f1 -d" " )
 
 ## now loop through the above array
   for (( i=0; i<numtests; i++ ));  
   do
-    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms/"
+    test_3d_transforms=$(basename "${test_3d_transforms_file[$i]}" .cpp)
+    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms"
     cd $working_dir1
     if [ ! -d "errlog" ]; then
       mkdir "errlog"
@@ -148,7 +149,7 @@ numtests=${#test_2d_transforms[@]}
     errlogdir="${working_dir1}/errlog"
 
     #Gtest functions
-    unittest="${working_dir1}/${test_3d_transforms[$i]} $N1 $N2 $N3"
+    unittest="${working_dir1}/${test_3d_transforms} $N1 $N2"
 
     runcmd1="$unittest >> gtestlog.txt"
     eval $runcmd1
@@ -159,11 +160,11 @@ numtests=${#test_2d_transforms[@]}
     else
       if grep -q FAILED "$Log_file";
       then
-        echo "${red}${test_3d_transforms[$i]} $N1 $N2  $N3          ----- [ FAILED ]${reset}"
-        mv "${working_dir1}/gtestlog.txt" "${errlogdir}/${test_3d_transforms[$i]}_${N1}_${N2}_${N3}.txt" 
+        echo "${red}${test_3d_transforms} $N1 $N2 $N3         ----- [ FAILED ]${reset}"
+        mv "${working_dir1}/gtestlog.txt" "${errlogdir}/${test_3d_transforms}_${N1}_${N2}_${N3}.txt" 
       elif grep -q PASSED "$Log_file";
       then
-        echo "${green}${test_3d_transforms[$i]} $N1 $N2  $N3        ----- [ PASSED ]${reset}"
+        echo "${green}${test_3d_transforms} $N1 $N2 $N3     ----- [ PASSED ]${reset}"
         rm -f $working_dir1/gtestlog.txt
       fi
     fi
@@ -171,3 +172,5 @@ numtests=${#test_2d_transforms[@]}
 
 #Input file
 done < $current_work_dir/Input3D.txt
+
+
