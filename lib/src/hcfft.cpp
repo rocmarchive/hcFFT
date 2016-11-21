@@ -1,8 +1,11 @@
 #include "hcfft.h"
 
+#if __has_feature(cxx_thread_local)
 // Global Static plan object
 thread_local FFTPlan planObject;
-
+#else
+FFTPlan planObject;
+#endif
 /* Function hcfftXtSetGPUs()
 Returns GPUs are to be used with the plan
 */

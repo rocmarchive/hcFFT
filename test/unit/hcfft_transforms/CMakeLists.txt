@@ -24,6 +24,7 @@ string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
 set (HCC_LDFLAGS "${HCC_LDFLAGS} -L${HCFFT_LIBRARY_PATH} -L${FFTW_LIBRARIES}")
 SET (LINK "-lhcfft -lhc_am -lfftw3 -lfftw3f -lm")
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "bin/")
 FOREACH(test_file ${HCSRCS})
   SET_PROPERTY(SOURCE ${test_file} ../gtest_main.cpp ../gtest-all.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS} -DGTEST_HAS_TR1_TUPLE=0")
   get_filename_component (name_without_extension ${test_file} NAME_WE)
