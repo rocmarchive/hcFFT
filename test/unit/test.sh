@@ -96,7 +96,7 @@ numtests=${#test_2d_transforms[@]}
 ## now loop through the above array
   for (( i=0; i<numtests; i++ ));  
   do
-    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms/bin/"
+    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms/"
     cd $working_dir1
     if [ ! -d "errlog" ]; then
       mkdir "errlog"
@@ -140,7 +140,7 @@ numtests=${#test_2d_transforms[@]}
 ## now loop through the above array
   for (( i=0; i<numtests; i++ ));  
   do
-    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms/bin/"
+    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms/"
     cd $working_dir1
     if [ ! -d "errlog" ]; then
       mkdir "errlog"
