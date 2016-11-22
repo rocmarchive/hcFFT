@@ -2,61 +2,71 @@
 #include "../gtest/gtest.h"
 #include "fftw3.h"
 
-TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2D ) {
+TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
   size_t N1, N2;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 8;
   N2 = my_argc > 2 ? atoi(my_argv[2]) : 8;
   hcfftHandle* plan = NULL;
-  hcfftResult status  = hcfftPlan2d(plan, N1, N2, HCFFT_Z2D);
+  // First Real to Complex tranformation
+  hcfftResult status  = hcfftPlan2d(plan, N1, N2,  HCFFT_D2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  int Csize = N2 * (1 + N1 / 2);
   int Rsize = N2 * N1;
-  hcfftDoubleComplex* input = (hcfftDoubleComplex*)calloc(Csize, sizeof(hcfftDoubleComplex));
-  hcfftDoubleReal* output = (hcfftDoubleReal*)calloc(Rsize, sizeof(hcfftDoubleReal));
+  int Csize = N2 * (1 + N1 / 2);
+  hcfftDoubleReal* inputD2Z = (hcfftDoubleReal*)calloc(Rsize, sizeof(hcfftDoubleReal));
   int seed = 123456789;
   srand(seed);
 
   // Populate the input
-  for(int i = 0; i < Csize ; i++) {
-    input[i].x = i%8;
-    input[i].y = i%16;
+  for(int i = 0; i < Rsize ; i++) {
+    inputD2Z[i] = i%8;
   }
 
+  hcfftDoubleComplex* outputD2Z = (hcfftDoubleComplex*)calloc(Csize, sizeof(hcfftDoubleComplex));
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
   hc::accelerator_view accl_view = accs[1].get_default_view();
-  hcfftDoubleComplex* idata = hc::am_alloc(Csize * sizeof(hcfftDoubleComplex), accs[1], 0);
-  accl_view.copy(input, idata, sizeof(hcfftDoubleComplex) * Csize);
-  hcfftDoubleReal* odata = hc::am_alloc(Rsize * sizeof(hcfftDoubleReal), accs[1], 0);
-  accl_view.copy(output, odata, sizeof(hcfftDoubleReal) * Rsize);
-  status = hcfftExecZ2D(*plan, idata, odata);
+  hcfftDoubleReal* devIpD2Z = hc::am_alloc(Rsize * sizeof(hcfftDoubleReal), accs[1], 0);
+  accl_view.copy(inputD2Z, devIpD2Z, sizeof(hcfftDoubleReal) * Rsize);
+  hcfftDoubleComplex* devOpD2Z = hc::am_alloc(Csize * sizeof(hcfftDoubleComplex), accs[1], 0);
+  accl_view.copy(outputD2Z, devOpD2Z, sizeof(hcfftDoubleComplex) * Csize);
+  status = hcfftExecD2Z(*plan, devIpD2Z, devOpD2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  accl_view.copy(odata, output, sizeof(hcfftDoubleReal) * Rsize);
+  accl_view.copy(devOpD2Z, outputD2Z, sizeof(hcfftDoubleComplex) * Csize);
   status =  hcfftDestroy(*plan);
-  //FFTW work flow
-  // input output arrays
-  double *fftw_out; fftw_complex* fftw_in;
-  fftw_plan p;
-  fftw_in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * Csize);
-  // Populate inputs
+  EXPECT_EQ(status, HCFFT_SUCCESS);
+
+  // Next Complex to Real transformation
+  plan = NULL;
+  status  = hcfftPlan2d(plan, N1, N2, HCFFT_Z2D);
+  EXPECT_EQ(status, HCFFT_SUCCESS);
+  hcfftDoubleComplex* inputZ2D = (hcfftDoubleComplex*)calloc(Csize, sizeof(hcfftDoubleComplex));
+  hcfftDoubleReal* outputZ2D = (hcfftDoubleReal*)calloc(Rsize, sizeof(hcfftDoubleReal));
+
+  // Populate the input to Z2D with output of D2Z
   for(int i = 0; i < Csize ; i++) {
-    fftw_in[i][0] = input[i].x;
-    fftw_in[i][1] = input[i].y;
+    inputZ2D[i].x = outputD2Z[i].x;
+    inputZ2D[i].y = outputD2Z[i].y;
   }
-  fftw_out = (double*) fftw_malloc(sizeof(double) * Rsize);
-  // 2D forward plan
-  p = fftw_plan_dft_c2r_2d(N2, N1, fftw_in, fftw_out, FFTW_ESTIMATE | FFTW_HC2R);;
-  // Execute C2R
-  fftw_execute(p);
-  //Check Real Outputs
+
+  hcfftDoubleComplex* devIpZ2D = hc::am_alloc(Csize * sizeof(hcfftDoubleComplex), accs[1], 0);
+  accl_view.copy(inputZ2D, devIpZ2D, sizeof(hcfftDoubleComplex) * Csize);
+  hcfftDoubleReal* devOpZ2D = hc::am_alloc(Rsize * sizeof(hcfftDoubleReal), accs[1], 0);
+  accl_view.copy(outputZ2D, devOpZ2D, sizeof(hcfftDoubleReal) * Rsize);
+  status = hcfftExecZ2D(*plan, devIpZ2D, devOpZ2D);
+  EXPECT_EQ(status, HCFFT_SUCCESS);
+  accl_view.copy(devOpZ2D, outputZ2D, sizeof(hcfftDoubleReal) * Rsize);
+  status =  hcfftDestroy(*plan);
+  //Check Real Inputs and Outputs
   for (int i =0; i < Rsize; i++) {
-    EXPECT_NEAR(fftw_out[i] , output[i], 0.1); 
+    EXPECT_NEAR(inputD2Z[i] , outputZ2D[i]/Rsize, 0.1); 
   }
   // Free up resources
-  fftw_destroy_plan(p);
-  fftw_free(fftw_in); fftw_free(fftw_out); 
-  free(input);
-  free(output);
-  hc::am_free(idata);
-  hc::am_free(odata);
+  free(inputD2Z);
+  free(outputD2Z);
+  free(inputZ2D);
+  free(outputZ2D);
+  hc::am_free(devIpZ2D);
+  hc::am_free(devOpZ2D);
+  hc::am_free(devIpD2Z);
+  hc::am_free(devOpD2Z);
 }

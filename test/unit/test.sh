@@ -52,7 +52,7 @@ while read line; do
   for (( i=0; i<numtests; i++ ));  
   do
     test_1d_transforms=$(basename "${test_1d_transforms_file[$i]}" .cpp)
-    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms"
+    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms/bin"
     cd $working_dir1
     if [ ! -d "errlog" ]; then
       mkdir "errlog"
@@ -90,13 +90,13 @@ numtests=${#test_2d_transforms_file[@]}
 
 while read line; do
   N1=$(echo $line | cut -f1 -d" " )
-  N2=$(echo $line | cut -f1 -d" " )
+  N2=$(echo $line | cut -f2 -d" " )
 
 ## now loop through the above array
   for (( i=0; i<numtests; i++ ));  
   do
     test_2d_transforms=$(basename "${test_2d_transforms_file[$i]}" .cpp)
-    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms"
+    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms/bin"
     cd $working_dir1
     if [ ! -d "errlog" ]; then
       mkdir "errlog"
@@ -134,14 +134,14 @@ numtests=${#test_3d_transforms_file[@]}
 
 while read line; do
   N1=$(echo $line | cut -f1 -d" " )
-  N2=$(echo $line | cut -f1 -d" " )
-  N3=$(echo $line | cut -f1 -d" " )
+  N2=$(echo $line | cut -f2 -d" " )
+  N3=$(echo $line | cut -f3 -d" " )
 
 ## now loop through the above array
   for (( i=0; i<numtests; i++ ));  
   do
     test_3d_transforms=$(basename "${test_3d_transforms_file[$i]}" .cpp)
-    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms"
+    working_dir1="$current_work_dir/../../build/test/unit/hcfft_transforms/bin"
     cd $working_dir1
     if [ ! -d "errlog" ]; then
       mkdir "errlog"
