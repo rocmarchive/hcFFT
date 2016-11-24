@@ -17,7 +17,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2R_RTT) {
 
   // Populate the input
   for(int i = 0; i < Rsize ; i++) {
-    inputR2C[i] = i;
+    inputR2C[i] = i%8;
   }
 
   hcfftComplex* outputR2C = (hcfftComplex*)calloc(Csize, sizeof(hcfftComplex));

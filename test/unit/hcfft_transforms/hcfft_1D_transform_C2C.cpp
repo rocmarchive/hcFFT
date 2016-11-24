@@ -1,6 +1,7 @@
 #include "hcfft.h"
 #include "fftw3.h"
 #include "../gtest/gtest.h"
+#include "helper_functions.h"
 
 TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2C ) {
   size_t N1;
@@ -48,13 +49,16 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2C ) {
   p = fftwf_plan_many_dft( 1, lengths, 1, fftw_in, NULL, 1, 0, fftw_out, NULL, 1, 0, FFTW_FORWARD, FFTW_ESTIMATE);
   // Execute C2R
   fftwf_execute(p);
-  //Check Real Outputs
-  for (int i =0; i < hSize; i++) {
-    EXPECT_NEAR(fftw_out[i][0] , output[i].x, 0.1); 
-  }
-  //Check Imaginary Outputs
-  for (int i =0; i < hSize; i++) {
-    EXPECT_NEAR(fftw_out[i][1] , output[i].y, 0.1); 
+  // Check RMSE: If fails go for pointwise comparison
+  if (JudgeRMSEAccuracyComplex<fftwf_complex, hcfftComplex>(fftw_out, output, hSize)) {
+    //Check Real Outputs
+    for (int i =0; i < hSize; i++) {
+      EXPECT_NEAR(fftw_out[i][0] , output[i].x, 0.1); 
+    }
+    //Check Imaginary Outputs
+    for (int i =0; i < hSize; i++) {
+      EXPECT_NEAR(fftw_out[i][1] , output[i].y, 0.1); 
+    }
   }
   // Free up resources
   fftwf_destroy_plan(p);

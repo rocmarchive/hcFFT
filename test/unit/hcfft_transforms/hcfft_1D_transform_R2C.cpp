@@ -1,6 +1,7 @@
 #include "hcfft.h"
 #include "fftw3.h"
 #include "../gtest/gtest.h"
+#include "helper_functions.h"
 
 TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
@@ -50,13 +51,17 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   p = fftwf_plan_many_dft_r2c( 1, lengths, 1, in, NULL, 1, 0, out, NULL, 1, 0, FFTW_ESTIMATE | FFTW_R2HC);;
   // Execute R2C
   fftwf_execute(p);
-  //Check Real Outputs
-  for (int i =0; i < Csize; i++) {
-    EXPECT_NEAR(out[i][0] , output[i].x, 0.01); 
-  }
-  //Check Imaginary Outputs
-  for (int i = 0; i < Csize; i++) {
-    EXPECT_NEAR(out[i][1] , output[i].y, 0.01); 
+  // Check RMSE: If fails go for pointwise comparison
+  if (JudgeRMSEAccuracyComplex<fftwf_complex, hcfftComplex>(out, output, Csize))
+  { 
+    //Check Real Outputs
+    for (int i =0; i < Csize; i++) {
+      EXPECT_NEAR(out[i][0] , output[i].x, 0.01); 
+    }
+    //Check Imaginary Outputs
+    for (int i = 0; i < Csize; i++) {
+      EXPECT_NEAR(out[i][1] , output[i].y, 0.01); 
+    }
   }
   //Free up resources
   fftwf_destroy_plan(p);
