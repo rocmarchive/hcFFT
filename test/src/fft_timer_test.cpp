@@ -162,7 +162,7 @@ int main(int argc, char* argv[]) {
 
   for(int i = 0; i < COUNT; i++) {
     start = std::chrono::high_resolution_clock::now();
-    status = plan.hcfftEnqueueTransform(planhandle, dir, ipDev, opDev, NULL);
+    status = plan.hcfftEnqueueTransform<float>(planhandle, dir, ipDev, opDev, NULL);
 
     if(status != HCFFT_SUCCEEDS) {
       cout << " Transform error " << endl;
@@ -281,7 +281,7 @@ int main(int argc, char* argv[]) {
 
   for(int i = 0; i < COUNT; i++) {
     start = std::chrono::high_resolution_clock::now();
-    status = plan1.hcfftEnqueueTransform(planhandle, dir, opDev, ipzDev, NULL);
+    status = plan1.hcfftEnqueueTransform<float>(planhandle, dir, opDev, ipzDev, NULL);
 
     if(status != HCFFT_SUCCEEDS) {
       cout << " Transform error " << endl;

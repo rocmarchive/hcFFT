@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::cout << " Starting R2C " << std::endl;
-  status = plan.hcfftEnqueueTransform(planhandle, dir, ipDev, opDev, NULL);
+  status = plan.hcfftEnqueueTransform<float>(planhandle, dir, ipDev, opDev, NULL);
 
   if(status != HCFFT_SUCCEEDS) {
     cout << " Transform error " << endl;
@@ -247,7 +247,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::cout << " Starting C2R " << std::endl;
-  status = plan1.hcfftEnqueueTransform(planhandle, dir, opDev, ipzDev, NULL);
+  status = plan1.hcfftEnqueueTransform<float>(planhandle, dir, opDev, ipzDev, NULL);
 
   if(status != HCFFT_SUCCEEDS) {
     cout << " Transform error " << endl;

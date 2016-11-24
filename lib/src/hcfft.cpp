@@ -717,7 +717,7 @@ hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal* idata, hcfftComplex* odata
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, dir, idata, odataR, NULL);
+  status = planObject.hcfftEnqueueTransform<float>(plan, dir, idata, odataR, NULL);
 
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
@@ -757,7 +757,7 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal* idata, hcfftDoubleCo
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, dir, idata, odataR, NULL);
+  status = planObject.hcfftEnqueueTransform<double>(plan, dir, idata, odataR, NULL);
 
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
@@ -826,7 +826,7 @@ hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex* idata, hcfftReal* odata
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, dir, idataR, odata, NULL);
+  status = planObject.hcfftEnqueueTransform<float>(plan, dir, idataR, odata, NULL);
 
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
@@ -866,7 +866,7 @@ hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubl
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, dir, idataR, odata, NULL);
+  status = planObject.hcfftEnqueueTransform<double>(plan, dir, idataR, odata, NULL);
 
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
@@ -933,7 +933,7 @@ hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex* idata, hcfftComplex* od
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, (hcfftDirection)direction, idataR, odataR, NULL);
+  status = planObject.hcfftEnqueueTransform<float>(plan, (hcfftDirection)direction, idataR, odataR, NULL);
 
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;
@@ -973,7 +973,7 @@ hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubl
     return HCFFT_SETUP_FAILED;
   }
 
-  status = planObject.hcfftEnqueueTransform(plan, (hcfftDirection)direction, idataR, odataR, NULL);
+  status = planObject.hcfftEnqueueTransform<double>(plan, (hcfftDirection)direction, idataR, odataR, NULL);
 
   if (status != HCFFT_SUCCEEDS) {
     return HCFFT_EXEC_FAILED;

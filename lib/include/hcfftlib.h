@@ -495,16 +495,13 @@ class FFTPlan {
   size_t  large1D_Xfactor;
 
   size_t tmpBufSize;
-  float* intBuffer;
-  double* intBufferD;
+  void* intBuffer;
 
   size_t tmpBufSizeRC;
-  float* intBufferRC;
-  double* intBufferRCD;
+  void* intBufferRC;
 
   size_t  tmpBufSizeC2R;
-  float* intBufferC2R;
-  double* intBufferC2RD;
+  void* intBufferC2R;
 
   void* twiddles;
   void* twiddleslarge;
@@ -564,8 +561,8 @@ class FFTPlan {
     twiddleFront(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
     planTX(0), planTY(0), planTZ(0), planRCcopy(0), planCopy(0), plHandle(0), plHandleOrigin(0),
     bLdsComplex(false), uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
-    intBuffer( NULL ), intBufferD(NULL), tmpBufSizeRC(0), intBufferRC(NULL), intBufferRCD(NULL),
-    tmpBufSizeC2R(0), intBufferC2RD(NULL), intBufferC2R(NULL), transflag(false),
+    intBuffer( NULL ), tmpBufSizeRC(0), intBufferRC(NULL),
+    tmpBufSizeC2R(0), intBufferC2R(NULL), transflag(false),
     transpose_in_2d_inplace(false), twiddles(NULL), twiddleslarge(NULL), transOutHorizontal(false),
     large1D(0), large2D(false), RCsimple(false), realSpecial(false), realSpecial_Nr(0),
     userPlan(false), allOpsInplace(false), blockCompute(false), blockComputeType(BCT_C2C),
@@ -582,17 +579,14 @@ class FFTPlan {
 
   hcfftStatus hcfftDestroyPlan(hcfftPlanHandle* plHandle);
 
-  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, float* inputBuffers,
-                                    float* outputBuffers, float* tmpBuffer);
+  template<typename T>
+  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, T* inputBuffers,
+                                    T* outputBuffers, T* tmpBuffer);
 
-  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, double* inputBuffers,
-                                    double* outputBuffers, double* tmpBuffer);
+  template<typename T> 
+  hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, T* inputBuffers,
+      T* outputBuffers, T* tmpBuffer);
 
-  hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, float* inputBuffers,
-      float* outputBuffers, float* tmpBuffer);
-
-  hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, double* inputBuffers,
-      double* outputBuffers, double* tmpBuffer);
 
   hcfftStatus hcfftSetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view accl_view);
 
