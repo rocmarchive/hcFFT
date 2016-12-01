@@ -62,8 +62,8 @@
 </div>
 <div class="line">hcFFT uses as input data the GPU memory pointed to by the idata parameter. The input array holds only the</div>
 <div class="line">nonredundant complex Fourier coefficients. This function stores the real output values in the odata array.</div>
-<div class="line">and pointers are both required to be aligned to hcfftComplex data type in single-precision transforms and</div>
-<div class="line">hcfftDoubleComplex type in double-precision transforms. It does an out-of-place data transform.</div>
+<div class="line">and pointers are both required to be aligned to hcComplex data type in single-precision transforms and</div>
+<div class="line">hcDoubleComplex type in double-precision transforms. It does an out-of-place data transform.</div>
 <div class="line"><br /></div>
 </div>
 <div class="section" id="functions">
@@ -76,7 +76,7 @@
 <p class="last"><strong>Inputs and Outputs are HCC device pointers.</strong></p>
 </div>
 </div></blockquote>
-<p><a class="reference external" href="HCFFT_TYPES.html">hcfftResult</a> <strong>hcfftExecC2R</strong> (hcfftHandle plan, hcfftComplex <a href="#id1"><span class="problematic" id="id2">*</span></a>idata, hcfftReal <a href="#id3"><span class="problematic" id="id4">*</span></a>odata)</p>
+<p><a class="reference external" href="HCFFT_TYPES.html">hcfftResult</a> <strong>hcfftExecC2R</strong> (hcfftHandle plan, hcComplex <a href="#id1"><span class="problematic" id="id2">*</span></a>idata, hcfftReal <a href="#id3"><span class="problematic" id="id4">*</span></a>odata)</p>
 </div>
 </div>
 <div class="section" id="detailed-description">
@@ -84,7 +84,7 @@
 </div>
 <div class="section" id="function-documentation">
 <h2>Function Documentation<a class="headerlink" href="#function-documentation" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><div class="highlight"><pre>hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex *idata, hcfftReal *odata)
+<div class="highlight-python"><div class="highlight"><pre>hcfftResult hcfftExecC2R(hcfftHandle plan, hcComplex *idata, hcfftReal *odata)
 </pre></div>
 </div>
 <table border="1" class="docutils">

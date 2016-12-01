@@ -2,6 +2,8 @@
 #include "../gtest/gtest.h"
 #include "fftw3.h"
 #include "helper_functions.h"
+#include "hc_am.hpp"
+#include "hcfftlib.h"
 
 TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
   size_t N1, N2;
@@ -11,8 +13,8 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
   hcfftResult status  = hcfftPlan2d(plan, N1, N2, HCFFT_Z2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int hSize = N1 * N2;
-  hcfftDoubleComplex* input = (hcfftDoubleComplex*)calloc(hSize, sizeof(hcfftDoubleComplex));
-  hcfftDoubleComplex* output = (hcfftDoubleComplex*)calloc(hSize, sizeof(hcfftDoubleComplex));
+  hcDoubleComplex* input = (hcDoubleComplex*)calloc(hSize, sizeof(hcDoubleComplex));
+  hcDoubleComplex* output = (hcDoubleComplex*)calloc(hSize, sizeof(hcDoubleComplex));
   int seed = 123456789;
   srand(seed);
 
@@ -25,13 +27,13 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
   hc::accelerator_view accl_view = accs[1].get_default_view();
-  hcfftDoubleComplex* idata = hc::am_alloc(hSize * sizeof(hcfftDoubleComplex), accs[1], 0);
-  accl_view.copy(input, idata, sizeof(hcfftDoubleComplex) * hSize);
-  hcfftDoubleComplex* odata = hc::am_alloc(hSize * sizeof(hcfftDoubleComplex), accs[1], 0);
-  accl_view.copy(output, odata, sizeof(hcfftDoubleComplex) * hSize);
+  hcDoubleComplex* idata = hc::am_alloc(hSize * sizeof(hcDoubleComplex), accs[1], 0);
+  accl_view.copy(input, idata, sizeof(hcDoubleComplex) * hSize);
+  hcDoubleComplex* odata = hc::am_alloc(hSize * sizeof(hcDoubleComplex), accs[1], 0);
+  accl_view.copy(output, odata, sizeof(hcDoubleComplex) * hSize);
   status = hcfftExecZ2Z(*plan, idata, odata, HCFFT_FORWARD);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  accl_view.copy(odata, output, sizeof(hcfftDoubleComplex) * hSize);
+  accl_view.copy(odata, output, sizeof(hcDoubleComplex) * hSize);
   status =  hcfftDestroy(*plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   //FFTW work flow
@@ -51,7 +53,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
   fftw_execute(p);
 
   // Check RMSE: If fails go for pointwise comparison
-  if (JudgeRMSEAccuracyComplex<fftw_complex, hcfftDoubleComplex>(fftw_out, output, hSize)) {
+  if (JudgeRMSEAccuracyComplex<fftw_complex, hcDoubleComplex>(fftw_out, output, hSize)) {
     //Check Real Outputs
     for (int i =0; i < hSize; i++) {
       EXPECT_NEAR(fftw_out[i][0] , output[i].x, 0.1); 

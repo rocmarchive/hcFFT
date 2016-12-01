@@ -2,6 +2,8 @@
 #include "../gtest/gtest.h"
 #include "fftw3.h"
 #include "helper_functions.h"
+#include "hc_am.hpp"
+#include "hcfftlib.h"
 
 TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2D ) {
   size_t N1;
@@ -11,7 +13,7 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2D ) {
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int Csize = (N1 / 2) + 1;
   int Rsize = N1;
-  hcfftDoubleComplex* input = (hcfftDoubleComplex*)calloc(Csize, sizeof(hcfftDoubleComplex));
+  hcDoubleComplex* input = (hcDoubleComplex*)calloc(Csize, sizeof(hcDoubleComplex));
   int seed = 123456789;
   srand(seed);
 
@@ -25,8 +27,8 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_Z2D ) {
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
   hc::accelerator_view accl_view = accs[1].get_default_view();
-  hcfftDoubleComplex* idata = hc::am_alloc(Csize * sizeof(hcfftDoubleComplex), accs[1], 0);
-  accl_view.copy(input, idata, sizeof(hcfftDoubleComplex) * Csize);
+  hcDoubleComplex* idata = hc::am_alloc(Csize * sizeof(hcDoubleComplex), accs[1], 0);
+  accl_view.copy(input, idata, sizeof(hcDoubleComplex) * Csize);
   hcfftDoubleReal* odata = hc::am_alloc(Rsize * sizeof(hcfftDoubleReal), accs[1], 0);
   accl_view.copy(output, odata, sizeof(hcfftDoubleReal) * Rsize);
   status = hcfftExecZ2D(*plan, idata, odata);

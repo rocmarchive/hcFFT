@@ -5,26 +5,34 @@
 extern "C" {
 #endif //(__cplusplus)
 
-struct float_2 {
+namespace hc {
+  class accelerator_view;
+  class accelerator;
+  class am_alloc;
+  class am_free;
+};
+
+struct float_2_ {
   float x;
   float y;
 };
 
-struct double_2 {
+struct double_2_ {
   double x;
   double y;
 };
 
 
 typedef float hcfftReal;
-typedef float_2 hcfftComplex;
+typedef float_2_ hcComplex;
 typedef double hcfftDoubleReal;
-typedef double_2 hcfftDoubleComplex;
+typedef double_2_ hcDoubleComplex;
 
 /* hcfft API Specification */
 
 // Typedef changes
-typedef hcfftPlanHandle hcfftHandle;
+
+typedef unsigned long hcfftHandle;
 
 /* The hcFFT library supports complex- and real-data transforms. The hcfftType data type is an enumeration of the types of transform data supported by hcFFT. */
 
@@ -202,9 +210,9 @@ hcfftResult hcfftDestroy(hcfftHandle plan);
   HCFFT_SETUP_FAILED  The hcFFT library failed to initialize. */
 
 
-hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex* idata, hcfftComplex* odata, int direction);
+hcfftResult hcfftExecC2C(hcfftHandle plan, hcComplex* idata, hcComplex* odata, int direction);
 
-hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubleComplex* odata, int direction);
+hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcDoubleComplex* idata, hcDoubleComplex* odata, int direction);
 
 /*
   Functions hcfftExecR2C() and hcfftExecD2Z()
@@ -213,7 +221,7 @@ hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubl
        hcfftExecR2C() (hcfftExecD2Z()) executes a single-precision (double-precision) real-to-complex, implicitly forward,
   hcFFT transform plan. hcFFT uses as input data the GPU memory pointed to by the idata parameter. This function stores
   the nonredundant Fourier coefficients in the odata array. Pointers to idata and odata are both required to be aligned
-  to hcfftComplex data type in single-precision transforms and hcfftDoubleComplex data type in double-precision transforms.
+  to hcComplex data type in single-precision transforms and hcDoubleComplex data type in double-precision transforms.
   If idata and odata are the same, this method does an in-place transform. Note the data layout differences between in-place
   and out-of-place transforms as described in Parameter hcfftType.
 
@@ -237,9 +245,9 @@ hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubl
   HCFFT_SETUP_FAILED  The hcFFT library failed to initialize.
 */
 
-hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal* idata, hcfftComplex* odata);
+hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal* idata, hcComplex* odata);
 
-hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal* idata, hcfftDoubleComplex* odata);
+hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal* idata, hcDoubleComplex* odata);
 
 /* Functions hcfftExecC2R() and hcfftExecZ2D()
 
@@ -247,8 +255,8 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal* idata, hcfftDoubleCo
      hcfftExecC2R() (hcfftExecZ2D()) executes a single-precision (double-precision) complex-to-real,
   implicitly inverse, hcFFT transform plan. hcFFT uses as input data the GPU memory pointed to by the
   idata parameter. The input array holds only the nonredundant complex Fourier coefficients. This function
-  stores the real output values in the odata array. and pointers are both required to be aligned to hcfftComplex
-  data type in single-precision transforms and hcfftDoubleComplex type in double-precision transforms. If idata
+  stores the real output values in the odata array. and pointers are both required to be aligned to hcComplex
+  data type in single-precision transforms and hcDoubleComplex type in double-precision transforms. If idata
   and odata are the same, this method does an in-place transform.
 
   Input:
@@ -271,9 +279,9 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal* idata, hcfftDoubleCo
   HCFFT_SETUP_FAILED  The hcFFT library failed to initialize.
 */
 
-hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex* idata, hcfftReal* odata);
+hcfftResult hcfftExecC2R(hcfftHandle plan, hcComplex* idata, hcfftReal* odata);
 
-hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubleReal* odata);
+hcfftResult hcfftExecZ2D(hcfftHandle plan, hcDoubleComplex* idata, hcfftDoubleReal* odata);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,8 @@
 #include "hcfft.h"
 #include "../gtest/gtest.h"
 #include "fftw3.h"
+#include "hc_am.hpp"
+#include "hcfftlib.h"
 
 TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2D_RTT) {
   size_t N1, N2, N3;
@@ -21,23 +23,23 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2D_RTT) {
     inputR2C[i] = i%8;
   }
 
-  hcfftDoubleComplex* outputR2C = (hcfftDoubleComplex*)malloc(Csize * sizeof(hcfftDoubleComplex));
+  hcDoubleComplex* outputR2C = (hcDoubleComplex*)malloc(Csize * sizeof(hcDoubleComplex));
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
   hc::accelerator_view accl_view = accs[1].get_default_view();
   hcfftDoubleReal* devIpR2C = hc::am_alloc(Rsize * sizeof(hcfftDoubleReal), accs[1], 0);
   accl_view.copy(inputR2C, devIpR2C, sizeof(hcfftDoubleReal) * Rsize);
-  hcfftDoubleComplex* devOpR2C = hc::am_alloc(Csize * sizeof(hcfftDoubleComplex), accs[1], 0);
-  accl_view.copy(outputR2C, devOpR2C, sizeof(hcfftDoubleComplex) * Csize);
+  hcDoubleComplex* devOpR2C = hc::am_alloc(Csize * sizeof(hcDoubleComplex), accs[1], 0);
+  accl_view.copy(outputR2C, devOpR2C, sizeof(hcDoubleComplex) * Csize);
   status = hcfftExecD2Z(*plan, devIpR2C, devOpR2C);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  accl_view.copy(devOpR2C, outputR2C, sizeof(hcfftDoubleComplex) * Csize);
+  accl_view.copy(devOpR2C, outputR2C, sizeof(hcDoubleComplex) * Csize);
   status =  hcfftDestroy(*plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   plan = NULL;
   status  = hcfftPlan3d(plan, N1, N2, N3, HCFFT_Z2D);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  hcfftDoubleComplex* inputC2R = (hcfftDoubleComplex*)malloc(Csize * sizeof(hcfftDoubleComplex));
+  hcDoubleComplex* inputC2R = (hcDoubleComplex*)malloc(Csize * sizeof(hcDoubleComplex));
   hcfftDoubleReal* outputC2R = (hcfftDoubleReal*)malloc(Rsize * sizeof(hcfftDoubleReal));
 
   // Populate the input
@@ -46,8 +48,8 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2D_RTT) {
     inputC2R[i].y = outputR2C[i].y;
   }
 
-  hcfftDoubleComplex* devIpC2R = hc::am_alloc(Csize * sizeof(hcfftDoubleComplex), accs[1], 0);
-  accl_view.copy(inputC2R, devIpC2R, sizeof(hcfftDoubleComplex) * Csize);
+  hcDoubleComplex* devIpC2R = hc::am_alloc(Csize * sizeof(hcDoubleComplex), accs[1], 0);
+  accl_view.copy(inputC2R, devIpC2R, sizeof(hcDoubleComplex) * Csize);
   hcfftDoubleReal* devOpC2R = hc::am_alloc(Rsize * sizeof(hcfftDoubleReal), accs[1], 0);
   accl_view.copy(outputC2R, devOpC2R, sizeof(hcfftDoubleReal) * Rsize);
   status = hcfftExecZ2D(*plan, devIpC2R, devOpC2R);

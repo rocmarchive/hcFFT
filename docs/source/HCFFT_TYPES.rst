@@ -31,9 +31,9 @@ Enumerations
 | }
 
 | typedef float hcfftReal;
-| typedef float_2 hcfftComplex;
+| typedef float_2 hcComplex;
 | typedef double hcfftDoubleReal;
-| typedef double_2 hcfftDoubleComplex;
+| typedef double_2 hcDoubleComplex;
 
 Detailed Description
 ^^^^^^^^^^^^^^^^^^^^

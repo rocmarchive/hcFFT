@@ -63,7 +63,7 @@
 </div>
 <div class="line">hcFFT uses as input data the GPU memory pointed to by the idata parameter. This function stores</div>
 <div class="line">the nonredundant Fourier coefficients in the odata array. Pointers to idata and odata are both required to be aligned</div>
-<div class="line">to hcfftComplex data type in single-precision transforms and hcfftDoubleComplex data type in double-precision transforms.</div>
+<div class="line">to hcComplex data type in single-precision transforms and hcDoubleComplex data type in double-precision transforms.</div>
 <div class="line">It does an out-of-place transform.</div>
 <div class="line"><br /></div>
 </div>
@@ -78,7 +78,7 @@
 <p class="last"><strong>Inputs and Outputs are HCC device pointers.</strong></p>
 </div>
 </div></blockquote>
-<p><a class="reference external" href="HCFFT_TYPES.html">hcfftResult</a> <strong>hcfftExecR2C</strong> (hcfftHandle plan, hcfftReal <a href="#id1"><span class="problematic" id="id2">*</span></a>idata, hcfftComplex <a href="#id3"><span class="problematic" id="id4">*</span></a>odata)</p>
+<p><a class="reference external" href="HCFFT_TYPES.html">hcfftResult</a> <strong>hcfftExecR2C</strong> (hcfftHandle plan, hcfftReal <a href="#id1"><span class="problematic" id="id2">*</span></a>idata, hcComplex <a href="#id3"><span class="problematic" id="id4">*</span></a>odata)</p>
 </div>
 </div>
 <div class="section" id="detailed-description">
@@ -86,7 +86,7 @@
 </div>
 <div class="section" id="function-documentation">
 <h2>Function Documentation<a class="headerlink" href="#function-documentation" title="Permalink to this headline">¶</a></h2>
-<div class="highlight-python"><div class="highlight"><pre>hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata)
+<div class="highlight-python"><div class="highlight"><pre>hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcComplex *odata)
 </pre></div>
 </div>
 <table border="1" class="docutils">

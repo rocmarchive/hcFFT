@@ -2,6 +2,8 @@
 #include "../gtest/gtest.h"
 #include "fftw3.h"
 #include "helper_functions.h"
+#include "hc_am.hpp"
+#include "hcfftlib.h"
 
 TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   size_t N1, N2;
@@ -11,8 +13,8 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   hcfftResult status  = hcfftPlan2d(plan, N1, N2, HCFFT_C2C);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int hSize = N1 * N2;
-  hcfftComplex* input = (hcfftComplex*)calloc(hSize, sizeof(hcfftComplex));
-  hcfftComplex* output = (hcfftComplex*)calloc(hSize, sizeof(hcfftComplex));
+  hcComplex* input = (hcComplex*)calloc(hSize, sizeof(hcComplex));
+  hcComplex* output = (hcComplex*)calloc(hSize, sizeof(hcComplex));
   int seed = 123456789;
   srand(seed);
 
@@ -25,13 +27,13 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
   hc::accelerator_view accl_view = accs[1].get_default_view();
-  hcfftComplex* idata = hc::am_alloc(hSize * sizeof(hcfftComplex), accs[1], 0);
-  accl_view.copy(input, idata, sizeof(hcfftComplex) * hSize);
-  hcfftComplex* odata = hc::am_alloc(hSize * sizeof(hcfftComplex), accs[1], 0);
-  accl_view.copy(output, odata, sizeof(hcfftComplex) * hSize);
+  hcComplex* idata = hc::am_alloc(hSize * sizeof(hcComplex), accs[1], 0);
+  accl_view.copy(input, idata, sizeof(hcComplex) * hSize);
+  hcComplex* odata = hc::am_alloc(hSize * sizeof(hcComplex), accs[1], 0);
+  accl_view.copy(output, odata, sizeof(hcComplex) * hSize);
   status = hcfftExecC2C(*plan, idata, odata, HCFFT_FORWARD);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  accl_view.copy(odata, output, sizeof(hcfftComplex) * hSize);
+  accl_view.copy(odata, output, sizeof(hcComplex) * hSize);
   status =  hcfftDestroy(*plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   //FFTW work flow
@@ -51,7 +53,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   fftwf_execute(p);
 
   // Check RMSE: If fails go for pointwise comparison
-  if (JudgeRMSEAccuracyComplex<fftwf_complex, hcfftComplex>(fftw_out, output, hSize)) {
+  if (JudgeRMSEAccuracyComplex<fftwf_complex, hcComplex>(fftw_out, output, hSize)) {
     //Check Real Outputs
     for (int i =0; i < hSize; i++) {
       EXPECT_NEAR(fftw_out[i][0] , output[i].x, 0.1); 

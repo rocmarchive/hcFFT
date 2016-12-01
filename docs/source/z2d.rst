@@ -8,8 +8,8 @@ Z2D
 |       hcfftExecZ2D() executes a double-precision complex-to-real, implicitly inverse, hcFFT transform plan.
 | hcFFT uses as input data the GPU memory pointed to by the idata parameter. The input array holds only the
 | nonredundant complex Fourier coefficients. This function stores the real output values in the odata array.
-| and pointers are both required to be aligned to hcfftComplex data type in single-precision transforms and
-| hcfftDoubleComplex type in double-precision transforms. It does an out-of-place data transform.
+| and pointers are both required to be aligned to hcComplex data type in single-precision transforms and
+| hcDoubleComplex type in double-precision transforms. It does an out-of-place data transform.
 |
 
 Functions
@@ -20,7 +20,7 @@ Function Prototype:
 
  .. note:: **Inputs and Outputs are HCC device pointers.**
 
-`hcfftResult <HCFFT_TYPES.html>`_ **hcfftExecZ2D** (hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubleReal *odata)
+`hcfftResult <HCFFT_TYPES.html>`_ **hcfftExecZ2D** (hcfftHandle plan, hcDoubleComplex *idata, hcfftDoubleReal *odata)
 
 Detailed Description
 ^^^^^^^^^^^^^^^^^^^^
@@ -30,7 +30,7 @@ Function Documentation
 
 ::
 
-             hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubleReal *odata)
+             hcfftResult hcfftExecZ2D(hcfftHandle plan, hcDoubleComplex *idata, hcfftDoubleReal *odata)
 
 +------------+-----------------+-----------------------------------------------------------------+
 |  In/out    |  Parameters     | Description                                                     |

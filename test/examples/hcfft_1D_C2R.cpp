@@ -8,7 +8,7 @@ int main(int argc, char* argv[]) {
   assert(status == HCFFT_SUCCESS);
   int Csize = (N / 2) + 1;
   int Rsize = N;
-  hcfftComplex* input = (hcfftComplex*)calloc(Csize, sizeof(hcfftComplex));
+  hcComplex* input = (hcComplex*)calloc(Csize, sizeof(hcComplex));
   int seed = 123456789;
   srand(seed);
 
@@ -21,8 +21,8 @@ int main(int argc, char* argv[]) {
   hcfftReal* output = (hcfftReal*)calloc(Rsize, sizeof(hcfftReal));
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
-  hcfftComplex* idata = hc::am_alloc(Csize * sizeof(hcfftComplex), accs[1], 0);
-  hc::am_copy(idata, input, sizeof(hcfftComplex) * Csize);
+  hcComplex* idata = hc::am_alloc(Csize * sizeof(hcComplex), accs[1], 0);
+  hc::am_copy(idata, input, sizeof(hcComplex) * Csize);
   hcfftReal* odata = hc::am_alloc(Rsize * sizeof(hcfftReal), accs[1], 0);
   hc::am_copy(odata,  output, sizeof(hcfftReal) * Rsize);
   status = hcfftExecC2R(*plan, idata, odata);

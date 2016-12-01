@@ -1,6 +1,7 @@
 #ifndef HELPER_FUNCTIONS_H
 #define HELPER_FUNCTIONS_H
 #include<stdlib.h>
+#include<math.h>
 
 double rmse_tolerance = 0.00002;
 const double magnitude_lower_limit = 1.0E-100;

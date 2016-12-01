@@ -30,8 +30,8 @@ extern "C" {
 #endif
 
 typedef cufftHandle hipfftHandle;
-typedef cufftComplex hipfftComplex;
-typedef cufftDoubleComplex hipfftDoubleComplex;
+typedef cufftComplex hipComplex;
+typedef cufftDoubleComplex hipDoubleComplex;
 typedef cufftReal  hipfftReal;
 typedef cufftDoubleReal hipfftDoubleReal;
 typedef cudaStream_t hipStream_t;
@@ -116,22 +116,22 @@ typedef cudaStream_t hipStream_t;
 
 /*hipFFT Execution*/
 
-  hipfftResult hipfftExecC2C(hipfftHandle plan, hipfftComplex *idata, 
-                                         hipfftComplex *odata, int direction);
+  hipfftResult hipfftExecC2C(hipfftHandle plan, hipComplex *idata, 
+                                         hipComplex *odata, int direction);
 
-  hipfftResult hipfftExecZ2Z(hipfftHandle plan, hipfftDoubleComplex *idata, 
-                                         hipfftDoubleComplex *odata, int direction);
+  hipfftResult hipfftExecZ2Z(hipfftHandle plan, hipDoubleComplex *idata, 
+                                         hipDoubleComplex *odata, int direction);
 
   hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal *idata, 
-                                         hipfftComplex *odata);
+                                         hipComplex *odata);
 
   hipfftResult hipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal *idata, 
-                                         hipfftDoubleComplex *odata);
+                                         hipDoubleComplex *odata);
 
-  hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex *idata, 
+  hipfftResult hipfftExecC2R(hipfftHandle plan, hipComplex *idata, 
                                          hipfftReal *odata);
 
-  hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex *idata, 
+  hipfftResult hipfftExecZ2D(hipfftHandle plan, hipDoubleComplex *idata, 
                                          hipfftDoubleReal *odata);
 
 #ifdef __cplusplus

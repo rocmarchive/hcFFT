@@ -1,7 +1,10 @@
-#include <hipfft.h>
+#include "hipfft.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-    hipfftResult hipHCFFTResultToHIPFFTResult(hcfftResult hcResult) 
+hipfftResult hipHCFFTResultToHIPFFTResult(hcfftResult hcResult) 
 {
    switch(hcResult) 
    {
@@ -107,15 +110,15 @@
 
 /*hipFFT Extensible Plans*/
 
-    hipfftResult hipfftMakePlan1d(hipfftHandle *plan, int nx, hipfftType type, int batch, size_t *workSize){
+    hipfftResult hipfftMakePlan1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t *workSize){
     return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftMakePlan2d(hipfftHandle *plan, int nx, int ny, hipfftType type, size_t *workSize){
+    hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t *workSize){
     return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftMakePlan3d(hipfftHandle *plan, int nx, int ny, int nz, hipfftType type, size_t *workSize){
+    hipfftResult hipfftMakePlan3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, size_t *workSize){
     return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
@@ -139,11 +142,11 @@
   	return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type, int batch, size_t *workSize){
+    hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type, size_t *workSize){
   	return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type, int batch, size_t *workSize){
+    hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type, size_t *workSize){
   	return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
@@ -158,12 +161,12 @@
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type, int batch, size_t *workSize){
+    hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t *workSize){
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
     hipfftResult hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, 
-                                           int batch, size_t *workSize){
+                                            size_t *workSize){
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
@@ -197,33 +200,37 @@
 
 /*hipFFT Execution*/
 
-    hipfftResult hipfftExecC2C(hipfftHandle plan, hipfftComplex *idata, 
-                                         hipfftComplex *odata, int direction){
+    hipfftResult hipfftExecC2C(hipfftHandle plan, hipComplex *idata, 
+                                         hipComplex *odata, int direction){
     return hipHCFFTResultToHIPFFTResult(hcfftExecC2C(plan, idata, odata, hipHIPFFTDirectionToHCFFTDirection(direction)));
 }
 
-    hipfftResult hipfftExecZ2Z(hipfftHandle plan, hipfftDoubleComplex *idata, 
-                                         hipfftDoubleComplex *odata, int direction){
+    hipfftResult hipfftExecZ2Z(hipfftHandle plan, hipDoubleComplex *idata, 
+                                         hipDoubleComplex *odata, int direction){
     return hipHCFFTResultToHIPFFTResult(hcfftExecZ2Z(plan, idata, odata, hipHIPFFTDirectionToHCFFTDirection(direction)));
 }
 
     hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal *idata, 
-                                         hipfftComplex *odata){
+                                         hipComplex *odata){
     return hipHCFFTResultToHIPFFTResult(hcfftExecR2C(plan, idata, odata));
 }
 
     hipfftResult hipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal *idata, 
-                                         hipfftDoubleComplex *odata){
+                                         hipDoubleComplex *odata){
     return hipHCFFTResultToHIPFFTResult(hcfftExecD2Z(plan, idata, odata));
 }
 
-    hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex *idata, 
+    hipfftResult hipfftExecC2R(hipfftHandle plan, hipComplex *idata, 
                                          hipfftReal *odata){
     return hipHCFFTResultToHIPFFTResult(hcfftExecC2R(plan, idata, odata));
 }
 
-    hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex *idata, 
+    hipfftResult hipfftExecZ2D(hipfftHandle plan, hipDoubleComplex *idata, 
                                          hipfftDoubleReal *odata){
     return hipHCFFTResultToHIPFFTResult(hcfftExecZ2D(plan, idata, odata));
 }
 
+
+#ifdef __cplusplus
+}
+#endif

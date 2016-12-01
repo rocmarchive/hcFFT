@@ -6,52 +6,82 @@ SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../../cma
 # Find HCC compiler
 FIND_PACKAGE(HC++ 1.0 REQUIRED)
 
+# Find HIP
+set (HIP_PATH $ENV{HIP_PATH})
+if (NOT DEFINED HIP_PATH)
+	set (HIP_PATH /opt/rocm/hip)
+endif()
+
+execute_process(COMMAND ${HIP_PATH}/bin/hipconfig --platform OUTPUT_VARIABLE HIP_PLATFORM)
+MESSAGE ("HIP_PATH=" ${HIP_PATH})
 
 #Setting a Project name
-SET(PROJECT_NAME "libhcfft")
+SET(PROJECT_NAME "hcfft")
+SET(PROJECT_NAME_EXT "hipfft")
 PROJECT (${PROJECT_NAME})
 MESSAGE(STATUS "PROJECT NAME    : ${PROJECT_NAME}")
 
+if (${HIP_PLATFORM} STREQUAL "hcc")
 #Setting a variable for source files
-FILE(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-LIST(REMOVE_ITEM SRCS ${CMAKE_CURRENT_SOURCE_DIR}/hipfft.cpp)
+FILE(GLOB HCFFTSRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+LIST(REMOVE_ITEM HCFFTSRCS ${CMAKE_CURRENT_SOURCE_DIR}/hipfft.cpp)
+SET(HIPFFTSRCS ${HCFFTSRCS} ${CMAKE_CURRENT_SOURCE_DIR}/hipfft.cpp)
 
-IF(WIN32)
-  #include the additional libraries 
-  #settings->c/c++->general->additional directories 
-  SET(SRCS ${SRCS})
-  ADD_DEFINITIONS(-D__LITTLE_ENDIAN__)
-  ADD_DEFINITIONS(-DTARGET_OS_WIN32=1)
-    
-  IF(MSVC)
-    ADD_DEFINITIONS(/W3)
-    ADD_EXECUTABLE(${PROJECT_NAME} ${SRCS})
-    INSTALL(TARGETS ${PROJECT_NAME} DESTINATION lib)
-  ELSE(MSVC)
-    MESSAGE(FATAL_ERROR "TARGET IDE ISNT VISUAL STUDIO 11/12.... EXITING")
-  ENDIF(MSVC)
-ELSE(WIN32)
-  # Choice to take compilation flags from source or package
-  execute_process(COMMAND ${HCC_CONFIG} --cxxflags
-                          OUTPUT_VARIABLE HCC_CXXFLAGS)
-  execute_process(COMMAND ${HCC_CONFIG} --ldflags --shared
-                          OUTPUT_VARIABLE HCC_LDFLAGS)
-  string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
-  string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
-  set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/../include")
-  set (HCC_LDFLAGS "${HCC_LDFLAGS}")
+execute_process(COMMAND ${HCC_CONFIG} --install --cxxflags
+                            OUTPUT_VARIABLE HCC_CXXFLAGS)
+execute_process(COMMAND ${HCC_CONFIG} --install --ldflags --shared
+                            OUTPUT_VARIABLE HCC_LDFLAGS)
 
-  FOREACH(src_file ${SRCS})
-    SET_PROPERTY(SOURCE ${src_file} APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS}")
-  ENDFOREACH()
+string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
+string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
+set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/../include -I${HIP_PATH}/include -D__HIP_PLATFORM_HCC__=")
+set (HCC_LDFLAGS "${HCC_LDFLAGS} -L${HIP_PATH}/lib -lhip_hcc")
 
-  ADD_EXECUTABLE("${PROJECT_NAME}.so" ${SRCS})
-  SET_PROPERTY(TARGET "${PROJECT_NAME}.so" APPEND_STRING PROPERTY LINK_FLAGS " ${HCC_LDFLAGS} -lhc_am")
-  INSTALL(TARGETS "${PROJECT_NAME}.so" 
-    RUNTIME DESTINATION lib
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-  )
-  INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../include/hcfftlib.h" "${CMAKE_CURRENT_SOURCE_DIR}/../include/hcfft.h" "${CMAKE_CURRENT_SOURCE_DIR}/../include/lock.h" "${CMAKE_CURRENT_SOURCE_DIR}/../include/stockham.h" DESTINATION include)
-ENDIF(WIN32)
 
+# Setting header dependencies for hcfft library generation
+FOREACH(src_file ${HCFFTSRCS})
+  SET_PROPERTY(SOURCE ${src_file} APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS} ")
+ENDFOREACH()
+
+# Setting header dependencies for hipfft library generation
+FOREACH(src_file ${HIPFFTSRCS})
+  SET_PROPERTY(SOURCE ${src_file} APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS} ")
+ENDFOREACH()
+
+#Generating hcfft shared object
+ADD_LIBRARY("${PROJECT_NAME}" SHARED  ${HCFFTSRCS})
+SET_PROPERTY(TARGET "${PROJECT_NAME}" APPEND_STRING PROPERTY LINK_FLAGS " ${HCC_LDFLAGS} ")
+TARGET_LINK_LIBRARIES("${PROJECT_NAME}" hc_am)
+
+#Generating hipfft shared object
+ADD_LIBRARY("${PROJECT_NAME_EXT}" SHARED ${HIPFFTSRCS})
+SET_PROPERTY(TARGET "${PROJECT_NAME_EXT}" APPEND_STRING PROPERTY LINK_FLAGS " ${HCC_LDFLAGS} ")
+TARGET_LINK_LIBRARIES("${PROJECT_NAME_EXT}" hc_am)
+
+INSTALL(TARGETS "${PROJECT_NAME}" 
+  RUNTIME DESTINATION lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+
+INSTALL(TARGETS "${PROJECT_NAME_EXT}" 
+  RUNTIME DESTINATION lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+
+file(GLOB headers "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h")
+file(GLOB hcc_detail "${CMAKE_CURRENT_SOURCE_DIR}/../include/hcc_detail/*.h")
+file(GLOB nvcc_detail "${CMAKE_CURRENT_SOURCE_DIR}/../include/nvcc_detail/*.h")
+INSTALL(FILES ${headers} DESTINATION include)
+INSTALL(FILES ${hcc_detail} DESTINATION include/hcc_detail)
+INSTALL(FILES ${nvcc_detail} DESTINATION include/nvcc_detail)
+
+elseif (${HIP_PLATFORM} STREQUAL "nvcc")
+#/opt/rocm/hip/bin/hipcc -Xcompiler -fpic -c -I/home/santhosh/hcfft/lib/include/ -I/home/santhosh/hcfft/lib/include/nvcc_detail/  hipfft.cpp -o hip_obj.o -lcufft
+#/opt/rocm/hip/bin/hipcc -shared -o libhipfft_nvcc.so hip_obj.o -lcufft 
+execute_process(COMMAND ${HIP_PATH}/bin/hipcc -Xcompiler -fpic -c -I/../include/ -I/../include/nvcc_detail/ hipfft.cpp -o ../../build/lib/src/hip_obj.o -lcufft)
+execute_process(COMMAND ${HIP_PATH}/bin/hipcc -shared -o ../../build/lib/src/libhipfft_nvcc.so ../../build/lib/src/hip_obj.o -lcufft )
+else()
+	MESSAGE (FATAL_ERROR "UNKNOWN HIP_PLATFORM=" ${HIP_PLATFORM})
+endif()
