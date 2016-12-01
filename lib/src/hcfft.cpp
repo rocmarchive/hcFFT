@@ -1,3 +1,4 @@
+#include "hcfftlib.h"
 #include "hcfft.h"
 
 #if __has_feature(cxx_thread_local)

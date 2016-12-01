@@ -8,6 +8,11 @@ typedef hc::short_vector::float_2 hcfftComplex;
 typedef double hcfftDoubleReal;
 typedef hc::short_vector::double_2 hcfftDoubleComplex;
 
+#ifdef __cplusplus
+extern "C" {
+#endif //(__cplusplus)
+
+
 /* hcfft API Specification */
 
 // Typedef changes
@@ -261,5 +266,9 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal* idata, hcfftDoubleCo
 hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex* idata, hcfftReal* odata);
 
 hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubleReal* odata);
+
+#ifdef __cplusplus
+}
+#endif //(__cplusplus)
 
 #endif
