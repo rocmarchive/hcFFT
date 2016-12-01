@@ -14,6 +14,7 @@ MESSAGE(STATUS "PROJECT NAME    : ${PROJECT_NAME}")
 
 #Setting a variable for source files
 FILE(GLOB SRCS ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+LIST(REMOVE_ITEM SRCS ${CMAKE_CURRENT_SOURCE_DIR}/hipfft.cpp)
 
 IF(WIN32)
   #include the additional libraries 
@@ -53,3 +54,4 @@ ELSE(WIN32)
   )
   INSTALL(FILES "${CMAKE_CURRENT_SOURCE_DIR}/../include/hcfftlib.h" "${CMAKE_CURRENT_SOURCE_DIR}/../include/hcfft.h" "${CMAKE_CURRENT_SOURCE_DIR}/../include/lock.h" "${CMAKE_CURRENT_SOURCE_DIR}/../include/stockham.h" DESTINATION include)
 ENDIF(WIN32)
+

@@ -1,17 +1,25 @@
 #ifndef _HC_FFT_H_
 #define _HC_FFT_H_
 
-#include "hcfftlib.h"
-
-typedef float hcfftReal;
-typedef hc::short_vector::float_2 hcfftComplex;
-typedef double hcfftDoubleReal;
-typedef hc::short_vector::double_2 hcfftDoubleComplex;
-
 #ifdef __cplusplus
 extern "C" {
 #endif //(__cplusplus)
 
+struct float_2 {
+  float x;
+  float y;
+};
+
+struct double_2 {
+  double x;
+  double y;
+};
+
+
+typedef float hcfftReal;
+typedef float_2 hcfftComplex;
+typedef double hcfftDoubleReal;
+typedef double_2 hcfftDoubleComplex;
 
 /* hcfft API Specification */
 
