@@ -8,7 +8,7 @@ D2Z
 |       hcfftExecD2Z() executes a double-precision real-to-complex, implicitly forward, hcFFT transform plan.
 |  hcFFT uses as input data the GPU memory pointed to by the idata parameter. This function stores 
 |  the nonredundant Fourier coefficients in the odata array. Pointers to idata and odata are both required to be aligned 
-|  to hcComplex data type in single-precision transforms and hcDoubleComplex data type in double-precision transforms. 
+|  to hcfftComplex data type in single-precision transforms and hcfftDoubleComplex data type in double-precision transforms. 
 |  It does an out-of-place transform.
 |
 
@@ -20,7 +20,7 @@ Function Prototype:
 
  .. note:: **Inputs and Outputs are HCC device pointers.**
 
-`hcfftResult <HCFFT_TYPES.html>`_ **hcfftExecD2Z** (hcfftHandle plan, hcfftDoubleReal *idata, hcDoubleComplex *odata)
+`hcfftResult <HCFFT_TYPES.html>`_ **hcfftExecD2Z** (hcfftHandle plan, hcfftDoubleReal *idata, hcfftDoubleComplex *odata)
 
 Detailed Description
 ^^^^^^^^^^^^^^^^^^^^
@@ -30,7 +30,7 @@ Function Documentation
 
 ::
 
-             hcfftResult hcfftExecD2Z (hcfftHandle plan, hcfftDoubleReal *idata, hcDoubleComplex *odata)
+             hcfftResult hcfftExecD2Z (hcfftHandle plan, hcfftDoubleReal *idata, hcfftDoubleComplex *odata)
 
 +------------+-----------------+--------------------------------------------------------------+
 |  In/out    |  Parameters     | Description                                                  |

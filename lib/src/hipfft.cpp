@@ -200,34 +200,34 @@ hipfftResult hipHCFFTResultToHIPFFTResult(hcfftResult hcResult)
 
 /*hipFFT Execution*/
 
-    hipfftResult hipfftExecC2C(hipfftHandle plan, hipComplex *idata, 
-                                         hipComplex *odata, int direction){
-    return hipHCFFTResultToHIPFFTResult(hcfftExecC2C(plan, idata, odata, hipHIPFFTDirectionToHCFFTDirection(direction)));
+    hipfftResult hipfftExecC2C(hipfftHandle plan, hipfftComplex *idata, 
+                                         hipfftComplex *odata, int direction){
+    return hipHCFFTResultToHIPFFTResult(hcfftExecC2C(plan, (hcfftComplex *)idata, (hcfftComplex *)odata, hipHIPFFTDirectionToHCFFTDirection(direction)));
 }
 
-    hipfftResult hipfftExecZ2Z(hipfftHandle plan, hipDoubleComplex *idata, 
-                                         hipDoubleComplex *odata, int direction){
-    return hipHCFFTResultToHIPFFTResult(hcfftExecZ2Z(plan, idata, odata, hipHIPFFTDirectionToHCFFTDirection(direction)));
+    hipfftResult hipfftExecZ2Z(hipfftHandle plan, hipfftDoubleComplex *idata, 
+                                         hipfftDoubleComplex *odata, int direction){
+    return hipHCFFTResultToHIPFFTResult(hcfftExecZ2Z(plan, (hcfftDoubleComplex *)idata, (hcfftDoubleComplex *)odata, hipHIPFFTDirectionToHCFFTDirection(direction)));
 }
 
     hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal *idata, 
-                                         hipComplex *odata){
-    return hipHCFFTResultToHIPFFTResult(hcfftExecR2C(plan, idata, odata));
+                                         hipfftComplex *odata){
+    return hipHCFFTResultToHIPFFTResult(hcfftExecR2C(plan, idata, (hcfftComplex *)odata));
 }
 
     hipfftResult hipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal *idata, 
-                                         hipDoubleComplex *odata){
-    return hipHCFFTResultToHIPFFTResult(hcfftExecD2Z(plan, idata, odata));
+                                         hipfftDoubleComplex *odata){
+    return hipHCFFTResultToHIPFFTResult(hcfftExecD2Z(plan, idata, (hcfftDoubleComplex *)odata));
 }
 
-    hipfftResult hipfftExecC2R(hipfftHandle plan, hipComplex *idata, 
+    hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex *idata, 
                                          hipfftReal *odata){
-    return hipHCFFTResultToHIPFFTResult(hcfftExecC2R(plan, idata, odata));
+    return hipHCFFTResultToHIPFFTResult(hcfftExecC2R(plan, (hcfftComplex *)idata, odata));
 }
 
-    hipfftResult hipfftExecZ2D(hipfftHandle plan, hipDoubleComplex *idata, 
+    hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex *idata, 
                                          hipfftDoubleReal *odata){
-    return hipHCFFTResultToHIPFFTResult(hcfftExecZ2D(plan, idata, odata));
+    return hipHCFFTResultToHIPFFTResult(hcfftExecZ2D(plan, (hcfftDoubleComplex *)idata, odata));
 }
 
 

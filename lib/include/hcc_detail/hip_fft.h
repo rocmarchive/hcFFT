@@ -23,6 +23,7 @@ THE SOFTWARE.
 
 #include <hip/hip_runtime_api.h>
 #include <hcfft.h>
+#include <hip/hip_complex.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,8 +31,8 @@ extern "C" {
 
 
 typedef hcfftHandle hipfftHandle;
-typedef hcComplex hipComplex;
-typedef hcDoubleComplex hipDoubleComplex;
+typedef hipComplex hipfftComplex;
+typedef hipDoubleComplex hipfftDoubleComplex;
 typedef hcfftReal  hipfftReal;
 typedef hcfftDoubleReal hipfftDoubleReal;
 
@@ -117,22 +118,22 @@ typedef hcfftDoubleReal hipfftDoubleReal;
 
 /*hipFFT Execution*/
 
- hipfftResult hipfftExecC2C(hipfftHandle plan, hipComplex *idata, 
-                                         hipComplex *odata, int direction);
+ hipfftResult hipfftExecC2C(hipfftHandle plan, hipfftComplex *idata, 
+                                         hipfftComplex *odata, int direction);
 
- hipfftResult hipfftExecZ2Z(hipfftHandle plan, hipDoubleComplex *idata, 
-                                         hipDoubleComplex *odata, int direction);
+ hipfftResult hipfftExecZ2Z(hipfftHandle plan, hipfftDoubleComplex *idata, 
+                                         hipfftDoubleComplex *odata, int direction);
 
  hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal *idata, 
-                                         hipComplex *odata);
+                                         hipfftComplex *odata);
 
  hipfftResult hipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal *idata, 
-                                         hipDoubleComplex *odata);
+                                         hipfftDoubleComplex *odata);
 
- hipfftResult hipfftExecC2R(hipfftHandle plan, hipComplex *idata, 
+ hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex *idata, 
                                          hipfftReal *odata);
 
- hipfftResult hipfftExecZ2D(hipfftHandle plan, hipDoubleComplex *idata, 
+ hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex *idata, 
                                          hipfftDoubleReal *odata);
 
 #ifdef __cplusplus

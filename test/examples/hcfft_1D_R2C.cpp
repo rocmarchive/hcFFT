@@ -17,16 +17,16 @@ int main(int argc, char* argv[]) {
     input[i] = rand();
   }
 
-  hcComplex* output = (hcComplex*)calloc(Csize, sizeof(hcComplex));
+  hcfftComplex* output = (hcfftComplex*)calloc(Csize, sizeof(hcfftComplex));
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
   hcfftReal* idata = hc::am_alloc(Rsize * sizeof(hcfftReal), accs[1], 0);
   hc::am_copy(idata, input, sizeof(hcfftReal) * Rsize);
-  hcComplex* odata = hc::am_alloc(Csize * sizeof(hcComplex), accs[1], 0);
-  hc::am_copy(odata,  output, sizeof(hcComplex) * Csize);
+  hcfftComplex* odata = hc::am_alloc(Csize * sizeof(hcfftComplex), accs[1], 0);
+  hc::am_copy(odata,  output, sizeof(hcfftComplex) * Csize);
   status = hcfftExecR2C(*plan, idata, odata);
   assert(status == HCFFT_SUCCESS);
-  hc::am_copy(output, odata, sizeof(hcComplex) * Csize);
+  hc::am_copy(output, odata, sizeof(hcfftComplex) * Csize);
   status =  hcfftDestroy(*plan);
   assert(status == HCFFT_SUCCESS);
   free(input);

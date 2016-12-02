@@ -25,17 +25,17 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_R2C ) {
     input[i] = i%8;
   }
 
-  hcComplex* output = (hcComplex*)malloc(Csize *sizeof(hcComplex));
+  hcfftComplex* output = (hcfftComplex*)malloc(Csize *sizeof(hcfftComplex));
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
   hc::accelerator_view accl_view = accs[1].get_default_view();
   hcfftReal* idata = hc::am_alloc(Rsize * sizeof(hcfftReal), accs[1], 0);
   accl_view.copy(input, idata, sizeof(hcfftReal) * Rsize);
-  hcComplex* odata = hc::am_alloc(Csize * sizeof(hcComplex), accs[1], 0);
-  accl_view.copy(output, odata, sizeof(hcComplex) * Csize);
+  hcfftComplex* odata = hc::am_alloc(Csize * sizeof(hcfftComplex), accs[1], 0);
+  accl_view.copy(output, odata, sizeof(hcfftComplex) * Csize);
   status = hcfftExecR2C(*plan, idata, odata);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  accl_view.copy(odata, output, sizeof(hcComplex) * Csize);
+  accl_view.copy(odata, output, sizeof(hcfftComplex) * Csize);
   status =  hcfftDestroy(*plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
 
@@ -54,7 +54,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_R2C ) {
   // Execute R2C
   fftwf_execute(p);
   // Check RMSE: If fails go for pointwise comparison
-  if (JudgeRMSEAccuracyComplex<fftwf_complex, hcComplex>(out, output, Csize))
+  if (JudgeRMSEAccuracyComplex<fftwf_complex, hcfftComplex>(out, output, Csize))
   { 
     //Check Real Outputs
     for (int i =0; i < Csize; i++) {

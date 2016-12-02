@@ -13,7 +13,7 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2R ) {
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int Csize = (N1 / 2) + 1;
   int Rsize = N1;
-  hcComplex* input = (hcComplex*)calloc(Csize, sizeof(hcComplex));
+  hcfftComplex* input = (hcfftComplex*)calloc(Csize, sizeof(hcfftComplex));
   int seed = 123456789;
   srand(seed);
 
@@ -27,8 +27,8 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2R ) {
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
   hc::accelerator_view accl_view = accs[1].get_default_view();
-  hcComplex* idata = hc::am_alloc(Csize * sizeof(hcComplex), accs[1], 0);
-  accl_view.copy(input, idata, sizeof(hcComplex) * Csize);
+  hcfftComplex* idata = hc::am_alloc(Csize * sizeof(hcfftComplex), accs[1], 0);
+  accl_view.copy(input, idata, sizeof(hcfftComplex) * Csize);
   hcfftReal* odata = hc::am_alloc(Rsize * sizeof(hcfftReal), accs[1], 0);
   accl_view.copy(output, odata, sizeof(hcfftReal) * Rsize);
   status = hcfftExecC2R(*plan, idata, odata);

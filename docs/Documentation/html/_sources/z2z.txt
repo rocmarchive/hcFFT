@@ -19,7 +19,7 @@ Function Prototype:
 
  .. note:: **Inputs and Outputs are HCC device pointers.**
 
-`hcfftResult <HCFFT_TYPES.html>`_ **hcfftExecZ2Z** (hcfftHandle plan, hcDoubleComplex *idata, hcDoubleComplex *odata, int direction)
+`hcfftResult <HCFFT_TYPES.html>`_ **hcfftExecZ2Z** (hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubleComplex *odata, int direction)
 
 Detailed Description
 ^^^^^^^^^^^^^^^^^^^^
@@ -29,7 +29,7 @@ Function Documentation
 
 ::
 
-             hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcDoubleComplex *idata, hcDoubleComplex *odata, int direction)
+             hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex *idata, hcfftDoubleComplex *odata, int direction)
 
 +------------+-----------------+-----------------------------------------------------------------+
 |  In/out    |  Parameters     | Description                                                     |

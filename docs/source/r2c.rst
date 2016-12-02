@@ -8,7 +8,7 @@ R2C
 |       hcfftExecR2C() executes a single-precision real-to-complex, implicitly forward, hcFFT transform plan.
 |  hcFFT uses as input data the GPU memory pointed to by the idata parameter. This function stores 
 |  the nonredundant Fourier coefficients in the odata array. Pointers to idata and odata are both required to be aligned 
-|  to hcComplex data type in single-precision transforms and hcDoubleComplex data type in double-precision transforms. 
+|  to hcfftComplex data type in single-precision transforms and hcfftDoubleComplex data type in double-precision transforms. 
 |  It does an out-of-place transform.
 |
 
@@ -20,7 +20,7 @@ Function Prototype:
 
  .. note:: **Inputs and Outputs are HCC device pointers.**
 
-`hcfftResult <HCFFT_TYPES.html>`_ **hcfftExecR2C** (hcfftHandle plan, hcfftReal *idata, hcComplex *odata)
+`hcfftResult <HCFFT_TYPES.html>`_ **hcfftExecR2C** (hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata)
 
 Detailed Description
 ^^^^^^^^^^^^^^^^^^^^
@@ -30,7 +30,7 @@ Function Documentation
 
 ::
 
-             hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcComplex *odata)
+             hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal *idata, hcfftComplex *odata)
 
 +------------+-----------------+--------------------------------------------------------------+
 |  In/out    |  Parameters     | Description                                                  |
