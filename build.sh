@@ -1,6 +1,9 @@
 # This script is invoked to install the hcfft library and test sources
 # Preliminary version
 
+# CURRENT_WORK_DIRECTORY
+current_work_dir=$PWD
+
 # CHECK FOR COMPILER PATH
 if [ ! -z $HCC_HOME ]
 then
@@ -9,19 +12,30 @@ then
     cmake_c_compiler=$HCC_HOME/bin/clang
     cmake_cxx_compiler=$HCC_HOME/bin/clang++
   fi
-
 elif [ -x "/opt/rocm/hcc/bin/clang++" ]
 then
   cmake_c_compiler=/opt/rocm/hcc/bin/clang
   cmake_cxx_compiler=/opt/rocm/hcc/bin/clang++
-
+elif [ -x "/usr/local/cuda/bin/nvcc" ]
+then
+  echo "NVidia Platform"
+  echo "Generating hipfft.so"
+  if [ ! -z $HIP_PATH ]
+  then
+    hip_compiler=$HIP_PATH/bin/hipcc
+  else
+    hip_compiler=/opt/rocm/hip/bin/hipcc
+  fi
+  mkdir -p $current_work_dir/build/lib/src
+  cd $current_work_dir/lib/src/nvcc_detail
+  $hip_compiler -Xcompiler -fpic -c -I$current_work_dir/lib/include/ -I$current_work_dir/lib/include/nvcc_detail/ hipfft.cpp -o hip_obj.o -lcufft
+  $hip_compiler -shared -o $current_work_dir/build/lib/src/libhipfft.so hip_obj.o -lcufft
+  echo "Hipfft shared object generated"
+  exit 1
 else
   echo "Clang compiler not found"
   exit 1
 fi
-
-# CURRENT_WORK_DIRECTORY
-current_work_dir=$PWD
 
 red=`tput setaf 1`
 green=`tput setaf 2`
@@ -60,6 +74,9 @@ while [ $# -gt 0 ]; do
     --bench=*)
       bench="${1#*=}"
       ;;
+    --hip_so=*)
+      hip_so="${1#*=}"
+      ;;
     --help) print_help;;
     *)
       printf "************************************************************\n"
@@ -69,6 +86,10 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+if ( [ "$hip_so" = "on" ] ); then
+    export HIP_SHARED_OBJ=on
+fi
 
 if [ -z $bench ]; then
     bench="off"
