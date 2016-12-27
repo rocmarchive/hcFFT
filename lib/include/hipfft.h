@@ -67,9 +67,9 @@ typedef enum hipfftDirection_ {
 // paths to provide a consistent include env and avoid "missing symbol" errors that only appears
 // on NVCC path:
 
-#if defined(__HCC__) and not defined (__NVCC__)
+#if defined(__HIP_PLATFORM_HCC__) and not defined (__HIP_PLATFORM_NVCC__) 
 #include <hcc_detail/hip_fft.h>
-#elif defined(__NVCC__) and not defined (__HCC__)
+#elif defined(__HIP_PLATFORM_NVCC__) and not defined (__HIP_PLATFORM_HCC__)
 #include <nvcc_detail/hip_fft.h>
 #else 
 #error("Must define exactly one of __HIP_PLATFORM_HCC__ or __HIP_PLATFORM_NVCC__");

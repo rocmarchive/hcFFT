@@ -1,3 +1,4 @@
+#include <iostream>
 #include "hipfft.h"
 
 #ifdef __cplusplus
@@ -91,7 +92,7 @@ hipfftResult hipHCFFTResultToHIPFFTResult(hcfftResult hcResult)
 /*hipFFT Basic Plans*/
 
     hipfftResult hipfftPlan1d(hipfftHandle *plan, int nx, hipfftType type, int batch){
-    return hipHCFFTResultToHIPFFTResult(hcfftPlan1d(plan, nx, hipHIPFFTTypeToHCFFTType(type)));
+    return hipHCFFTResultToHIPFFTResult(hcfftPlan1d(plan, nx, hipHIPFFTTypeToHCFFTType(type))); 
 }
 
     hipfftResult hipfftPlan2d(hipfftHandle *plan, int nx, int ny, hipfftType type){

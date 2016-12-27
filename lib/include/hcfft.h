@@ -65,7 +65,7 @@ typedef enum hcfftResult_t {
 /* Function hcfftCreate()
 Creates only an opaque handle, and allocates small data structures on the host.
 */
-hcfftResult hcfftCreate(hcfftHandle*&plan);
+hcfftResult hcfftCreate(hcfftHandle* plan);
 
 /* Function hcfftSetStream()
 Associate FFT Plan with an accelerator_view
@@ -101,7 +101,7 @@ hcfftResult hcfftSetStream(hcfftHandle*&plan, hc::accelerator_view &acc_view);
  ***********************************************************************************************************************
  */
 
-hcfftResult hcfftPlan1d(hcfftHandle*&plan, int nx, hcfftType type);
+hcfftResult hcfftPlan1d(hcfftHandle* plan, int nx, hcfftType type);
 
 /*
  * <ii> Function hcfftPlan2d()
@@ -129,7 +129,7 @@ hcfftResult hcfftPlan1d(hcfftHandle*&plan, int nx, hcfftType type);
    HCFFT_INVALID_SIZE   Either or both of the nx or ny parameters is not a supported sizek.
 */
 
-hcfftResult hcfftPlan2d(hcfftHandle*&plan, int nx, int ny, hcfftType type);
+hcfftResult hcfftPlan2d(hcfftHandle* plan, int nx, int ny, hcfftType type);
 
 /*
  * <iii> Function hcfftPlan3d()
@@ -159,7 +159,7 @@ hcfftResult hcfftPlan2d(hcfftHandle*&plan, int nx, int ny, hcfftType type);
    HCFFT_INVALID_SIZE   One or more of the nx, ny, or nz parameters is not a supported size.
 */
 
-hcfftResult hcfftPlan3d(hcfftHandle*&plan, int nx, int ny, int nz, hcfftType type);
+hcfftResult hcfftPlan3d(hcfftHandle* plan, int nx, int ny, int nz, hcfftType type);
 
 
 /* Function hcfftDestroy()

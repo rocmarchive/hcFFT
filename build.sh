@@ -7,6 +7,7 @@ current_work_dir=$PWD
 # CHECK FOR COMPILER PATH
 if [ ! -z $HCC_HOME ]
 then
+  platform="hcc"
   if [ -x "$HCC_HOME/bin/clang++" ]
   then
     cmake_c_compiler=$HCC_HOME/bin/clang
@@ -14,26 +15,17 @@ then
   fi
 elif [ -x "/opt/rocm/hcc/bin/clang++" ]
 then
+  platform="hcc"
   cmake_c_compiler=/opt/rocm/hcc/bin/clang
   cmake_cxx_compiler=/opt/rocm/hcc/bin/clang++
-elif [ -x "/usr/local/cuda/bin/nvcc" ]
+elif [ -x "/usr/local/cuda/bin/nvcc" ];
 then
-  echo "NVidia Platform"
-  echo "Generating hipfft.so"
-  if [ ! -z $HIP_PATH ]
-  then
-    hip_compiler=$HIP_PATH/bin/hipcc
-  else
-    hip_compiler=/opt/rocm/hip/bin/hipcc
-  fi
-  mkdir -p $current_work_dir/build/lib/src
-  cd $current_work_dir/lib/src/nvcc_detail
-  $hip_compiler -Xcompiler -fpic -c -I$current_work_dir/lib/include/ -I$current_work_dir/lib/include/nvcc_detail/ hipfft.cpp -o hip_obj.o -lcufft
-  $hip_compiler -shared -o $current_work_dir/build/lib/src/libhipfft.so hip_obj.o -lcufft
-  echo "Hipfft shared object generated"
-  exit 1
+  platform="nvcc"
+  cmake_c_compiler="/usr/bin/gcc"
+  cmake_cxx_compiler="/usr/bin/g++"
 else
-  echo "Clang compiler not found"
+  echo "Neither clang  or NVCC compiler found"
+  echo "Not an AMD or NVCC compatible stack"
   exit 1
 fi
 
@@ -95,12 +87,6 @@ if [ -z $bench ]; then
     bench="off"
 fi
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$hcfft_installlib/hcfft
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CLFFT_LIBRARY_PATH
-export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$hcfft_install/include/hcfft
-export HCFFT_LIBRARY_PATH=$PWD/build/lib/src
-export LD_LIBRARY_PATH=$HCFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
-
 set +e
 # MAKE BUILD DIR
 mkdir -p $current_work_dir/build
@@ -109,47 +95,84 @@ set -e
 
 # SET BUILD DIR
 build_dir=$current_work_dir/build
-
 #change to library build
 cd $build_dir
 
-# Cmake and make libhcfft: Install hcFFT
-cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
-make package
-make
+if [ "$platform" = "hcc" ]; then
 
-# KERNEL CACHE DIR
-mkdir -p $HOME/kernCache
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$hcfft_install/lib/hcfft
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CLFFT_LIBRARY_PATH
+  export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$hcfft_install/include/hcfft
+  export HCFFT_LIBRARY_PATH=$current_work_dir/build/lib/src
+  export LD_LIBRARY_PATH=$HCFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
 
-#Test=OFF (Build library and tests)
-if ( [ -z $testing ] ) || ( [ "$testing" = "off" ] ); then
-  echo "${green}HCFFT Installation Completed!${reset}"
-# Test=ON (Build and test the library)
-elif ( [ "$testing" = "on" ] ); then
-  export OPENCL_INCLUDE_PATH=$AMDAPPSDKROOT/include
-  export OPENCL_LIBRARY_PATH=$AMDAPPSDKROOT/lib/x86_64/
-
-  set +e
-  mkdir -p $current_work_dir/build/test
-  mkdir -p $current_work_dir/build/test/src/bin/
-  mkdir -p $current_work_dir/build/test/unit/hcfft_transforms/bin/
-  mkdir -p $current_work_dir/build/test/unit/hcfft_Create_Destroy_Plan/bin/
-  mkdir -p $current_work_dir/build/test/FFT_benchmark_Convolution_Networks/Comparison_tests/bin/
-  set -e
-
-  # Build Tests
-  cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
+  # Cmake and make libhcfft: Install hcFFT
+  cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
+  make package
   make
 
-  chmod +x $current_work_dir/test/unit/test.sh
-  cd $current_work_dir/test/unit/
-# Invoke test script
-  ./test.sh
+  # KERNEL CACHE DIR
+  mkdir -p $HOME/kernCache
+
+  #Test=OFF (Build library and tests)
+  if ( [ -z $testing ] ) || ( [ "$testing" = "off" ] ); then
+    echo "${green}HCFFT Installation Completed!${reset}"
+  # Test=ON (Build and test the library)
+  elif ( [ "$testing" = "on" ] ); then
+   
+   set +e
+   mkdir -p $current_work_dir/build/test
+   mkdir -p $current_work_dir/build/test/src/bin/
+   mkdir -p $current_work_dir/build/test/unit-api/hcfft_transforms/bin/
+   mkdir -p $current_work_dir/build/test/unit-api/hcfft_Create_Destroy_Plan/bin/
+   mkdir -p $current_work_dir/build/test/unit-hip/hipfft_transforms/bin/
+   mkdir -p $current_work_dir/build/test/unit-hip/hipfft_Create_Destroy_Plan/bin/
+   mkdir -p $current_work_dir/build/test/FFT_benchmark_Convolution_Networks/Comparison_tests/bin/
+   set -e
+   
+   echo "LDLIBRARY BEFORE $LD_LIBRARY_PATH"
+   # Build Tests
+   cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
+   make
+
+   chmod +x $current_work_dir/test/unit-api/test.sh
+   cd $current_work_dir/test/unit-api/
+   # Invoke hc unit test script
+   ./test.sh
+   
+   chmod +x $current_work_dir/test/unit-hip/test.sh
+   cd $current_work_dir/test/unit-hip/
+   # Invoke hip unit test script
+   ./test.sh
+  fi
+
+  if [ "$bench" = "on" ]; then #bench=on run chrono timer
+    cd $current_work_dir/test/FFT_benchmark_Convolution_Networks/
+    ./runme_chronotimer.sh
+  fi
 fi
 
-if [ "$bench" = "on" ]; then #bench=on run chrono timer
-  cd $current_work_dir/test/FFT_benchmark_Convolution_Networks/
-  ./runme_chronotimer.sh
+if [ "$platform" = "nvcc" ]; then
+  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$current_work_dir/build/lib/src
+  cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
+  make package
+  make
+  echo "${green}HIPBLAS Build Completed!${reset}"
+  if ( [ "$testing" = "on" ] ); then
+    set +e
+    mkdir -p $current_work_dir/build/test/unit-hip/hipfft_transforms/bin/
+    mkdir -p $current_work_dir/build/test/unit-hip/hipfft_Create_Destroy_Plan/bin/
+    set -e 
+    
+    # Build Tests
+    cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="-fPIC" $current_work_dir/test/
+    make
+    
+    chmod +x $current_work_dir/test/unit-hip/test.sh
+    cd $current_work_dir/test/unit-hip/
+    # Invoke hip unit test script
+    ./test.sh
+  fi
 fi
 
 # Simple test to confirm installation

@@ -1,4 +1,15 @@
 cmake_minimum_required(VERSION 2.8)
+
+# HIP_PATH
+IF(NOT DEFINED $ENV{HIP_PATH})
+  SET(HIP_PATH "/opt/rocm/hip")
+ELSE()
+  SET(HIP_PATH $ENV{HIP_PATH})
+ENDIF()
+
+SET(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake  "${HIP_PATH}/cmake")
+EXECUTE_PROCESS(COMMAND ${HIP_PATH}/bin/hipconfig -P OUTPUT_VARIABLE PLATFORM)
+
 add_subdirectory(lib/src)
 
 # Get the current working branch
@@ -16,6 +27,8 @@ execute_process(
   OUTPUT_VARIABLE GIT_COMMIT_HASH
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+EXECUTE_PROCESS(COMMAND ${HIP_PATH}/bin/hipconfig -P OUTPUT_VARIABLE PLATFORM)
 
 # Default debian in stall path
 set(DEFAULT_DEBIAN_INSTALL_PREFIX "/opt/rocm/hcfft")

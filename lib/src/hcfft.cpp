@@ -40,7 +40,7 @@ hcfftResult hcfftSetStream(hcfftHandle*&plan, hc::accelerator_view &acc_view) {
 /* Function hcfftCreate()
 Creates only an opaque handle, and allocates small data structures on the host.
 */
-hcfftResult hcfftCreate(hcfftHandle*&plan) {
+hcfftResult hcfftCreate(hcfftHandle* plan) {
   if(plan == NULL) {
     // create new plan
     plan = new hcfftHandle;
@@ -79,7 +79,7 @@ hcfftResult hcfftCreate(hcfftHandle*&plan) {
  ***********************************************************************************************************************
  */
 
-hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
+hcfftResult hcfftPlan1d(hcfftHandle* plan, int nx, hcfftType type) {
   // Set dimension as 1D
   hcfftDim dimension = HCFFT_1D;
   // Check the input type and set appropriate direction and precision
@@ -265,7 +265,7 @@ hcfftResult hcfftPlan1d(hcfftHandle* &plan, int nx, hcfftType type) {
    HCFFT_INVALID_SIZE   Either or both of the nx or ny parameters is not a supported sizek.
 */
 
-hcfftResult hcfftPlan2d(hcfftHandle*&plan, int nx, int ny, hcfftType type) {
+hcfftResult hcfftPlan2d(hcfftHandle* plan, int nx, int ny, hcfftType type) {
   // Set dimension as 2D
   hcfftDim dimension = HCFFT_2D;
   // Check the input type and set appropriate direction and precision
@@ -459,7 +459,7 @@ hcfftResult hcfftPlan2d(hcfftHandle*&plan, int nx, int ny, hcfftType type) {
    HCFFT_INVALID_SIZE   One or more of the nx, ny, or nz parameters is not a supported size.
 */
 
-hcfftResult hcfftPlan3d(hcfftHandle*&plan, int nx, int ny, int nz, hcfftType type) {
+hcfftResult hcfftPlan3d(hcfftHandle* plan, int nx, int ny, int nz, hcfftType type) {
   // Set dimension as 3D
   hcfftDim dimension = HCFFT_3D;
   // Check the input type and set appropriate direction and precision
