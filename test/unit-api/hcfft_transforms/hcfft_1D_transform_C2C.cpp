@@ -8,7 +8,7 @@
 TEST(hcfft_1D_transform_test, func_correct_1D_transform_C2C ) {
   size_t N1;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 1024;
-  hcfftHandle plan;// = NULL;
+  hcfftHandle plan;
   hcfftResult status  = hcfftPlan1d(&plan, N1, HCFFT_C2C);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int hSize = N1;

@@ -7,7 +7,7 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
   size_t N1, N2;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 8;
   N2 = my_argc > 2 ? atoi(my_argv[2]) : 8;
-  hipfftHandle plan;// = NULL;
+  hipfftHandle plan;
   // First Real to Complex tranformation
   hipfftResult status  = hipfftPlan2d(&plan, N1, N2,  HIPFFT_D2Z);
   EXPECT_EQ(status, HIPFFT_SUCCESS);

@@ -10,7 +10,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2Z ) {
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 4;
   N2 = my_argc > 2 ? atoi(my_argv[2]) : 4;
   N3 = my_argc > 3 ? atoi(my_argv[3]) : 4;
-  hcfftHandle plan;// = NULL;
+  hcfftHandle plan;
   hcfftResult status  = hcfftPlan3d(&plan, N1, N2, N3, HCFFT_Z2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int hSize = N1 * N2 * N3;

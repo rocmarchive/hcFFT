@@ -9,10 +9,6 @@ red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr0`
 
-export OPENCL_INCLUDE_PATH=$AMDAPPSDKROOT/include
-export OPENCL_LIBRARY_PATH=$AMDAPPSDKROOT/lib/x86_64/
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$OPENCL_LIBRARY_PATH
-
 # Move to gtest bin
 working_dir1="$current_work_dir/../../build/test/unit-hip/hipfft_Create_Destroy_Plan/bin"
 if [ ! -d "$working_dir1" ]; then

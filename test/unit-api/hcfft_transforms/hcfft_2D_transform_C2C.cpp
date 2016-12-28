@@ -9,7 +9,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   size_t N1, N2;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 8;
   N2 = my_argc > 2 ? atoi(my_argv[2]) : 8;
-  hcfftHandle plan;// = NULL;
+  hcfftHandle plan;
   hcfftResult status  = hcfftPlan2d(&plan, N1, N2, HCFFT_C2C);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int hSize = N1 * N2;

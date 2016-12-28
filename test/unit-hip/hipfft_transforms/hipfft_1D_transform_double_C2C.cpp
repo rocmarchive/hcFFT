@@ -7,7 +7,7 @@
 TEST(hipfft_1D_transform_double_test, func_correct_1D_transform_Z2Z ) {
   size_t N1;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 1024;
-  hipfftHandle plan;// = NULL;
+  hipfftHandle plan;
   hipfftResult status  = hipfftPlan1d(&plan, N1, HIPFFT_Z2Z, 1);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
   int hSize = N1;

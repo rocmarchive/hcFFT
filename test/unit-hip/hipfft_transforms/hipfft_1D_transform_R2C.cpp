@@ -9,7 +9,7 @@ TEST(hipfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   size_t N1;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 1024;
   // HIPFFT work flow
-  hipfftHandle plan;// = NULL;
+  hipfftHandle plan;
   hipfftResult status  = hipfftPlan1d(&plan, N1, HIPFFT_R2C, 1);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
   int Rsize = N1;

@@ -10,7 +10,7 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   size_t N1;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 1024;
   // HCFFT work flow
-  hcfftHandle plan;// = NULL;
+  hcfftHandle plan;
   hcfftResult status  = hcfftPlan1d(&plan, N1, HCFFT_R2C);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int Rsize = N1;

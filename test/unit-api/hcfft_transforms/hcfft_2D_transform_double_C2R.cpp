@@ -8,7 +8,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
   size_t N1, N2;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 8;
   N2 = my_argc > 2 ? atoi(my_argv[2]) : 8;
-  hcfftHandle plan;// = NULL;
+  hcfftHandle plan;
   // First Real to Complex tranformation
   hcfftResult status  = hcfftPlan2d(&plan, N1, N2,  HCFFT_D2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);

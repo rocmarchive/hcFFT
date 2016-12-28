@@ -41,16 +41,18 @@ This script is invoked to install hcFFT library and test sources. Please provide
 
   1) ${green}--test${reset}    Test to enable the library testing.
   2) ${green}--bench${reset}   Profile benchmark using chrono timer.
+  3) ${green}--hip_so${reset}  To create libhipfft.so 
 ===================================================================================================================
 Usage: ./install.sh --test=on
 ===================================================================================================================
 Example:
-(1) ${green}./install.sh --test=on${reset} (sudo access needed)
-(2) ${green}./install.sh --bench=on${reset}
+(1) ${green}./build.sh --test=on${reset} 
+(2) ${green}./build.sh --bench=on${reset}
+(3) ${green}./build.sh --hip_so=on${reset} 
 
 NOTE:
-${green} Please Export CLFFT_LIBRARY_PATH to point to clFFT library ${reset}
- <export CLFFT_LIBRARY_PATH=/home/user/clFFT/build/library>
+${green} Install FFTW ${reset}
+<sudo apt-get install >
 ${green} Update AMDAPPSDKROOT ${reset}
  <export AMDAPPSDKROOT=/home/user/AMDAPPSDKROOT>
 ===================================================================================================================
@@ -83,6 +85,10 @@ if ( [ "$hip_so" = "on" ] ); then
     export HIP_SHARED_OBJ=on
 fi
 
+if ( [ "$bench" = "on" ] ); then
+    export BENCH_MARK=on
+fi
+
 if [ -z $bench ]; then
     bench="off"
 fi
@@ -101,7 +107,6 @@ cd $build_dir
 if [ "$platform" = "hcc" ]; then
 
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$hcfft_install/lib/hcfft
-  export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CLFFT_LIBRARY_PATH
   export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:$hcfft_install/include/hcfft
   export HCFFT_LIBRARY_PATH=$current_work_dir/build/lib/src
   export LD_LIBRARY_PATH=$HCFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
@@ -130,7 +135,6 @@ if [ "$platform" = "hcc" ]; then
    mkdir -p $current_work_dir/build/test/FFT_benchmark_Convolution_Networks/Comparison_tests/bin/
    set -e
    
-   echo "LDLIBRARY BEFORE $LD_LIBRARY_PATH"
    # Build Tests
    cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
    make
@@ -140,10 +144,12 @@ if [ "$platform" = "hcc" ]; then
    # Invoke hc unit test script
    ./test.sh
    
-   chmod +x $current_work_dir/test/unit-hip/test.sh
-   cd $current_work_dir/test/unit-hip/
-   # Invoke hip unit test script
-   ./test.sh
+   if ( [ "$hip_so" = "on" ] ); then
+     chmod +x $current_work_dir/test/unit-hip/test.sh
+     cd $current_work_dir/test/unit-hip/
+     # Invoke hip unit test script
+     ./test.sh
+    fi
   fi
 
   if [ "$bench" = "on" ]; then #bench=on run chrono timer
@@ -157,7 +163,7 @@ if [ "$platform" = "nvcc" ]; then
   cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
   make package
   make
-  echo "${green}HIPBLAS Build Completed!${reset}"
+  echo "${green}HIPFFT Build Completed!${reset}"
   if ( [ "$testing" = "on" ] ); then
     set +e
     mkdir -p $current_work_dir/build/test/unit-hip/hipfft_transforms/bin/

@@ -9,7 +9,7 @@ SET(PROJECT_NAME_EXT "hipfft")
 PROJECT (${PROJECT_NAME})
 MESSAGE(STATUS "PROJECT NAME    : ${PROJECT_NAME}")
 
-# Build hcblas and hipblas from source on AMD platform
+# Build hcfft and hipfft from source on AMD platform
 IF (${PLATFORM} MATCHES "hcc")
   # Find HCC compiler
   FIND_PACKAGE(HC++ 1.0 REQUIRED)
@@ -81,7 +81,7 @@ IF (${PLATFORM} MATCHES "hcc")
     INSTALL(FILES ${nvcc_detail} DESTINATION include/nvcc_detail)
   ENDIF()
 ELSEIF (${PLATFORM} MATCHES "nvcc")
-  MESSAGE(STATUS "Building hipfft_nvcc.cpp")
+  MESSAGE(STATUS "Building hipfft.cpp")
   SET(HIPFFTSRCS ${CMAKE_CURRENT_SOURCE_DIR}/nvcc_detail/hipfft.cpp)
 
   set (CXXFLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../include -I${HIP_PATH}/include -I/usr/local/cuda/include -D__HIP_PLATFORM_NVCC__=")
