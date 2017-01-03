@@ -20,5 +20,5 @@ IF(${PLATFORM} MATCHES "hcc")
   add_subdirectory(unit-api)
   IF(DEFINED BENCH_MARK)
     add_subdirectory(FFT_benchmark_Convolution_Networks/Comparison_tests)
-  ENDIF
+  ENDIF()
 ENDIF()

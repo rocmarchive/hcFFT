@@ -34,7 +34,7 @@ IF (${PLATFORM} MATCHES "hcc")
 
   string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
   string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
-  set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/../include -I${HIP_PATH}/include -D__HIP_PLATFORM_HCC__=")
+  set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -I${CMAKE_CURRENT_SOURCE_DIR}/../include -I${HIP_PATH}/include -D__HIP_PLATFORM_HCC__= -DHIP_SHARED_OBJ=")
   set (HCC_LDFLAGS "${HCC_LDFLAGS} -L${HIP_PATH}/lib -lhip_hcc")
 
   # Setting header dependencies for hcfft library generation
@@ -83,10 +83,11 @@ IF (${PLATFORM} MATCHES "hcc")
 ELSEIF (${PLATFORM} MATCHES "nvcc")
   MESSAGE(STATUS "Building hipfft.cpp")
   SET(HIPFFTSRCS ${CMAKE_CURRENT_SOURCE_DIR}/nvcc_detail/hipfft.cpp)
-
-  set (CXXFLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../include -I${HIP_PATH}/include -I/usr/local/cuda/include -D__HIP_PLATFORM_NVCC__=")
-  set (LDFLAGS "-L/usr/local/cuda/lib64 -L/usr/local/cuda/lib")
+  SET(HIP_SHARED_OBJ $ENV{HIP_SHARED_OBJ})
  
+ ADD_DEFINITIONS(-DHIP_SHARED_OBJ)
+  set (CXXFLAGS "-I${CMAKE_CURRENT_SOURCE_DIR}/../include -I${HIP_PATH}/include -I/usr/local/cuda/include -DHIP_SHARED_OBJ= -D__HIP_PLATFORM_NVCC__=")
+  set (LDFLAGS "-L/usr/local/cuda/lib64 -L/usr/local/cuda/lib")
   FOREACH(src_file ${HIPFFTSRCS})
 	  SET_PROPERTY(SOURCE ${src_file} APPEND_STRING PROPERTY COMPILE_FLAGS " ${CXXFLAGS} ")
   ENDFOREACH()
