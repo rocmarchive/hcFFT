@@ -107,7 +107,7 @@ inline static int hipHIPFFTDirectionToCUFFTDirection(hipfftDirection hipDirectio
     }
 }
 
-#ifdef HIP_SHARED_OBJ
+#if (HIP_SHARED_OBJ == 1)
 
 hipfftResult hipfftCreate(hipfftHandle *plan);
 

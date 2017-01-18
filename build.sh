@@ -81,10 +81,6 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-if ( [ "$hip_so" = "on" ] ); then
-    export HIP_SHARED_OBJ=on
-fi
-
 if ( [ "$bench" = "on" ] ); then
     export BENCH_MARK=on
 fi
@@ -112,9 +108,14 @@ if [ "$platform" = "hcc" ]; then
   export LD_LIBRARY_PATH=$HCFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
 
   # Cmake and make libhcfft: Install hcFFT
-  cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
+  if ( [ "$hip_so" = "on" ] ); then  
+    cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
+  else
+    cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
+  fi
   make package
   make
+    
 
   # KERNEL CACHE DIR
   mkdir -p $HOME/kernCache
@@ -136,20 +137,27 @@ if [ "$platform" = "hcc" ]; then
    set -e
    
    # Build Tests
-   cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
+   if ( [ "$hip_so" = "on" ] ); then
+     cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
+   else
+     cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
+   fi
    make
 
    chmod +x $current_work_dir/test/unit-api/test.sh
    cd $current_work_dir/test/unit-api/
    # Invoke hc unit test script
+   printf "* UNIT API TESTS*\n"
+   printf "*****************\n"
    ./test.sh
    
-   if ( [ "$hip_so" = "on" ] ); then
-     chmod +x $current_work_dir/test/unit-hip/test.sh
-     cd $current_work_dir/test/unit-hip/
-     # Invoke hip unit test script
-     ./test.sh
-    fi
+   chmod +x $current_work_dir/test/unit-hip/test.sh
+   cd $current_work_dir/test/unit-hip/
+   # Invoke hip unit test script
+   printf "* UNIT HIP TESTS*\n"
+   printf "*****************\n"
+   ./test.sh
+    
   fi
 
   if [ "$bench" = "on" ]; then #bench=on run chrono timer
@@ -160,10 +168,13 @@ fi
 
 if [ "$platform" = "nvcc" ]; then
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$current_work_dir/build/lib/src
-  cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
-  make package
-  make
-  echo "${green}HIPFFT Build Completed!${reset}"
+  if ( [ "$hip_so" = "on" ] ); then
+    cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir
+    make package
+    make
+    echo "${green}HIPFFT Build Completed!${reset}"
+  fi
+
   if ( [ "$testing" = "on" ] ); then
     set +e
     mkdir -p $current_work_dir/build/test/unit-hip/hipfft_transforms/bin/
@@ -171,12 +182,18 @@ if [ "$platform" = "nvcc" ]; then
     set -e 
     
     # Build Tests
-    cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="-fPIC" $current_work_dir/test/
+    if ( [ "$hip_so" = "on" ] ); then
+      cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="-fPIC" $current_work_dir/test/
+    else
+      cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="-fPIC" $current_work_dir/test/
+    fi
     make
     
     chmod +x $current_work_dir/test/unit-hip/test.sh
     cd $current_work_dir/test/unit-hip/
     # Invoke hip unit test script
+    printf "* UNIT HIP TESTS*\n"
+    printf "*****************\n"
     ./test.sh
   fi
 fi
