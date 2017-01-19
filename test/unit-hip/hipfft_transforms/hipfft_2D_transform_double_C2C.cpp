@@ -2,7 +2,7 @@
 #include "../gtest/gtest.h"
 #include "fftw3.h"
 #include "helper_functions.h"
-#include "hip/hip_runtime_api.h"
+#include "hip/hip_runtime.h"
 
 TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
   size_t N1, N2;

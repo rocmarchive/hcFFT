@@ -22,7 +22,7 @@ THE SOFTWARE.
 #pragma once
 
 #include <cuda_runtime_api.h>
-#include <hip/hip_runtime_api.h>
+#include <hip/hip_runtime.h>
 #include <cufft.h>
 
 #ifdef __cplusplus

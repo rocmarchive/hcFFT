@@ -1,7 +1,7 @@
 #include "hipfft.h"
 #include "../gtest/gtest.h"
 #include "fftw3.h"
-#include "hip/hip_runtime_api.h"
+#include "hip/hip_runtime.h"
 
 TEST(hipfft_2D_transform_test, func_correct_2D_transform_C2R_RTT) {
   size_t N1, N2;

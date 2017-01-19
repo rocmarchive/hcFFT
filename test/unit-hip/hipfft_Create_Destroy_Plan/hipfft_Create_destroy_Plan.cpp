@@ -1,6 +1,6 @@
 #include "hipfft.h"
 #include "../gtest/gtest.h"
-#include "hip/hip_runtime_api.h"
+#include "hip/hip_runtime.h"
 
 #define VECTOR_SIZE 256
 

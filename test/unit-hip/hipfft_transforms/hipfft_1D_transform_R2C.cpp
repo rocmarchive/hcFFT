@@ -2,7 +2,7 @@
 #include "fftw3.h"
 #include "../gtest/gtest.h"
 #include "helper_functions.h"
-#include "hip/hip_runtime_api.h"
+#include "hip/hip_runtime.h"
 
 TEST(hipfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
