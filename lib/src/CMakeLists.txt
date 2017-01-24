@@ -55,8 +55,7 @@ IF (${PLATFORM} MATCHES "hcc")
    PERMISSIONS WORLD_READ WORLD_WRITE WORLD_EXECUTE
   )
 
-  file(GLOB headers "${CMAKE_CURRENT_SOURCE_DIR}/../include/*.h")
-  INSTALL(FILES ${headers} DESTINATION include)
+  INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../include/" DESTINATION include)
 
    IF(${HIP_SHARED_OBJ} MATCHES "ON")
     SET(HIPFFTSRCS ${HCFFTSRCS} ${CMAKE_CURRENT_SOURCE_DIR}/hcc_detail/hipfft.cpp)
@@ -78,9 +77,8 @@ IF (${PLATFORM} MATCHES "hcc")
       ARCHIVE DESTINATION lib
       PERMISSIONS WORLD_READ WORLD_WRITE WORLD_EXECUTE
     )
-
-    file(GLOB hcc_detail "${CMAKE_CURRENT_SOURCE_DIR}/../include/hcc_detail/*.h")
-    INSTALL(FILES ${hcc_detail} DESTINATION include/hcc_detail)
+ 
+    INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../include/" DESTINATION include)
   ENDIF()
 ELSEIF (${PLATFORM} MATCHES "nvcc")
   MESSAGE(STATUS "Building hipfft.cpp")
@@ -107,6 +105,6 @@ ELSEIF (${PLATFORM} MATCHES "nvcc")
     ARCHIVE DESTINATION lib
     PERMISSIONS WORLD_READ WORLD_WRITE WORLD_EXECUTE
   )
-  file(GLOB nvcc_detail "${CMAKE_CURRENT_SOURCE_DIR}/../include/nvcc_detail/*.h")
-  INSTALL(FILES ${nvcc_detail} DESTINATION include/nvcc_detail)
+
+  INSTALL(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../include/" DESTINATION include)
 ENDIF()
