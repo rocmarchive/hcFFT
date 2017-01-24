@@ -36,6 +36,8 @@ else
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/rocm/hip/lib
 fi
 
+export CLAMP_NOTILECHECK=ON
+
 red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr0`
