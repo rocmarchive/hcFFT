@@ -102,6 +102,10 @@ if [ -z $bench ]; then
     bench="off"
 fi
 
+if [ "$install" = "1" ]; then
+    export INSTALL_OPT=on
+fi
+
 set +e
 # MAKE BUILD DIR
 mkdir -p $current_work_dir/build
@@ -121,7 +125,7 @@ if [ "$platform" = "hcc" ]; then
   export LD_LIBRARY_PATH=$HCFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
 
   # Cmake and make libhcfft: Install hcFFT
-  if ( [ "$hip_so" = "on" ] ); then  
+  if [ "$hip_so" = "on" ] ; then  
     cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
   else
     cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
@@ -131,6 +135,11 @@ if [ "$platform" = "hcc" ]; then
 
   if [ "$install" = "1" ]; then
     sudo make install
+    if  [ "$hip_so" = "on" ] ; then
+     cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir/packaging/
+    else
+     cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir/packaging/
+    fi
   fi
 
   # KERNEL CACHE DIR
@@ -153,7 +162,7 @@ if [ "$platform" = "hcc" ]; then
    set -e
    
    # Build Tests
-   if ( [ "$hip_so" = "on" ] ); then
+   if  [ "$hip_so" = "on" ] ; then
      cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
    else
      cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
