@@ -81,9 +81,6 @@ while [ $# -gt 0 ]; do
     --install)
       install="1"
       ;;
-    --hip_so=*)
-      hip_so="${1#*=}"
-      ;;
     --help) print_help;;
     *)
       printf "************************************************************\n"
@@ -125,21 +122,13 @@ if [ "$platform" = "hcc" ]; then
   export LD_LIBRARY_PATH=$HCFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
 
   # Cmake and make libhcfft: Install hcFFT
-  if [ "$hip_so" = "on" ] ; then  
-    cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
-  else
-    cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
-  fi
+  cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
   make package
   make
 
   if [ "$install" = "1" ]; then
     sudo make install
-    if  [ "$hip_so" = "on" ] ; then
-     cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir/packaging/
-    else
-     cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir/packaging/
-    fi
+    cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir/packaging/
   fi
 
   # KERNEL CACHE DIR
@@ -162,25 +151,21 @@ if [ "$platform" = "hcc" ]; then
    set -e
    
    # Build Tests
-   if  [ "$hip_so" = "on" ] ; then
-     cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
-   else
-     cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
-   fi
+   cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
    make
 
    chmod +x $current_work_dir/test/unit-api/test.sh
    cd $current_work_dir/test/unit-api/
    # Invoke hc unit test script
-   printf "* UNIT API TESTS*\n"
-   printf "*****************\n"
+   printf "* UNIT API TESTS *\n"
+   printf "******************\n"
    ./test.sh
    
    chmod +x $current_work_dir/test/unit-hip/test.sh
    cd $current_work_dir/test/unit-hip/
    # Invoke hip unit test script
-   printf "* UNIT HIP TESTS*\n"
-   printf "*****************\n"
+   printf "* UNIT HIP TESTS *\n"
+   printf "******************\n"
    ./test.sh
     
   fi
@@ -193,12 +178,10 @@ fi
 
 if [ "$platform" = "nvcc" ]; then
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$current_work_dir/build/lib/src
-  if ( [ "$hip_so" = "on" ] ); then
-    cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
-    make package
-    make
-    echo "${green}HIPFFT Build Completed!${reset}"
-  fi
+  cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
+  make package
+  make
+  echo "${green}HIPFFT Build Completed!${reset}"
 
   if ( [ "$testing" = "on" ] ); then
     set +e
@@ -207,18 +190,14 @@ if [ "$platform" = "nvcc" ]; then
     set -e 
     
     # Build Tests
-    if ( [ "$hip_so" = "on" ] ); then
-      cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="-fPIC" $current_work_dir/test/
-    else
-      cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="-fPIC" $current_work_dir/test/
-    fi
+    cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="-fPIC" $current_work_dir/test/
     make
     
     chmod +x $current_work_dir/test/unit-hip/test.sh
     cd $current_work_dir/test/unit-hip/
     # Invoke hip unit test script
-    printf "* UNIT HIP TESTS*\n"
-    printf "*****************\n"
+    printf "* UNIT HIP TESTS *\n"
+    printf "******************\n"
     ./test.sh
   fi
 fi
