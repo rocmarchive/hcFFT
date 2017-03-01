@@ -29,12 +29,20 @@ else
   exit 1
 fi
 
+if ( [ ! -z $HIP_PATH ] || [ -x "/opt/rocm/hip/bin/hipcc" ] ); then 
+  export HIP_SUPPORT=on
+elif ( [ "$platform" = "nvcc" ]); then
+  echo "HIP not found. Install latest HIP to continue."
+  exit 1
+fi
+
 if [ ! -z $HIP_PATH ]
 then
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HIP_PATH/lib
 else
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/rocm/hip/lib
 fi
+
 
 export CLAMP_NOTILECHECK=ON
 
@@ -145,8 +153,10 @@ if [ "$platform" = "hcc" ]; then
    mkdir -p $current_work_dir/build/test/src/bin/
    mkdir -p $current_work_dir/build/test/unit-api/hcfft_transforms/bin/
    mkdir -p $current_work_dir/build/test/unit-api/hcfft_Create_Destroy_Plan/bin/
-   mkdir -p $current_work_dir/build/test/unit-hip/hipfft_transforms/bin/
-   mkdir -p $current_work_dir/build/test/unit-hip/hipfft_Create_Destroy_Plan/bin/
+   if [ $HIP_SUPPORT = "on" ]; then
+     mkdir -p $current_work_dir/build/test/unit-hip/hipfft_transforms/bin/
+     mkdir -p $current_work_dir/build/test/unit-hip/hipfft_Create_Destroy_Plan/bin/
+   fi
    mkdir -p $current_work_dir/build/test/FFT_benchmark_Convolution_Networks/Comparison_tests/bin/
    set -e
    
@@ -161,13 +171,14 @@ if [ "$platform" = "hcc" ]; then
    printf "******************\n"
    ./test.sh
    
-   chmod +x $current_work_dir/test/unit-hip/test.sh
-   cd $current_work_dir/test/unit-hip/
-   # Invoke hip unit test script
-   printf "* UNIT HIP TESTS *\n"
-   printf "******************\n"
-   ./test.sh
-    
+   if [ $HIP_SUPPORT = "on" ]; then
+     chmod +x $current_work_dir/test/unit-hip/test.sh
+     cd $current_work_dir/test/unit-hip/
+     # Invoke hip unit test script
+     printf "* UNIT HIP TESTS *\n"
+     printf "******************\n"
+     ./test.sh
+   fi 
   fi
 
   if [ "$bench" = "on" ]; then #bench=on run chrono timer
