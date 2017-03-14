@@ -616,8 +616,11 @@ class Pass {
 
           if(scale != 1.0f) {
             passStr += " * ";
+            passStr += RegBaseType<PR>(4);
+            passStr += "(";
             passStr += FloatToStr(scale);
             passStr += FloatSuffix<PR>();
+            passStr += ")";
           }
 
           passStr += ";";
