@@ -46,7 +46,7 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2Z ) {
     fftw_in[i][1] = input[i].y;
   }
   // 2D forward plan
-  p = fftw_plan_dft_2d(N2, N1, fftw_in, fftw_out, FFTW_FORWARD, FFTW_ESTIMATE);
+  p = fftw_plan_dft_2d(N1, N2, fftw_in, fftw_out, FFTW_FORWARD, FFTW_ESTIMATE);
   // Execute C2R
   fftw_execute(p);
 
