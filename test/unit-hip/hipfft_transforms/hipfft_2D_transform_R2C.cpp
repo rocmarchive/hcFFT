@@ -5,7 +5,7 @@
 #include "hip/hip_runtime.h"
 
 TEST(hipfft_2D_transform_test, func_correct_2D_transform_R2C ) {
-  putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
+  //putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
   size_t N1, N2;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 8;
   N2 = my_argc > 2 ? atoi(my_argv[2]) : 8;
@@ -46,7 +46,7 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_R2C ) {
   }
   out = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * Csize);
   // 2D forward plan
-  p = fftwf_plan_dft_r2c_2d(N2, N1, in, out, FFTW_ESTIMATE | FFTW_R2HC);;
+  p = fftwf_plan_dft_r2c_2d(N1, N2, in, out, FFTW_ESTIMATE | FFTW_R2HC);;
   // Execute R2C
   fftwf_execute(p);
   // Check RMSE: If fails go for pointwise comparison

@@ -2,6 +2,8 @@
 #include "../gtest/gtest.h"
 #include "fftw3.h"
 #include "hip/hip_runtime.h"
+#include <iostream>
+using namespace std;
 
 TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
   size_t N1, N2;
@@ -14,6 +16,7 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
   int Rsize = N2 * N1;
   int Csize = N2 * (1 + N1 / 2);
   hipfftDoubleReal* inputD2Z = (hipfftDoubleReal*)calloc(Rsize, sizeof(hipfftDoubleReal));
+  hipfftDoubleComplex* outputD2Z = (hipfftDoubleComplex*)calloc(Csize, sizeof(hipfftDoubleComplex));
   int seed = 123456789;
   srand(seed);
 
@@ -22,21 +25,20 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
     inputD2Z[i] = i%8;
   }
 
-  hipfftDoubleComplex* outputD2Z = (hipfftDoubleComplex*)calloc(Csize, sizeof(hipfftDoubleComplex));
   hipfftDoubleReal* devIpD2Z;
-  hipfftDoubleComplex* devOpD2Z; 
+  hipfftDoubleComplex* devOpD2Z;
   hipMalloc(&devIpD2Z, Rsize * sizeof(hipfftDoubleReal));
   hipMemcpy(devIpD2Z, inputD2Z, sizeof(hipfftDoubleReal) * Rsize, hipMemcpyHostToDevice); 
   hipMalloc(&devOpD2Z, Csize * sizeof(hipfftDoubleComplex));
   hipMemcpy(devOpD2Z, outputD2Z, sizeof(hipfftDoubleComplex) * Csize, hipMemcpyHostToDevice);
   status = hipfftExecD2Z(plan, devIpD2Z, devOpD2Z);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
   hipMemcpy(outputD2Z, devOpD2Z, sizeof(hipfftDoubleComplex) * Csize, hipMemcpyDeviceToHost);
   status =  hipfftDestroy(plan);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
 
   // Next Complex to Real transformation
-  //plan = NULL;
   status  = hipfftPlan2d(&plan, N1, N2, HIPFFT_Z2D);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
   hipfftDoubleComplex* inputZ2D = (hipfftDoubleComplex*)calloc(Csize, sizeof(hipfftDoubleComplex));
@@ -56,6 +58,7 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
   hipMemcpy(devOpZ2D, outputZ2D, sizeof(hipfftDoubleReal) * Rsize, hipMemcpyHostToDevice);
   status = hipfftExecZ2D(plan, devIpZ2D, devOpZ2D);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
   hipMemcpy(outputZ2D, devOpZ2D, sizeof(hipfftDoubleReal) * Rsize, hipMemcpyDeviceToHost);
   status =  hipfftDestroy(plan);
   //Check Real Inputs and Outputs

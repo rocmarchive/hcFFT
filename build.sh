@@ -29,12 +29,20 @@ else
   exit 1
 fi
 
+if ( [ ! -z $HIP_PATH ] || [ -x "/opt/rocm/hip/bin/hipcc" ] ); then 
+  export HIP_SUPPORT=on
+elif ( [ "$platform" = "nvcc" ]); then
+  echo "HIP not found. Install latest HIP to continue."
+  exit 1
+fi
+
 if [ ! -z $HIP_PATH ]
 then
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$HIP_PATH/lib
 else
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/rocm/hip/lib
 fi
+
 
 export CLAMP_NOTILECHECK=ON
 
@@ -81,9 +89,6 @@ while [ $# -gt 0 ]; do
     --install)
       install="1"
       ;;
-    --hip_so=*)
-      hip_so="${1#*=}"
-      ;;
     --help) print_help;;
     *)
       printf "************************************************************\n"
@@ -125,22 +130,14 @@ if [ "$platform" = "hcc" ]; then
   export LD_LIBRARY_PATH=$HCFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
 
   # Cmake and make libhcfft: Install hcFFT
-  if [ "$hip_so" = "on" ] ; then  
-    cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
-  else
-    cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
-  fi
+  cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
   make package
   make
 
   if [ "$install" = "1" ]; then
     sudo make install
-    if  [ "$hip_so" = "on" ] ; then
-     cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir/packaging/
-    else
-     cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir/packaging/
-    fi
   fi
+  cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir/packaging/
 
   # KERNEL CACHE DIR
   mkdir -p $HOME/kernCache
@@ -156,33 +153,32 @@ if [ "$platform" = "hcc" ]; then
    mkdir -p $current_work_dir/build/test/src/bin/
    mkdir -p $current_work_dir/build/test/unit-api/hcfft_transforms/bin/
    mkdir -p $current_work_dir/build/test/unit-api/hcfft_Create_Destroy_Plan/bin/
-   mkdir -p $current_work_dir/build/test/unit-hip/hipfft_transforms/bin/
-   mkdir -p $current_work_dir/build/test/unit-hip/hipfft_Create_Destroy_Plan/bin/
+   if [ $HIP_SUPPORT = "on" ]; then
+     mkdir -p $current_work_dir/build/test/unit-hip/hipfft_transforms/bin/
+     mkdir -p $current_work_dir/build/test/unit-hip/hipfft_Create_Destroy_Plan/bin/
+   fi
    mkdir -p $current_work_dir/build/test/FFT_benchmark_Convolution_Networks/Comparison_tests/bin/
    set -e
    
    # Build Tests
-   if  [ "$hip_so" = "on" ] ; then
-     cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
-   else
-     cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
-   fi
+   cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
    make
 
    chmod +x $current_work_dir/test/unit-api/test.sh
    cd $current_work_dir/test/unit-api/
    # Invoke hc unit test script
-   printf "* UNIT API TESTS*\n"
-   printf "*****************\n"
+   printf "* UNIT API TESTS *\n"
+   printf "******************\n"
    ./test.sh
    
-   chmod +x $current_work_dir/test/unit-hip/test.sh
-   cd $current_work_dir/test/unit-hip/
-   # Invoke hip unit test script
-   printf "* UNIT HIP TESTS*\n"
-   printf "*****************\n"
-   ./test.sh
-    
+   if [ $HIP_SUPPORT = "on" ]; then
+     chmod +x $current_work_dir/test/unit-hip/test.sh
+     cd $current_work_dir/test/unit-hip/
+     # Invoke hip unit test script
+     printf "* UNIT HIP TESTS *\n"
+     printf "******************\n"
+     ./test.sh
+   fi 
   fi
 
   if [ "$bench" = "on" ]; then #bench=on run chrono timer
@@ -193,12 +189,13 @@ fi
 
 if [ "$platform" = "nvcc" ]; then
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$current_work_dir/build/lib/src
-  if ( [ "$hip_so" = "on" ] ); then
-    cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
-    make package
-    make
-    echo "${green}HIPFFT Build Completed!${reset}"
-  fi
+  cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hipfft $current_work_dir
+  make package
+  make
+  
+  cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hipfft $current_work_dir/packaging/
+  
+  echo "${green}HIPFFT Build Completed!${reset}"
 
   if ( [ "$testing" = "on" ] ); then
     set +e
@@ -207,18 +204,14 @@ if [ "$platform" = "nvcc" ]; then
     set -e 
     
     # Build Tests
-    if ( [ "$hip_so" = "on" ] ); then
-      cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DHIP_SHARED_OBJ=ON -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="-fPIC" $current_work_dir/test/
-    else
-      cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="-fPIC" $current_work_dir/test/
-    fi
+    cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="-fPIC" $current_work_dir/test/
     make
     
     chmod +x $current_work_dir/test/unit-hip/test.sh
     cd $current_work_dir/test/unit-hip/
     # Invoke hip unit test script
-    printf "* UNIT HIP TESTS*\n"
-    printf "*****************\n"
+    printf "* UNIT HIP TESTS *\n"
+    printf "******************\n"
     ./test.sh
   fi
 fi

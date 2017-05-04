@@ -5,6 +5,77 @@
 extern "C" {
 #endif
 
+hipfftResult hipHCFFTResultToHIPFFTResult(hcfftResult hcResult) 
+{
+   switch(hcResult) 
+   {
+    case HCFFT_SUCCESS:
+        return HIPFFT_SUCCESS;
+    case HCFFT_INVALID_PLAN:
+        return HIPFFT_INVALID_PLAN;
+    case HCFFT_ALLOC_FAILED:
+        return HIPFFT_ALLOC_FAILED;
+    case HCFFT_INVALID_TYPE:
+        return HIPFFT_INVALID_TYPE;
+    case HCFFT_INVALID_VALUE:
+        return HIPFFT_INVALID_VALUE;
+    case HCFFT_INTERNAL_ERROR:
+        return HIPFFT_INTERNAL_ERROR;
+    case HCFFT_EXEC_FAILED:
+        return HIPFFT_EXEC_FAILED;
+    case HCFFT_SETUP_FAILED:
+        return HIPFFT_SETUP_FAILED;
+    case HCFFT_INVALID_SIZE:
+        return HIPFFT_INVALID_SIZE;
+    case HCFFT_UNALIGNED_DATA:
+        return HIPFFT_UNALIGNED_DATA;
+    case HCFFT_INCOMPLETE_PARAMETER_LIST:
+        return HIPFFT_INCOMPLETE_PARAMETER_LIST;
+    case HCFFT_INVALID_DEVICE:
+        return HIPFFT_INVALID_DEVICE;
+    case HCFFT_PARSE_ERROR:
+        return HIPFFT_PARSE_ERROR;
+    case HCFFT_NO_WORKSPACE:
+        return HIPFFT_NO_WORKSPACE;
+    default:
+         throw "Unimplemented Result";
+   }
+}
+
+hcfftType hipHIPFFTTypeToHCFFTType(hipfftType hipType) 
+{
+   switch(hipType) 
+   {
+    case HIPFFT_R2C:
+        return HCFFT_R2C;
+    case HIPFFT_C2R:
+        return HCFFT_C2R;
+    case HIPFFT_C2C:
+        return HCFFT_C2C;
+    case HIPFFT_D2Z:
+        return HCFFT_D2Z;
+    case HIPFFT_Z2D:
+        return HCFFT_Z2D;
+    case HIPFFT_Z2Z:
+        return HCFFT_Z2Z;
+    default:
+        throw "Unimplemented Type";
+  }
+}
+
+int hipHIPFFTDirectionToHCFFTDirection(int hipDirection)
+{
+    switch(hipDirection)
+    {
+        case HIPFFT_FORWARD:
+          return -1;
+        case HIPFFT_INVERSE:
+          return 1;
+        default:
+          throw "Unimplemented direction";
+    }
+}
+
     hipfftResult hipfftCreate(hipfftHandle *plan){
     return hipHCFFTResultToHIPFFTResult(hcfftCreate(plan));
 }
