@@ -5,26 +5,27 @@
 #include "hip/hip_runtime.h"
 
 TEST(hipfft_3D_transform_test, func_correct_3D_transform_R2C ) {
-  putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
+//  putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
   size_t N1, N2, N3;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 2;
   N2 = my_argc > 2 ? atoi(my_argv[2]) : 2;
   N3 = my_argc > 3 ? atoi(my_argv[3]) : 2;
+  
+  // HIPFFT work flow
   hipfftHandle plan;
   hipfftResult status  = hipfftPlan3d(&plan, N1, N2, N3, HIPFFT_R2C);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+  
   int Rsize = N3 * N2 * N1;
   int Csize = N3 * N2 * (1 + N1 / 2);
   hipfftReal* input = (hipfftReal*)malloc(Rsize * sizeof(hipfftReal));
-  int seed = 123456789;
-  srand(seed);
+  hipfftComplex* output = (hipfftComplex*)malloc(Csize *sizeof(hipfftComplex));
 
   // Populate the input
   for(int i = 0; i < Rsize ; i++) {
     input[i] = i%8;
   }
 
-  hipfftComplex* output = (hipfftComplex*)malloc(Csize *sizeof(hipfftComplex));
   hipfftReal* idata;
   hipfftComplex* odata;
   hipMalloc(&idata, Rsize * sizeof(hipfftReal));
@@ -51,6 +52,7 @@ TEST(hipfft_3D_transform_test, func_correct_3D_transform_R2C ) {
   p = fftwf_plan_dft_r2c_3d(N1, N2, N3, in, out, FFTW_ESTIMATE | FFTW_R2HC);;
   // Execute R2C
   fftwf_execute(p);
+
   // Check RMSE: If fails go for pointwise comparison
   if (JudgeRMSEAccuracyComplex<fftwf_complex, hipfftComplex>(out, output, Csize))
   { 
@@ -63,6 +65,7 @@ TEST(hipfft_3D_transform_test, func_correct_3D_transform_R2C ) {
       EXPECT_NEAR(out[i][1] , output[i].y, 0.1); 
     }
   }
+
   //Free up resources
   fftwf_destroy_plan(p);
   fftwf_free(in); fftwf_free(out);

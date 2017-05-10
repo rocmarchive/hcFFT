@@ -7,14 +7,15 @@
 TEST(hipfft_1D_transform_test, func_correct_1D_transform_C2C ) {
   size_t N1;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 1024;
+
+  // HIPFFT work flow  
   hipfftHandle plan;
   hipfftResult status  = hipfftPlan1d(&plan, N1, HIPFFT_C2C, 1);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
   int hSize = N1;
   hipfftComplex* input = (hipfftComplex*)calloc(hSize, sizeof(hipfftComplex));
   hipfftComplex* output = (hipfftComplex*)calloc(hSize, sizeof(hipfftComplex));
-  int seed = 123456789;
-  srand(seed);
 
   // Populate the input
   for(int i = 0; i < hSize ; i++) {
@@ -33,6 +34,7 @@ TEST(hipfft_1D_transform_test, func_correct_1D_transform_C2C ) {
   hipMemcpy(output, odata, sizeof(hipfftComplex) * hSize, hipMemcpyDeviceToHost );
   status =  hipfftDestroy(plan);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
    //FFTW work flow
   // input output arrays
   fftwf_complex *fftw_in,*fftw_out;
@@ -49,19 +51,19 @@ TEST(hipfft_1D_transform_test, func_correct_1D_transform_C2C ) {
   p = fftwf_plan_many_dft( 1, lengths, 1, fftw_in, NULL, 1, 0, fftw_out, NULL, 1, 0, FFTW_FORWARD, FFTW_ESTIMATE);
   // Execute C2R
   fftwf_execute(p);
+
   // Check RMSE: If fails go for pointwise comparison
   if (JudgeRMSEAccuracyComplex<fftwf_complex, hipfftComplex>(fftw_out, output, hSize)) {
     //Check Real Outputs
     for (int i =0; i < hSize; i++) {
-     //ASSERT(false) << "Additional text"; 
      EXPECT_NEAR(fftw_out[i][0] , output[i].x, 0.1); 
     }
     //Check Imaginary Outputs
     for (int i =0; i < hSize; i++) {
-//      cout<<"IMAGINE: "<<fftw_out[i][0]<<"    "<<output[i].x;
-      EXPECT_NEAR(fftw_out[i][1] , output[i].y, 0.1); 
+     EXPECT_NEAR(fftw_out[i][1] , output[i].y, 0.1); 
     }
   }
+
   // Free up resources
   fftwf_destroy_plan(p);
   fftwf_free(fftw_in); fftwf_free(fftw_out);

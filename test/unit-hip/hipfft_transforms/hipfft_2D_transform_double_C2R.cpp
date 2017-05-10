@@ -6,19 +6,21 @@
 using namespace std;
 
 TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
+
   size_t N1, N2;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 8;
   N2 = my_argc > 2 ? atoi(my_argv[2]) : 8;
+
+  // HIPFFT work flow  
   hipfftHandle plan;
   // First Real to Complex tranformation
   hipfftResult status  = hipfftPlan2d(&plan, N1, N2,  HIPFFT_D2Z);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
   int Rsize = N2 * N1;
   int Csize = N2 * (1 + N1 / 2);
   hipfftDoubleReal* inputD2Z = (hipfftDoubleReal*)calloc(Rsize, sizeof(hipfftDoubleReal));
   hipfftDoubleComplex* outputD2Z = (hipfftDoubleComplex*)calloc(Csize, sizeof(hipfftDoubleComplex));
-  int seed = 123456789;
-  srand(seed);
 
   // Populate the input
   for(int i = 0; i < Rsize ; i++) {
@@ -33,7 +35,6 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
   hipMemcpy(devOpD2Z, outputD2Z, sizeof(hipfftDoubleComplex) * Csize, hipMemcpyHostToDevice);
   status = hipfftExecD2Z(plan, devIpD2Z, devOpD2Z);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
-
   hipMemcpy(outputD2Z, devOpD2Z, sizeof(hipfftDoubleComplex) * Csize, hipMemcpyDeviceToHost);
   status =  hipfftDestroy(plan);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
@@ -41,6 +42,7 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
   // Next Complex to Real transformation
   status  = hipfftPlan2d(&plan, N1, N2, HIPFFT_Z2D);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
   hipfftDoubleComplex* inputZ2D = (hipfftDoubleComplex*)calloc(Csize, sizeof(hipfftDoubleComplex));
   hipfftDoubleReal* outputZ2D = (hipfftDoubleReal*)calloc(Rsize, sizeof(hipfftDoubleReal));
 
@@ -58,13 +60,14 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
   hipMemcpy(devOpZ2D, outputZ2D, sizeof(hipfftDoubleReal) * Rsize, hipMemcpyHostToDevice);
   status = hipfftExecZ2D(plan, devIpZ2D, devOpZ2D);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
-
   hipMemcpy(outputZ2D, devOpZ2D, sizeof(hipfftDoubleReal) * Rsize, hipMemcpyDeviceToHost);
   status =  hipfftDestroy(plan);
+  
   //Check Real Inputs and Outputs
   for (int i =0; i < Rsize; i++) {
     EXPECT_NEAR(inputD2Z[i] , outputZ2D[i]/Rsize, 0.1); 
   }
+
   // Free up resources
   free(inputD2Z);
   free(outputD2Z);
