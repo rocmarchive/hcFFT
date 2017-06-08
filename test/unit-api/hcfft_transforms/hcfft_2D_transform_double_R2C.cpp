@@ -14,7 +14,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_D2Z ) {
   hcfftResult status  = hcfftPlan2d(&plan, N1, N2,  HCFFT_D2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int Rsize = N2 * N1;
-  int Csize = N2 * (1 + N1 / 2);
+  int Csize = N1 * (1 + N2 / 2);
   hcfftDoubleReal* input = (hcfftDoubleReal*)calloc(Rsize, sizeof(hcfftDoubleReal));
   int seed = 123456789;
   srand(seed);
@@ -48,7 +48,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_D2Z ) {
   }
   out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * Csize);
   // 2D forward plan
-  p = fftw_plan_dft_r2c_2d(N2, N1, in, out, FFTW_ESTIMATE | FFTW_R2HC);;
+  p = fftw_plan_dft_r2c_2d(N1, N2, in, out, FFTW_ESTIMATE | FFTW_R2HC);;
   // Execute R2C
   fftw_execute(p);
 

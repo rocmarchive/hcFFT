@@ -49,7 +49,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2C ) {
     fftw_in[i][1] = input[i].y;
   }
   // 3D forward plan
-  p = fftwf_plan_dft_3d(N3, N2, N1, fftw_in, fftw_out, FFTW_FORWARD, FFTW_ESTIMATE);
+  p = fftwf_plan_dft_3d(N1, N2, N3, fftw_in, fftw_out, FFTW_FORWARD, FFTW_ESTIMATE);
   // Execute C2R
   fftwf_execute(p);
   // Check RMSE: If fails go for pointwise comparison

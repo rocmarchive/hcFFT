@@ -13,7 +13,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_Z2D_RTT) {
   hcfftResult status  = hcfftPlan3d(&plan, N1, N2, N3, HCFFT_D2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int Rsize = N1 * N2 * N3;
-  int Csize = N3 * N2 * (1 + N1 / 2);
+  int Csize = N1 * N2 * (1 + N3 / 2);
   hcfftDoubleReal* inputR2C = (hcfftDoubleReal*)malloc(Rsize * sizeof(hcfftDoubleReal));
   int seed = 123456789;
   srand(seed);

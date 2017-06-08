@@ -15,7 +15,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_D2Z ) {
   hcfftResult status  = hcfftPlan3d(&plan, N1, N2, N3, HCFFT_D2Z);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int Rsize = N1 * N2 * N3;
-  int Csize = N3 * N2 * (1 + N1 / 2);
+  int Csize = N1 * N2 * (1 + N3 / 2);
   hcfftDoubleReal* input = (hcfftDoubleReal*)malloc(Rsize * sizeof(hcfftDoubleReal));
   int seed = 123456789;
   srand(seed);
@@ -49,7 +49,7 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_D2Z ) {
   }
   out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * Csize);
   // 3D forward plan
-  p = fftw_plan_dft_r2c_3d(N3, N2, N1, in, out, FFTW_ESTIMATE | FFTW_R2HC);;
+  p = fftw_plan_dft_r2c_3d(N1, N2, N3, in, out, FFTW_ESTIMATE | FFTW_R2HC);;
   // Execute R2C
   
   // Check RMSE: If fails move on to pointwise comparison 
