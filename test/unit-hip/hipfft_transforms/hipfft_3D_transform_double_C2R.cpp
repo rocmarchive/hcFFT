@@ -15,7 +15,7 @@ TEST(hipfft_3D_transform_test, func_correct_3D_transform_Z2D_RTT) {
   EXPECT_EQ(status, HIPFFT_SUCCESS);
 
   int Rsize = N1 * N2 * N3;
-  int Csize = N3 * N2 * (1 + N1 / 2);
+  int Csize = N1 * N2 * (1 + N3 / 2);
   hipfftDoubleReal* inputR2C = (hipfftDoubleReal*)malloc(Rsize * sizeof(hipfftDoubleReal));
   hipfftDoubleComplex* outputR2C = (hipfftDoubleComplex*)malloc(Csize * sizeof(hipfftDoubleComplex));
 

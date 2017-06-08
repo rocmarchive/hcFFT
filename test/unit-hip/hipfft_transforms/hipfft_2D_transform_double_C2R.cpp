@@ -18,7 +18,7 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
   EXPECT_EQ(status, HIPFFT_SUCCESS);
 
   int Rsize = N2 * N1;
-  int Csize = N2 * (1 + N1 / 2);
+  int Csize = N1 * (1 + N2 / 2);
   hipfftDoubleReal* inputD2Z = (hipfftDoubleReal*)calloc(Rsize, sizeof(hipfftDoubleReal));
   hipfftDoubleComplex* outputD2Z = (hipfftDoubleComplex*)calloc(Csize, sizeof(hipfftDoubleComplex));
 
