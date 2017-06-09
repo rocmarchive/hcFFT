@@ -4,6 +4,9 @@
 # CURRENT_WORK_DIRECTORY
 current_work_dir=$PWD
 
+# getconf _NPROCESSORS_ONLN
+working_threads=8
+
 # CHECK FOR COMPILER PATH
 if [ ! -z $HCC_HOME ]
 then
@@ -49,6 +52,8 @@ export CLAMP_NOTILECHECK=ON
 red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr0`
+copt="-O3"
+verbose=""
 install=0
 
 # Help menu
@@ -60,13 +65,15 @@ This script is invoked to install hcFFT library and test sources. Please provide
   1) ${green}--test${reset}    Test to enable the library testing.
   2) ${green}--bench${reset}   Profile benchmark using chrono timer.
   3) ${green}--hip_so${reset}  To create libhipfft.so 
+  4) ${green}--debug${reset}    Compile with debug info (-g)
+  5) ${green}--verbose${reset}  Run make with VERBOSE=1
 ===================================================================================================================
 Usage: ./install.sh --test=on
 ===================================================================================================================
 Example:
-(1) ${green}./build.sh --test=on${reset} 
-(2) ${green}./build.sh --bench=on${reset}
-(3) ${green}./build.sh --hip_so=on${reset} 
+   ${green}./build.sh --test=on${reset} 
+   ${green}./build.sh --bench=on${reset}
+   ${green}./build.sh --hip_so=on${reset} 
 
 NOTE:
 ${green} Install FFTW ${reset}
@@ -82,6 +89,12 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --test=*)
       testing="${1#*=}"
+      ;;
+    --debug)
+      copt="-g"
+      ;;
+    --verbose)
+      verbose="VERBOSE=1"
       ;;
     --bench=*)
       bench="${1#*=}"
@@ -130,14 +143,14 @@ if [ "$platform" = "hcc" ]; then
   export LD_LIBRARY_PATH=$HCFFT_LIBRARY_PATH:$LD_LIBRARY_PATH
 
   # Cmake and make libhcfft: Install hcFFT
-  cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
-  make package
-  make
+  cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="$copt -fPIC" -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir
+  make -j$working_threads package $verbose
+  make -j$working_threads $verbose
 
   if [ "$install" = "1" ]; then
-    sudo make install
+    sudo make -j$working_threads install
   fi
-  cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir/packaging/
+  cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="$copt -fPIC" -DCMAKE_INSTALL_PREFIX=/opt/rocm/hcfft $current_work_dir/packaging/
 
   # KERNEL CACHE DIR
   mkdir -p $HOME/kernCache
@@ -161,8 +174,8 @@ if [ "$platform" = "hcc" ]; then
    set -e
    
    # Build Tests
-   cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC $current_work_dir/test/
-   make
+   cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="$copt -fPIC" $current_work_dir/test/
+   make -j$working_threads $verbose
 
    chmod +x $current_work_dir/test/unit-api/test.sh
    cd $current_work_dir/test/unit-api/
@@ -189,11 +202,11 @@ fi
 
 if [ "$platform" = "nvcc" ]; then
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$current_work_dir/build/lib/src
-  cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hipfft $current_work_dir
-  make package
-  make
+  cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="$copt -fPIC" -DCMAKE_INSTALL_PREFIX=/opt/rocm/hipfft $current_work_dir
+  make -j$working_threads package $verbose
+  make -j$working_threads $verbose
   
-  cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS=-fPIC -DCMAKE_INSTALL_PREFIX=/opt/rocm/hipfft $current_work_dir/packaging/
+  cd $build_dir/packaging/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="$copt -fPIC" -DCMAKE_INSTALL_PREFIX=/opt/rocm/hipfft $current_work_dir/packaging/
   
   echo "${green}HIPFFT Build Completed!${reset}"
 
@@ -204,8 +217,8 @@ if [ "$platform" = "nvcc" ]; then
     set -e 
     
     # Build Tests
-    cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="-fPIC" $current_work_dir/test/
-    make
+    cd $build_dir/test/ && cmake -DCMAKE_C_COMPILER=$cmake_c_compiler -DCMAKE_CXX_COMPILER=$cmake_cxx_compiler -DCMAKE_CXX_FLAGS="$copt -fPIC" $current_work_dir/test/
+  make -j$working_threads  $verbose
     
     chmod +x $current_work_dir/test/unit-hip/test.sh
     cd $current_work_dir/test/unit-hip/
