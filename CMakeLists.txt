@@ -28,18 +28,9 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
-EXECUTE_PROCESS(COMMAND ${HIP_PATH}/bin/hipconfig -P OUTPUT_VARIABLE PLATFORM)
-
 # Default debian in stall path
-set(DEFAULT_DEBIAN_INSTALL_PREFIX "/opt/rocm/hcfft")
-# generate Debian control scripts postinst and postrm
-set(DEBIAN_EXTRA_SCRIPT_SOURCE_DIR "${PROJECT_SOURCE_DIR}/packaging/debian")
-set(DEBIAN_EXTRA_SCRIPT_DEST_DIR "${PROJECT_BINARY_DIR}/packaging/debian")
-file(MAKE_DIRECTORY ${DEBIAN_EXTRA_SCRIPT_DEST_DIR})
-
-execute_process(COMMAND ${DEBIAN_EXTRA_SCRIPT_SOURCE_DIR}/process_packaging_script.bsh ${DEBIAN_EXTRA_SCRIPT_SOURCE_DIR}/postinst.in  ${DEBIAN_EXTRA_SCRIPT_DEST_DIR}/postinst WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
-
-execute_process(COMMAND ${DEBIAN_EXTRA_SCRIPT_SOURCE_DIR}/process_packaging_script.bsh ${DEBIAN_EXTRA_SCRIPT_SOURCE_DIR}/prerm.in  ${DEBIAN_EXTRA_SCRIPT_DEST_DIR}/prerm WORKING_DIRECTORY ${PROJECT_BINARY_DIR})
+set(CMAKE_INSTALL_PREFIX "/opt/rocm/hcfft" CACHE STRING "Install location.")
+set(CPACK_PACKAGING_INSTALL_PREFIX "/opt/rocm/hcfft" CACHE STRING "Package install location.")
 
 IF (${PLATFORM} MATCHES "hcc")
   set(CPACK_PACKAGE_NAME "hcfft")
@@ -50,10 +41,8 @@ ELSEIF (${PLATFORM} MATCHES "nvcc")
 ENDIF()
   
 
-set(CPACK_SET_DESTDIR TRUE)
-set(CPACK_INSTALL_PREFIX "${DEFAULT_DEBIAN_INSTALL_PREFIX}")
 set(CPACK_PACKAGE_VENDOR "MulticoreWare, Inc")
-set(CPACK_GENERATOR "DEB;TGZ")
+set(CPACK_GENERATOR "DEB;TGZ" CACHE STRING "Packages generated.")
 set(CPACK_SOURCE_GENERATOR "TGZ")
 set(CPACK_BINARY_DEB "ON")
 set(CPACK_BINARY_STGZ "OFF")
@@ -64,7 +53,12 @@ set(CPACK_BINARY_TZ "OFF")
 SET(CPACK_PACKAGE_FILE_NAME ${CPACK_PACKAGE_NAME}-${GIT_BRANCH}-${GIT_COMMIT_HASH}-${CMAKE_SYSTEM_NAME})
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "Neelakandan <neelakandan@multicorewareinc.com>") #required
 
+# Debian specific flags
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
-  "${PROJECT_BINARY_DIR}/packaging/debian/postinst;${PROJECT_BINARY_DIR}/packaging/debian/prerm")
+  "${CMAKE_SOURCE_DIR}/packaging/debian/postinst;${CMAKE_SOURCE_DIR}/packaging/debian/prerm")
+
+# RPM specific flags
+set(CPACK_RPM_PRE_INSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/packaging/rpm/post")
+set(CPACK_RPM_POST_UNINSTALL_SCRIPT_FILE "${CMAKE_SOURCE_DIR}/packaging/rpm/postun")
 
 INCLUDE(CPack)

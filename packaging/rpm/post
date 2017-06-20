@@ -1,0 +1,1 @@
+echo /opt/rocm/hcfft/lib > /etc/ld.so.conf.d/hcfft-rocm-dev.conf && ldconfig
