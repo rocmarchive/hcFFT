@@ -5,25 +5,25 @@
 #include "hip/hip_runtime.h"
 
 TEST(hipfft_1D_transform_test, func_correct_1D_transform_R2C ) {
-  putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
+//  putenv((char*)"GTEST_BREAK_ON_FAILURE=0");
   size_t N1;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 1024;
+
   // HIPFFT work flow
   hipfftHandle plan;
   hipfftResult status  = hipfftPlan1d(&plan, N1, HIPFFT_R2C, 1);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
   int Rsize = N1;
   int Csize = (N1 / 2) + 1;
   hipfftReal* input = (hipfftReal*)calloc(Rsize, sizeof(hipfftReal));
-  int seed = 123456789;
-  srand(seed);
+  hipfftComplex* output = (hipfftComplex*)calloc(Csize, sizeof(hipfftComplex));
 
   // Populate the input
   for(int i = 0; i < Rsize ; i++) {
     input[i] = i%8;
   }
 
-  hipfftComplex* output = (hipfftComplex*)calloc(Csize, sizeof(hipfftComplex));
   hipfftReal* idata;
   hipfftComplex* odata;
   hipMalloc(&idata, Rsize * sizeof(hipfftReal));
@@ -51,6 +51,7 @@ TEST(hipfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   p = fftwf_plan_many_dft_r2c( 1, lengths, 1, in, NULL, 1, 0, out, NULL, 1, 0, FFTW_ESTIMATE | FFTW_R2HC);;
   // Execute R2C
   fftwf_execute(p);
+
   // Check RMSE: If fails go for pointwise comparison
   if (JudgeRMSEAccuracyComplex<fftwf_complex, hipfftComplex>(out, output, Csize))
   { 
@@ -63,6 +64,7 @@ TEST(hipfft_1D_transform_test, func_correct_1D_transform_R2C ) {
       EXPECT_NEAR(out[i][1] , output[i].y, 0.01); 
     }
   }
+
   //Free up resources
   fftwf_destroy_plan(p);
   fftwf_free(in); fftwf_free(out);

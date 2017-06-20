@@ -8,21 +8,22 @@ TEST(hipfft_3D_transform_test, func_correct_3D_transform_C2R_RTT) {
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 2;
   N2 = my_argc > 2 ? atoi(my_argv[2]) : 2;
   N3 = my_argc > 3 ? atoi(my_argv[3]) : 2;
+
+  // HIPFFT work flow
   hipfftHandle plan;
   hipfftResult status  = hipfftPlan3d(&plan, N1, N2, N3, HIPFFT_R2C);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
   int Rsize = N3 * N2 * N1;
-  int Csize = N3 * N2 * (1 + N1 / 2);
+  int Csize = N1 * N2 * (1 + N3 / 2);
   hipfftReal* inputR2C = (hipfftReal*)malloc(Rsize * sizeof(hipfftReal));
-  int seed = 123456789;
-  srand(seed);
+  hipfftComplex* outputR2C = (hipfftComplex*)malloc(Csize *sizeof(hipfftComplex));
 
   // Populate the input
   for(int i = 0; i < Rsize ; i++) {
     inputR2C[i] = i%8;
   }
 
-  hipfftComplex* outputR2C = (hipfftComplex*)malloc(Csize *sizeof(hipfftComplex));
   hipfftReal* devIpR2C; 
   hipfftComplex* devOpR2C; 
   hipMalloc(&devIpR2C, Rsize * sizeof(hipfftReal));
@@ -34,9 +35,10 @@ TEST(hipfft_3D_transform_test, func_correct_3D_transform_C2R_RTT) {
   hipMemcpy(outputR2C, devOpR2C, sizeof(hipfftComplex) * Csize, hipMemcpyDeviceToHost);
   status =  hipfftDestroy(plan);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
-  //plan = NULL;
+
   status  = hipfftPlan3d(&plan, N1, N2, N3, HIPFFT_C2R);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
   hipfftComplex* inputC2R = (hipfftComplex*)malloc(Csize * sizeof(hipfftComplex));
   hipfftReal* outputC2R = (hipfftReal*)malloc(Rsize * sizeof(hipfftReal));
 
@@ -57,10 +59,12 @@ TEST(hipfft_3D_transform_test, func_correct_3D_transform_C2R_RTT) {
   hipMemcpy(outputC2R, devOpC2R, sizeof(hipfftReal) * Rsize, hipMemcpyDeviceToHost);
   status =  hipfftDestroy(plan);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
   //Check Real Inputs and  Outputs
   for (int i =0; i < Rsize; i++) {
     EXPECT_NEAR(inputR2C[i] , outputC2R[i]/Rsize, 0.1); 
   }
+
   // Free up resources
   free(inputC2R);
   free(outputC2R);

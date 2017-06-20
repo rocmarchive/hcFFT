@@ -8,14 +8,15 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   size_t N1, N2;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 8;
   N2 = my_argc > 2 ? atoi(my_argv[2]) : 8;
+
+  // HIPFFT work flow
   hipfftHandle plan;
   hipfftResult status  = hipfftPlan2d(&plan, N1, N2, HIPFFT_C2C);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
   int hSize = N1 * N2;
   hipfftComplex* input = (hipfftComplex*)calloc(hSize, sizeof(hipfftComplex));
   hipfftComplex* output = (hipfftComplex*)calloc(hSize, sizeof(hipfftComplex));
-  int seed = 123456789;
-  srand(seed);
 
   // Populate the input
   for(int i = 0; i < hSize ; i++) {
@@ -34,6 +35,7 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   hipMemcpy(output, odata, sizeof(hipfftComplex) * hSize, hipMemcpyDeviceToHost);
   status =  hipfftDestroy(plan);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
   //FFTW work flow
   // input output arrays
   fftwf_complex *fftw_in,*fftw_out;
@@ -46,7 +48,7 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_C2C ) {
     fftw_in[i][1] = input[i].y;
   }
   // 2D forward plan
-  p = fftwf_plan_dft_2d(N2, N1, fftw_in, fftw_out, FFTW_FORWARD, FFTW_ESTIMATE);
+  p = fftwf_plan_dft_2d(N1, N2, fftw_in, fftw_out, FFTW_FORWARD, FFTW_ESTIMATE);
   // Execute C2R
   fftwf_execute(p);
 
@@ -61,6 +63,7 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_C2C ) {
       EXPECT_NEAR(fftw_out[i][1] , output[i].y, 0.1); 
     }
   }
+
   // Free up resources
   fftwf_destroy_plan(p);
   fftwf_free(fftw_in); fftwf_free(fftw_out);

@@ -7,14 +7,15 @@
 TEST(hipfft_1D_transform_double_test, func_correct_1D_transform_Z2Z ) {
   size_t N1;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 1024;
+
+  // HIPFFT work flow
   hipfftHandle plan;
   hipfftResult status  = hipfftPlan1d(&plan, N1, HIPFFT_Z2Z, 1);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
   int hSize = N1;
   hipfftDoubleComplex* input = (hipfftDoubleComplex*)calloc(hSize, sizeof(hipfftDoubleComplex));
   hipfftDoubleComplex* output = (hipfftDoubleComplex*)calloc(hSize, sizeof(hipfftDoubleComplex));
-  int seed = 123456789;
-  srand(seed);
 
   // Populate the input
   for(int i = 0; i < hSize ; i++) {
@@ -33,6 +34,7 @@ TEST(hipfft_1D_transform_double_test, func_correct_1D_transform_Z2Z ) {
   hipMemcpy(output, odata, sizeof(hipfftDoubleComplex) * hSize, hipMemcpyDeviceToHost);
   status =  hipfftDestroy(plan);
   EXPECT_EQ(status, HIPFFT_SUCCESS);
+
    //FFTW work flow
   // input output arrays
   fftw_complex *fftw_in,*fftw_out;
@@ -61,6 +63,7 @@ TEST(hipfft_1D_transform_double_test, func_correct_1D_transform_Z2Z ) {
       EXPECT_NEAR(fftw_out[i][1] , output[i].y, 0.1); 
     } 
   }
+
   // Free up resources
   fftw_destroy_plan(p);
   fftw_free(fftw_in); fftw_free(fftw_out);

@@ -616,8 +616,11 @@ class Pass {
 
           if(scale != 1.0f) {
             passStr += " * ";
+            passStr += RegBaseType<PR>(4);
+            passStr += "(";
             passStr += FloatToStr(scale);
             passStr += FloatSuffix<PR>();
+            passStr += ")";
           }
 
           passStr += ";";
@@ -796,8 +799,11 @@ class Pass {
 
             if(scale != 1.0f) {
               regIndex += " * ";
+              regIndex += RegBaseType<PR>(2);
+              regIndex += "(";
               regIndex += FloatToStr(scale);
               regIndex += FloatSuffix<PR>();
+              regIndex += ")";
             }
 
             if (c == cStart) {
@@ -1143,8 +1149,11 @@ class Pass {
 
               if(scale != 1.0f) {
                 regIndex += " * ";
+                regIndex += RegBaseType<PR>(2);
+                regIndex += "(";
                 regIndex += FloatToStr(scale);
                 regIndex += FloatSuffix<PR>();
+                regIndex += ")";
               }
 
               if (c == 0) {
@@ -1429,8 +1438,11 @@ class Pass {
 
             if(scale != 1.0f) {
               sclStr += " * ";
+              sclStr += RegBaseType<PR>(2);
+              sclStr += "(";
               sclStr += FloatToStr(scale);
               sclStr += FloatSuffix<PR>();
+              sclStr += ")";
             }
 
             if(fwd) {
@@ -2288,8 +2300,11 @@ class Pass {
 
               if(scale != 1.0) {
                 passStr += " * ";
+                passStr += RegBaseType<PR>(2);
+                passStr += "(";
                 passStr += FloatToStr(scale);
                 passStr += FloatSuffix<PR>();
+                passStr += ")";
               }
 
               passStr += ";\n\t";
@@ -2304,8 +2319,11 @@ class Pass {
 
               if(scale != 1.0) {
                 passStr += " * ";
+                passStr += RegBaseType<PR>(2);
+                passStr += "(";
                 passStr += FloatToStr(scale);
                 passStr += FloatSuffix<PR>();
+                passStr += ")";
               }
 
               passStr += ";\n\t";
@@ -2335,8 +2353,11 @@ class Pass {
 
               if(scale != 1.0) {
                 passStr += " * ";
+                passStr += RegBaseType<PR>(2);
+                passStr += "(";
                 passStr += FloatToStr(scale);
                 passStr += FloatSuffix<PR>();
+                passStr += ")";
               }
 
               passStr += ";\n\t";
@@ -2351,8 +2372,11 @@ class Pass {
 
               if(scale != 1.0) {
                 passStr += " * ";
+                passStr += RegBaseType<PR>(2);
+                passStr += "(";
                 passStr += FloatToStr(scale);
                 passStr += FloatSuffix<PR>();
+                passStr += ")";
               }
 
               passStr += ";\n\t";
