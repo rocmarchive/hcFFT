@@ -93,13 +93,14 @@ int hipHIPFFTDirectionToHCFFTDirection(int hipDirection)
     hipfftResult hipfftPlan1d(hipfftHandle *plan, int nx, hipfftType type, int batch){
     return hipHCFFTResultToHIPFFTResult(hcfftPlan1d(plan, nx, hipHIPFFTTypeToHCFFTType(type))); 
 }
-
+//hcfftPlan2d accept the dimensions in the inverse order of that of how hipfft/cufft accepts it
     hipfftResult hipfftPlan2d(hipfftHandle *plan, int nx, int ny, hipfftType type){
-    return hipHCFFTResultToHIPFFTResult(hcfftPlan2d(plan, nx, ny, hipHIPFFTTypeToHCFFTType(type)));
+    return hipHCFFTResultToHIPFFTResult(hcfftPlan2d(plan, ny, nx, hipHIPFFTTypeToHCFFTType(type)));
 }
 
+//hcfftPlan3d accept the dimensions in the inverse order of that of how hipfft/cufft accepts it
     hipfftResult hipfftPlan3d(hipfftHandle *plan, int nx, int ny, int nz, hipfftType type){
-    return hipHCFFTResultToHIPFFTResult(hcfftPlan3d(plan, nx, ny, nz, hipHIPFFTTypeToHCFFTType(type)));
+    return hipHCFFTResultToHIPFFTResult(hcfftPlan3d(plan, nz, ny, nx, hipHIPFFTTypeToHCFFTType(type)));
 }
 
     hipfftResult hipfftPlanMany(hipfftHandle *plan, int rank, int *n, int *inembed,int istride, 
