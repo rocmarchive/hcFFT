@@ -1,11 +1,15 @@
+#include <iostream>
+#include <cstdlib>
 #include "hcfft.h"
+#include "hc_am.hpp"
+#include "hcfftlib.h"
 
 int main(int argc, char* argv[]) {
   int N1 = argc > 1 ? atoi(argv[1]) : 1024;
   int N2 = argc > 2 ? atoi(argv[2]) : 1024;
   int N3 = argc > 3 ? atoi(argv[3]) : 1024;
-  hcfftHandle* plan = NULL;
-  hcfftResult status  = hcfftPlan3d(plan, N1, N2, N3, HCFFT_R2C);
+  hcfftHandle plan;
+  hcfftResult status  = hcfftPlan3d(&plan, N1, N2, N3, HCFFT_R2C);
   assert(status == HCFFT_SUCCESS);
   int Rsize = N3 * N2 * N1;
   int Csize = N3 * N2 * (1 + N1 / 2);
@@ -21,17 +25,19 @@ int main(int argc, char* argv[]) {
   hcfftComplex* output = (hcfftComplex*)calloc(Csize, sizeof(hcfftComplex));
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
   assert(accs.size() && "Number of Accelerators == 0!");
+  hc::accelerator_view accl_view = accs[1].get_default_view();
   hcfftReal* idata = hc::am_alloc(Rsize * sizeof(hcfftReal), accs[1], 0);
-  hc::am_copy(idata, input, sizeof(hcfftReal) * Rsize);
+  accl_view.copy(input, idata, sizeof(hcfftReal) * Rsize);
   hcfftComplex* odata = hc::am_alloc(Csize * sizeof(hcfftComplex), accs[1], 0);
-  hc::am_copy(odata,  output, sizeof(hcfftComplex) * Csize);
-  status = hcfftExecR2C(*plan, idata, odata);
+  accl_view.copy(output,  odata, sizeof(hcfftComplex) * Csize);
+  status = hcfftExecR2C(plan, idata, odata);
   assert(status == HCFFT_SUCCESS);
-  hc::am_copy(output, odata, sizeof(hcfftComplex) * Csize);
-  status =  hcfftDestroy(*plan);
+  accl_view.copy(odata, output, sizeof(hcfftComplex) * Csize);
+  status =  hcfftDestroy(plan);
   assert(status == HCFFT_SUCCESS);
   free(input);
   free(output);
   hc::am_free(idata);
   hc::am_free(odata);
 }
+
