@@ -68,7 +68,7 @@ typedef enum hipfftDirection_ {
 // on NVCC path:
 
 #if defined(__HIP_PLATFORM_HCC__) and not defined (__HIP_PLATFORM_NVCC__) 
-#include <hcc_detail/hip_fft.h>
+#include "hcc_detail/hip_fft.h"
 #elif defined(__HIP_PLATFORM_NVCC__) and not defined (__HIP_PLATFORM_HCC__)
 #include <nvcc_detail/hip_fft.h>
 #else 
