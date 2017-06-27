@@ -22,7 +22,7 @@ THE SOFTWARE.
 #pragma once
 
 #include <hip/hip_runtime_api.h>
-#include <hcfft.h>
+#include "../hcfft.h"
 #include <hip/hip_complex.h>
 
 #ifdef __cplusplus
