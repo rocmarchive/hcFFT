@@ -186,7 +186,7 @@ void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGro
     return;
   }
 
-  size_t baseRadix[] = {13, 11, 7, 5, 3, 2}; // list only supported primes
+  size_t baseRadix[] = {7, 5, 3, 2}; // list only supported primes
   size_t baseRadixSize = sizeof(baseRadix) / sizeof(baseRadix[0]);
   size_t l = length;
   std::map<size_t, size_t> primeFactorsExpanded;
@@ -234,13 +234,13 @@ void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGro
   } else if (primeFactorsExpanded[7] == length) { // Length is pure power of 7
     workGroupSize = 49;
     numTrans = length >= 7 * workGroupSize ? 1 : (7 * workGroupSize) / length;
-  } else if (primeFactorsExpanded[11] == length) { // Length is pure power of 11
+  }/* else if (primeFactorsExpanded[11] == length) { // Length is pure power of 11
     workGroupSize = 121;
     numTrans = length >= 11 * workGroupSize ? 1 : (11 * workGroupSize) / length;
   } else if (primeFactorsExpanded[13] == length) { // Length is pure power of 13
     workGroupSize = 169;
     numTrans = length >= 13 * workGroupSize ? 1 : (13 * workGroupSize) / length;
-  } else {
+  }*/ else {
     size_t leastNumPerWI = 1; // least number of elements in one work item
     size_t maxWorkGroupSize = MAX_WGS; // maximum work group size desired
 
@@ -284,13 +284,14 @@ void DetermineSizes(const size_t &MAX_WGS, const size_t &length, size_t &workGro
     } else if (primeFactorsExpanded[3] * primeFactorsExpanded[5] * primeFactorsExpanded[7] == length) {
       leastNumPerWI = 105;
       maxWorkGroupSize = 24;
-    } else if (primeFactorsExpanded[2] * primeFactorsExpanded[11] == length) {
+    } 
+  /*else if (primeFactorsExpanded[2] * primeFactorsExpanded[11] == length) {
       leastNumPerWI = 22;
       maxWorkGroupSize = 128;
     } else if (primeFactorsExpanded[2] * primeFactorsExpanded[13] == length) {
       leastNumPerWI = 26;
       maxWorkGroupSize = 128;
-    } else {
+    }*/ else {
       leastNumPerWI = 210;
       maxWorkGroupSize = 12;
     }
@@ -2736,7 +2737,7 @@ class Kernel {
       numPasses = nPasses;
     } else {
       // Possible radices
-      size_t cRad[] = {13, 11, 10, 8, 7, 6, 5, 4, 3, 2, 1}; // Must be in descending order
+      size_t cRad[] = {10, 8, 7, 6, 5, 4, 3, 2, 1}; // Must be in descending order
       size_t cRadSize = (sizeof(cRad) / sizeof(cRad[0]));
 
       while(true) {
@@ -2976,7 +2977,7 @@ class Kernel {
       str += sfx;
       str += "\n";
     }
-
+/*
     if (length % 11 == 0) {
       str += "#define b11_0 0.9898214418809327";
       str += sfx;
@@ -3086,7 +3087,7 @@ class Kernel {
       str += "#define b13_24 0.0386329546443481";
       str += sfx;
       str += "\n";
-    }
+    }*/
 
     str += "\n";
     bool cReg = linearRegs ? true : false;
