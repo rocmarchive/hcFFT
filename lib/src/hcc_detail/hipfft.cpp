@@ -1,5 +1,7 @@
 #include <iostream>
 #include "hipfft.h"
+#include "hcfft.h"
+#include "hcc_detail/hip_fft.h"
 
 #ifdef __cplusplus
 extern "C" {
