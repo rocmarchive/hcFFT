@@ -1,15 +1,40 @@
-#include "generator.transpose.h"
+/*
+Copyright (c) 2015-2016 Advanced Micro Devices, Inc. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+#include "./generator.transpose.h"
 
 /*sqaure action*/
-template<>
-hcfftStatus FFTPlan::GetKernelGenKeyPvt<Transpose_SQUARE> (FFTKernelGenKeyParams & params) const {
+template <>
+hcfftStatus FFTPlan::GetKernelGenKeyPvt<Transpose_SQUARE>(
+    FFTKernelGenKeyParams& params) const {
   params.fft_precision = this->precision;
   params.fft_placeness = this->location;
   params.fft_inputLayout = this->ipLayout;
   params.fft_outputLayout = this->opLayout;
   params.fft_3StepTwiddle = false;
   params.fft_realSpecial = this->realSpecial;
-  params.transOutHorizontal = this->transOutHorizontal; // using the twiddle front flag to specify horizontal write
+  params.transOutHorizontal =
+      this->transOutHorizontal;  // using the twiddle front flag to specify
+                                 // horizontal write
   // we do this so as to reuse flags in FFTKernelGenKeyParams
   // and to avoid making a new one
   ARG_CHECK(this->inStride.size() == this->outStride.size());
@@ -21,7 +46,7 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Transpose_SQUARE> (FFTKernelGenKeyParams
     //
     ARG_CHECK(params.fft_inputLayout == params.fft_outputLayout)
 
-    for (size_t u = this->inStride.size(); u-- > 0; ) {
+    for (size_t u = this->inStride.size(); u-- > 0;) {
       ARG_CHECK(this->inStride[u] == this->outStride[u]);
     }
   }
@@ -46,16 +71,19 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Transpose_SQUARE> (FFTKernelGenKeyParams
   }
 
   //  Query the devices in this context for their local memory sizes
-  //  How we generate a kernel depends on the *minimum* LDS size for all devices.
+  //  How we generate a kernel depends on the *minimum* LDS size for all
+  //  devices.
   //
   const FFTEnvelope* pEnvelope = NULL;
   this->GetEnvelope(&pEnvelope);
   BUG_CHECK(NULL != pEnvelope);
-  // TODO:  Since I am going with a 2D workgroup size now, I need a better check than this 1D use
+  // TODO(Neelakandan):  Since I am going with a 2D workgroup size now,
+  // I need a better check than this 1D use
   // Check:  CL_DEVICE_MAX_WORK_GROUP_SIZE/CL_KERNEL_WORK_GROUP_SIZE
   // CL_DEVICE_MAX_WORK_ITEM_SIZES
-  params.fft_R = 1; // Dont think i'll use
-  params.fft_SIMD = pEnvelope->limit_WorkGroupSize; // Use devices maximum workgroup size
+  params.fft_R = 1;  // Dont think i'll use
+  params.fft_SIMD =
+      pEnvelope->limit_WorkGroupSize;  // Use devices maximum workgroup size
   params.limit_LocalMemSize = this->envelope.limit_LocalMemSize;
   params.transposeMiniBatchSize = this->transposeMiniBatchSize;
   params.transposeBatchSize = this->batchSize;
@@ -65,10 +93,11 @@ hcfftStatus FFTPlan::GetKernelGenKeyPvt<Transpose_SQUARE> (FFTKernelGenKeyParams
 static const size_t lwSize = 256;
 static const size_t reShapeFactor = 2;
 
-template<>
-hcfftStatus FFTPlan::GetWorkSizesPvt<Transpose_SQUARE> (std::vector<size_t> & globalWS, std::vector<size_t> & localWS) const {
+template <>
+hcfftStatus FFTPlan::GetWorkSizesPvt<Transpose_SQUARE>(
+    std::vector<size_t>& globalWS, std::vector<size_t>& localWS) const {
   FFTKernelGenKeyParams params;
-  this->GetKernelGenKeyPvt<Transpose_SQUARE> (params);
+  this->GetKernelGenKeyPvt<Transpose_SQUARE>(params);
   size_t wg_slice;
 
   if (params.fft_N[0] % (16 * reShapeFactor) == 0) {
@@ -77,7 +106,8 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Transpose_SQUARE> (std::vector<size_t> & gl
     wg_slice = (params.fft_N[0] / (16 * reShapeFactor)) + 1;
   }
 
-  size_t global_item_size = wg_slice * (wg_slice + 1) / 2 * 16 * 16 * this->batchSize;
+  size_t global_item_size =
+      wg_slice * (wg_slice + 1) / 2 * 16 * 16 * this->batchSize;
 
   for (int i = 2; i < params.fft_DataDim - 1; i++) {
     global_item_size *= params.fft_N[i];
@@ -90,38 +120,55 @@ hcfftStatus FFTPlan::GetWorkSizesPvt<Transpose_SQUARE> (std::vector<size_t> & gl
   return HCFFT_SUCCEEDS;
 }
 
-//  Feed this generator the FFTPlan, and it returns the generated program as a string
-template<>
-hcfftStatus FFTPlan::GenerateKernelPvt<Transpose_SQUARE>(const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const {
+//  Feed this generator the FFTPlan, and it returns the generated program as a
+//  string
+template <>
+hcfftStatus FFTPlan::GenerateKernelPvt<Transpose_SQUARE>(
+    const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count,
+    bool exist) const {
   FFTKernelGenKeyParams params;
-  this->GetKernelGenKeyPvt<Transpose_SQUARE> (params);
+  this->GetKernelGenKeyPvt<Transpose_SQUARE>(params);
 
-  if(!exist) {
+  if (!exist) {
     std::string programCode;
-    std::vector< size_t > gWorkSize;
-    std::vector< size_t > lWorkSize;
-    this->GetWorkSizesPvt<Transpose_SQUARE> (gWorkSize, lWorkSize);
-    hcfft_transpose_generator::genTransposeKernelBatched((void**)&twiddleslarge, acc, plHandle, params, programCode, lwSize, reShapeFactor, gWorkSize, lWorkSize, count);
+    std::vector<size_t> gWorkSize;
+    std::vector<size_t> lWorkSize;
+    this->GetWorkSizesPvt<Transpose_SQUARE>(gWorkSize, lWorkSize);
+    hcfft_transpose_generator::genTransposeKernelBatched(
+        (void**)&twiddleslarge, acc, plHandle, params, programCode, lwSize,
+        reShapeFactor, gWorkSize, lWorkSize, count);
     fftRepo.setProgramCode(Transpose_SQUARE, plHandle, params, programCode);
 
     // Note:  See genFunctionPrototype( )
     if (params.fft_3StepTwiddle) {
-      fftRepo.setProgramEntryPoints(Transpose_SQUARE, plHandle, params, "transpose_square_tw_fwd", "transpose_square_tw_back");
+      fftRepo.setProgramEntryPoints(Transpose_SQUARE, plHandle, params,
+                                    "transpose_square_tw_fwd",
+                                    "transpose_square_tw_back");
     } else {
-      fftRepo.setProgramEntryPoints(Transpose_SQUARE, plHandle, params, "transpose_square", "transpose_square");
+      fftRepo.setProgramEntryPoints(Transpose_SQUARE, plHandle, params,
+                                    "transpose_square", "transpose_square");
     }
   } else {
-    //  it is a better idea to do twiddle in swap kernel if we will have a swap kernel.
+    //  it is a better idea to do twiddle in swap kernel if we will have a swap
+    //  kernel.
     //  for pure square transpose, twiddle will be done in transpose kernel
-    bool twiddleTransposeKernel = params.fft_3StepTwiddle && (params.transposeMiniBatchSize == 1);//when transposeMiniBatchSize == 1 it is guaranteed to be a sqaure matrix transpose
+    bool twiddleTransposeKernel =
+        params.fft_3StepTwiddle &&
+        (params.transposeMiniBatchSize == 1);  // when transposeMiniBatchSize ==
+                                               // 1 it is guaranteed to be a
+                                               // sqaure matrix transpose
     //  If twiddle computation has been requested, generate the lookup function
 
     if (twiddleTransposeKernel) {
       if (params.fft_precision == HCFFT_SINGLE) {
-        StockhamGenerator::TwiddleTableLarge<hc::short_vector::float_2, StockhamGenerator::P_SINGLE> twLarge(params.fft_N[0] * params.fft_N[1]);
+        StockhamGenerator::TwiddleTableLarge<hc::short_vector::float_2,
+                                             StockhamGenerator::P_SINGLE>
+            twLarge(params.fft_N[0] * params.fft_N[1]);
         twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
       } else {
-        StockhamGenerator::TwiddleTableLarge<hc::short_vector::double_2, StockhamGenerator::P_DOUBLE> twLarge(params.fft_N[0] * params.fft_N[1]);
+        StockhamGenerator::TwiddleTableLarge<hc::short_vector::double_2,
+                                             StockhamGenerator::P_DOUBLE>
+            twLarge(params.fft_N[0] * params.fft_N[1]);
         twLarge.TwiddleLargeAV((void**)&twiddleslarge, acc);
       }
     }

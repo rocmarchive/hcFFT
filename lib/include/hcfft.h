@@ -1,15 +1,37 @@
-#ifndef _HC_FFT_H_
-#define _HC_FFT_H_
+/*
+Copyright (c) 2015-2016 Advanced Micro Devices, Inc. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+#ifndef LIB_INCLUDE_HCFFT_H_
+#define LIB_INCLUDE_HCFFT_H_
 
 #ifdef __cplusplus
 extern "C" {
-#endif //(__cplusplus)
+#endif  // (__cplusplus)
 
 namespace hc {
-  class accelerator_view;
-  class accelerator;
-  class am_alloc;
-  class am_free;
+class accelerator_view;
+class accelerator;
+class am_alloc;
+class am_free;
 };
 
 struct float_2_ {
@@ -22,7 +44,6 @@ struct double_2_ {
   double y;
 };
 
-
 typedef float hcfftReal;
 typedef float_2_ hcfftComplex;
 typedef double hcfftDoubleReal;
@@ -34,7 +55,9 @@ typedef double_2_ hcfftDoubleComplex;
 
 typedef unsigned long hcfftHandle;
 
-/* The hcFFT library supports complex- and real-data transforms. The hcfftType data type is an enumeration of the types of transform data supported by hcFFT. */
+/* The hcFFT library supports complex- and real-data transforms. The hcfftType
+ * data type is an enumeration of the types of transform data supported by
+ * hcFFT. */
 
 typedef enum hcfftType_t {
   HCFFT_R2C = 0x2a,  // Real to complex (interleaved)
@@ -46,20 +69,22 @@ typedef enum hcfftType_t {
 } hcfftType;
 
 typedef enum hcfftResult_t {
-  HCFFT_SUCCESS        = 0,  //  The hcFFT operation was successful
-  HCFFT_INVALID_PLAN   = 1,  //  hcFFT was passed an invalid plan handle
-  HCFFT_ALLOC_FAILED   = 2,  //  hcFFT failed to allocate GPU or CPU memory
-  HCFFT_INVALID_TYPE   = 3,  //  No longer used
-  HCFFT_INVALID_VALUE  = 4,  //  User specified an invalid pointer or parameter
+  HCFFT_SUCCESS = 0,         //  The hcFFT operation was successful
+  HCFFT_INVALID_PLAN = 1,    //  hcFFT was passed an invalid plan handle
+  HCFFT_ALLOC_FAILED = 2,    //  hcFFT failed to allocate GPU or CPU memory
+  HCFFT_INVALID_TYPE = 3,    //  No longer used
+  HCFFT_INVALID_VALUE = 4,   //  User specified an invalid pointer or parameter
   HCFFT_INTERNAL_ERROR = 5,  //  Driver or internal hcFFT library error
-  HCFFT_EXEC_FAILED    = 6,  //  Failed to execute an FFT on the GPU
-  HCFFT_SETUP_FAILED   = 7,  //  The hcFFT library failed to initialize
-  HCFFT_INVALID_SIZE   = 8,  //  User specified an invalid transform size
+  HCFFT_EXEC_FAILED = 6,     //  Failed to execute an FFT on the GPU
+  HCFFT_SETUP_FAILED = 7,    //  The hcFFT library failed to initialize
+  HCFFT_INVALID_SIZE = 8,    //  User specified an invalid transform size
   HCFFT_UNALIGNED_DATA = 9,  //  No longer used
-  HCFFT_INCOMPLETE_PARAMETER_LIST = 10, //  Missing parameters in call
-  HCFFT_INVALID_DEVICE = 11, //  Execution of a plan was on different GPU than plan creation
-  HCFFT_PARSE_ERROR    = 12, //  Internal plan database error
-  HCFFT_NO_WORKSPACE   = 13  //  No workspace has been provided prior to plan execution
+  HCFFT_INCOMPLETE_PARAMETER_LIST = 10,  //  Missing parameters in call
+  HCFFT_INVALID_DEVICE = 11,  //  Execution of a plan was on different
+  //                              GPU than plan creation
+  HCFFT_PARSE_ERROR = 12,  //  Internal plan database error
+  HCFFT_NO_WORKSPACE = 13  //  No workspace has been provided
+  //                           prior to plan execution
 } hcfftResult;
 
 /* Function hcfftCreate()
@@ -70,34 +95,34 @@ hcfftResult hcfftCreate(hcfftHandle* plan);
 /* Function hcfftSetStream()
 Associate FFT Plan with an accelerator_view
 */
-hcfftResult hcfftSetStream(hcfftHandle*&plan, hc::accelerator_view &acc_view);
+hcfftResult hcfftSetStream(hcfftHandle*& plan, hc::accelerator_view& acc_view);
 
 /*hcFFT Basic Plans*/
 
 /******************************************************************************************************************
  * <i>  Function hcfftPlan1d()
    Description:
-       Creates a 1D FFT plan configuration for a specified signal size and data type. The batch input parameter tells
-   hcFFT how many 1D transforms to configure.
+       Creates a 1D FFT plan configuration for a specified signal size and data
+   type. The batch input parameter tells hcFFT how many 1D transforms to configure.
 
    Input:
    ----------------------------------------------------------------------------------------------
-   #1 plan  Pointer to a hcfftHandle object
-   #2 nx  The transform size (e.g. 256 for a 256-point FFT)
-   #3 type  The transform data type (e.g., HCFFT_C2C for single precision complex to complex)
+   #1 plan    Pointer to a hcfftHandle object
+   #2 nx      The transform size (e.g. 256 for a 256-point FFT)
+   #3 type    The transform data type (e.g., HCFFT_C2C for single precision complex to complex)
 
    Output:
    ----------------------------------------------------------------------------------------------
-   #1 plan  Contains a hcFFT 1D plan handle value
+   #1 plan    Contains a hcFFT 1D plan handle value
 
    Return Values:
    ----------------------------------------------------------------------------------------------
-   HCFFT_SUCCESS  hcFFT successfully created the FFT plan.
-   HCFFT_ALLOC_FAILED   The allocation of GPU resources for the plan failed.
-   HCFFT_INVALID_VALUE  One or more invalid parameters were passed to the API.
-   HCFFT_INTERNAL_ERROR An internal driver error was detected.
-   HCFFT_SETUP_FAILED   The hcFFT library failed to initialize.
-   HCFFT_INVALID_SIZE   The nx or batch parameter is not a supported size.
+   HCFFT_SUCCESS          hcFFT successfully created the FFT plan.
+   HCFFT_ALLOC_FAILED     The allocation of GPU resources for the plan failed.
+   HCFFT_INVALID_VALUE    One or more invalid parameters were passed to the API.
+   HCFFT_INTERNAL_ERROR   An internal driver error was detected.
+   HCFFT_SETUP_FAILED     The hcFFT library failed to initialize.
+   HCFFT_INVALID_SIZE     The nx or batch parameter is not a supported size.
  ***********************************************************************************************************************
  */
 
@@ -106,27 +131,30 @@ hcfftResult hcfftPlan1d(hcfftHandle* plan, int nx, hcfftType type);
 /*
  * <ii> Function hcfftPlan2d()
    Description:
-      Creates a 2D FFT plan configuration according to specified signal sizes and data type.
+      Creates a 2D FFT plan configuration according to specified signal sizes
+   and data type.
 
    Input:
    ----------------------------------------------------------------------------------------------
-   #1 plan  Pointer to a hcfftHandle object
-   #2 nx  The transform size in the x dimension (number of rows)
-   #3 ny  The transform size in the y dimension (number of columns)
-   #4 type  The transform data type (e.g., HCFFT_C2R for single precision complex to real)
+   #1 plan   Pointer to a hcfftHandle object
+   #2 nx     The transform size in the x dimension (number of rows)
+   #3 ny     The transform size in the y dimension (number of columns)
+   #4 type   The transform data type (e.g., HCFFT_C2R for single precision
+             complex to real)
 
    Output:
    ----------------------------------------------------------------------------------------------
-   #1 plan  Contains a hcFFT 2D plan handle value
+   #1 plan   Contains a hcFFT 2D plan handle value
 
    Return Values:
    ----------------------------------------------------------------------------------------------
-   HCFFT_SUCCESS  hcFFT successfully created the FFT plan.
-   HCFFT_ALLOC_FAILED   The allocation of GPU resources for the plan failed.
-   HCFFT_INVALID_VALUE  One or more invalid parameters were passed to the API.
-   HCFFT_INTERNAL_ERROR An internal driver error was detected.
-   HCFFT_SETUP_FAILED   The hcFFT library failed to initialize.
-   HCFFT_INVALID_SIZE   Either or both of the nx or ny parameters is not a supported sizek.
+   HCFFT_SUCCESS          hcFFT successfully created the FFT plan.
+   HCFFT_ALLOC_FAILED     The allocation of GPU resources for the plan failed.
+   HCFFT_INVALID_VALUE    One or more invalid parameters were passed to the API.
+   HCFFT_INTERNAL_ERROR   An internal driver error was detected.
+   HCFFT_SETUP_FAILED     The hcFFT library failed to initialize.
+   HCFFT_INVALID_SIZE     Either or both of the nx or ny parameters is not a
+                          supported size.
 */
 
 hcfftResult hcfftPlan2d(hcfftHandle* plan, int nx, int ny, hcfftType type);
@@ -134,38 +162,42 @@ hcfftResult hcfftPlan2d(hcfftHandle* plan, int nx, int ny, hcfftType type);
 /*
  * <iii> Function hcfftPlan3d()
    Description:
-      Creates a 3D FFT plan configuration according to specified signal sizes and data type.
-   This function is the same as hcfftPlan2d() except that it takes a third size parameter nz.
+      Creates a 3D FFT plan configuration according to specified signal sizes
+   and data type. This function is the same as hcfftPlan2d() except that it
+   takes a third size parameter nz.
 
    Input:
    ----------------------------------------------------------------------------------------------
-   #1 plan  Pointer to a hcfftHandle object
-   #2 nx  The transform size in the x dimension
-   #3 ny  The transform size in the y dimension
-   #4 nz  The transform size in the z dimension
-   #5 type  The transform data type (e.g., HCFFT_R2C for single precision real to complex)
+   #1 plan    Pointer to a hcfftHandle object
+   #2 nx      The transform size in the x dimension
+   #3 ny      The transform size in the y dimension
+   #4 nz      The transform size in the z dimension
+   #5 type    The transform data type (e.g., HCFFT_R2C for single precision real
+              to complex)
 
    Output:
    ----------------------------------------------------------------------------------------------
-   #1 plan  Contains a hcFFT 3D plan handle value
+   #1 plan    Contains a hcFFT 3D plan handle value
 
    Return Values:
    ----------------------------------------------------------------------------------------------
-   HCFFT_SUCCESS  hcFFT successfully created the FFT plan.
-   HCFFT_ALLOC_FAILED   The allocation of GPU resources for the plan failed.
-   HCFFT_INVALID_VALUE  One or more invalid parameters were passed to the API.
-   HCFFT_INTERNAL_ERROR   An internal driver error was detected.
-   HCFFT_SETUP_FAILED   The hcFFT library failed to initialize.
-   HCFFT_INVALID_SIZE   One or more of the nx, ny, or nz parameters is not a supported size.
+   HCFFT_SUCCESS         hcFFT successfully created the FFT plan.
+   HCFFT_ALLOC_FAILED    The allocation of GPU resources for the plan failed.
+   HCFFT_INVALID_VALUE   One or more invalid parameters were passed to the API.
+   HCFFT_INTERNAL_ERROR  An internal driver error was detected.
+   HCFFT_SETUP_FAILED    The hcFFT library failed to initialize.
+   HCFFT_INVALID_SIZE    One or more of the nx, ny, or nz parameters is not a
+                         supported size.
 */
 
-hcfftResult hcfftPlan3d(hcfftHandle* plan, int nx, int ny, int nz, hcfftType type);
-
+hcfftResult hcfftPlan3d(hcfftHandle* plan, int nx, int ny, int nz,
+                        hcfftType type);
 
 /* Function hcfftDestroy()
    Description:
-      Frees all GPU resources associated with a hcFFT plan and destroys the internal plan data structure.
-   This function should be called once a plan is no longer needed, to avoid wasting GPU memory.
+      Frees all GPU resources associated with a hcFFT plan and destroys the
+   internal plan data structure. This function should be called once a plan
+   is no longer needed, to avoid wasting GPU memory.
 
    Input:
    -----------------------------------------------------------------------------------------------------
@@ -173,7 +205,7 @@ hcfftResult hcfftPlan3d(hcfftHandle* plan, int nx, int ny, int nz, hcfftType typ
 
    Return Values:
    -----------------------------------------------------------------------------------------------------
-   HCFFT_SUCCESS  hcFFT successfully destroyed the FFT plan.
+   HCFFT_SUCCESS        hcFFT successfully destroyed the FFT plan.
    HCFFT_INVALID_PLAN   The plan parameter is not a valid handle.
 */
 
@@ -184,50 +216,56 @@ hcfftResult hcfftDestroy(hcfftHandle plan);
   Functions hcfftExecC2C() and hcfftExecZ2Z()
 
   Description:
-       hcfftExecC2C() (hcfftExecZ2Z()) executes a single-precision (double-precision) complex-to-complex transform
-  plan in the transform direction as specified by direction parameter. hcFFT uses the GPU memory pointed to by the
-  idata parameter as input data. This function stores the Fourier coefficients in the odata array.
-  If idata and odata are the same, this method does an in-place transform.
+       hcfftExecC2C() (hcfftExecZ2Z()) executes a single-precision
+  (double-precision) complex-to-complex transform plan in the transform
+  direction as specified by direction parameter. hcFFT uses the GPU
+  memory pointed to by the idata parameter as input data. This function
+  stores the Fourier coefficients in the odata array. If idata and odata
+  are the same, this method does an in-place transform.
 
   Input:
   ----------------------------------------------------------------------------------------------------------
-  plan  hcfftHandle returned by hcfftCreate
-  idata   Pointer to the complex input data (in GPU memory) to transform
-  odata   Pointer to the complex output data (in GPU memory)
-  direction   The transform direction: HCFFT_FORWARD or HCFFT_INVERSE
+  plan       hcfftHandle returned by hcfftCreate
+  idata      Pointer to the complex input data (in GPU memory) to transform
+  odata      Pointer to the complex output data (in GPU memory)
+  direction  The transform direction: HCFFT_FORWARD or HCFFT_INVERSE
 
   Output:
   -----------------------------------------------------------------------------------------------------------
-  odata   Contains the complex Fourier coefficients
+  odata      Contains the complex Fourier coefficients
 
   Return Values:
   ------------------------------------------------------------------------------------------------------------
-  HCFFT_SUCCESS   hcFFT successfully executed the FFT plan.
-  HCFFT_INVALID_PLAN  The plan parameter is not a valid handle.
-  HCFFT_INVALID_VALUE   At least one of the parameters idata, odata, and direction is not valid.
+  HCFFT_SUCCESS         hcFFT successfully executed the FFT plan.
+  HCFFT_INVALID_PLAN    The plan parameter is not a valid handle.
+  HCFFT_INVALID_VALUE   At least one of the parameters idata, odata, and
+                        direction is not valid.
   HCFFT_INTERNAL_ERROR  An internal driver error was detected.
-  HCFFT_EXEC_FAILED   hcFFT failed to execute the transform on the GPU.
-  HCFFT_SETUP_FAILED  The hcFFT library failed to initialize. */
+  HCFFT_EXEC_FAILED     hcFFT failed to execute the transform on the GPU.
+  HCFFT_SETUP_FAILED    The hcFFT library failed to initialize. */
 
+hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex* idata,
+                         hcfftComplex* odata, int direction);
 
-hcfftResult hcfftExecC2C(hcfftHandle plan, hcfftComplex* idata, hcfftComplex* odata, int direction);
-
-hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubleComplex* odata, int direction);
+hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex* idata,
+                         hcfftDoubleComplex* odata, int direction);
 
 /*
   Functions hcfftExecR2C() and hcfftExecD2Z()
 
   Description:
-       hcfftExecR2C() (hcfftExecD2Z()) executes a single-precision (double-precision) real-to-complex, implicitly forward,
-  hcFFT transform plan. hcFFT uses as input data the GPU memory pointed to by the idata parameter. This function stores
-  the nonredundant Fourier coefficients in the odata array. Pointers to idata and odata are both required to be aligned
-  to hcfftComplex data type in single-precision transforms and hcfftDoubleComplex data type in double-precision transforms.
-  If idata and odata are the same, this method does an in-place transform. Note the data layout differences between in-place
-  and out-of-place transforms as described in Parameter hcfftType.
+       hcfftExecR2C() (hcfftExecD2Z()) executes a single-precision (double-precision)
+  real-to-complex, implicitly forward, hcFFT transform plan. hcFFT uses as input data
+  the GPU memory pointed to by the idata parameter. This function stores the nonredundant
+  Fourier coefficients in the odata array. Pointers to idata and odata are both required
+  to be aligned to hcfftComplex data type in single-precision transforms and
+  hcfftDoubleComplex data type in double-precision transforms. If idata and odata are the
+  same, this method does an in-place transform. Note the data layout differences between
+  in-place and out-of-place transforms as described in Parameter hcfftType.
 
   Input:
   -----------------------------------------------------------------------------------------------------------------------
-  plan  hcfftHandle returned by hcfftCreate
+  plan    hcfftHandle returned by hcfftCreate
   idata   Pointer to the real input data (in GPU memory) to transform
   odata   Pointer to the complex output data (in GPU memory)
 
@@ -237,31 +275,36 @@ hcfftResult hcfftExecZ2Z(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubl
 
   Return Values:
   ------------------------------------------------------------------------------------------------------------------------
-  HCFFT_SUCCESS   hcFFT successfully executed the FFT plan.
-  HCFFT_INVALID_PLAN  The plan parameter is not a valid handle.
-  HCFFT_INVALID_VALUE   At least one of the parameters idata and odata is not valid.
-  HCFFT_INTERNAL_ERROR  An internal driver error was detected.
-  HCFFT_EXEC_FAILED   hcFFT failed to execute the transform on the GPU.
-  HCFFT_SETUP_FAILED  The hcFFT library failed to initialize.
+  HCFFT_SUCCESS          hcFFT successfully executed the FFT plan.
+  HCFFT_INVALID_PLAN     The plan parameter is not a valid handle.
+  HCFFT_INVALID_VALUE    At least one of the parameters idata and odata is not
+                         valid.
+  HCFFT_INTERNAL_ERROR   An internal driver error was detected.
+  HCFFT_EXEC_FAILED      hcFFT failed to execute the transform on the GPU.
+  HCFFT_SETUP_FAILED     The hcFFT library failed to initialize.
 */
 
-hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal* idata, hcfftComplex* odata);
+hcfftResult hcfftExecR2C(hcfftHandle plan, hcfftReal* idata,
+                         hcfftComplex* odata);
 
-hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal* idata, hcfftDoubleComplex* odata);
+hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal* idata,
+                         hcfftDoubleComplex* odata);
 
 /* Functions hcfftExecC2R() and hcfftExecZ2D()
 
   Description:
-     hcfftExecC2R() (hcfftExecZ2D()) executes a single-precision (double-precision) complex-to-real,
-  implicitly inverse, hcFFT transform plan. hcFFT uses as input data the GPU memory pointed to by the
-  idata parameter. The input array holds only the nonredundant complex Fourier coefficients. This function
-  stores the real output values in the odata array. and pointers are both required to be aligned to hcfftComplex
-  data type in single-precision transforms and hcfftDoubleComplex type in double-precision transforms. If idata
-  and odata are the same, this method does an in-place transform.
+     hcfftExecC2R() (hcfftExecZ2D()) executes a single-precision (double-precision)
+  complex-to-real, implicitly inverse, hcFFT transform plan. hcFFT uses as input
+  data the GPU memory pointed to by the idata parameter. The input array holds
+  only the nonredundant complex Fourier coefficients. This function stores the real
+  output values in the odata array. and pointers are both required to be aligned
+  to hcfftComplex data type in single-precision transforms and hcfftDoubleComplex
+  type in double-precision transforms. If idata and odata are the same, this
+  method does an in-place transform.
 
   Input:
   ------------------------------------------------------------------------------------------------------------------
-  plan  hcfftHandle returned by hcfftCreate
+  plan    hcfftHandle returned by hcfftCreate
   idata   Pointer to the complex input data (in GPU memory) to transform
   odata   Pointer to the real output data (in GPU memory)
 
@@ -271,20 +314,23 @@ hcfftResult hcfftExecD2Z(hcfftHandle plan, hcfftDoubleReal* idata, hcfftDoubleCo
 
   Return Values:
   -------------------------------------------------------------------------------------------------------------------
-  HCFFT_SUCCESS   hcFFT successfully executed the FFT plan.
-  HCFFT_INVALID_PLAN  The plan parameter is not a valid handle.
-  HCFFT_INVALID_VALUE   At least one of the parameters idata and odata is not valid.
-  HCFFT_INTERNAL_ERROR  An internal driver error was detected.
-  HCFFT_EXEC_FAILED   hcFFT failed to execute the transform on the GPU.
-  HCFFT_SETUP_FAILED  The hcFFT library failed to initialize.
+  HCFFT_SUCCESS          hcFFT successfully executed the FFT plan.
+  HCFFT_INVALID_PLAN     The plan parameter is not a valid handle.
+  HCFFT_INVALID_VALUE    At least one of the parameters idata and odata is not
+                         valid.
+  HCFFT_INTERNAL_ERROR   An internal driver error was detected.
+  HCFFT_EXEC_FAILED      hcFFT failed to execute the transform on the GPU.
+  HCFFT_SETUP_FAILED     The hcFFT library failed to initialize.
 */
 
-hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex* idata, hcfftReal* odata);
+hcfftResult hcfftExecC2R(hcfftHandle plan, hcfftComplex* idata,
+                         hcfftReal* odata);
 
-hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex* idata, hcfftDoubleReal* odata);
+hcfftResult hcfftExecZ2D(hcfftHandle plan, hcfftDoubleComplex* idata,
+                         hcfftDoubleReal* odata);
 
 #ifdef __cplusplus
 }
-#endif //(__cplusplus)
+#endif  // (__cplusplus)
 
-#endif
+#endif  // LIB_INCLUDE_HCFFT_H_

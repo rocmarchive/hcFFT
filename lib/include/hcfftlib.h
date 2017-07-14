@@ -1,16 +1,39 @@
-#ifndef _HC_FFT_LIB_H_
-#define _HC_FFT_LIB_H_
+/*
+Copyright (c) 2015-2016 Advanced Micro Devices, Inc. All rights reserved.
 
-#include <iostream>
-#include <stdio.h>
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+#ifndef LIB_INCLUDE_HCFFTLIB_H_
+#define LIB_INCLUDE_HCFFTLIB_H_
+
+#include <hc_am.hpp>
 #include <complex>
-#include <unistd.h>
-#include "lock.h"
 #include <dirent.h>
 #include <hc.hpp>
 #include <hc_short_vector.hpp>
-#include "hc_am.hpp"
+#include <iostream>
+#include <stdio.h>
 #include <sys/stat.h>
+#include <unistd.h>
+#include <utility>
+#include "./lock.h"
 
 #define HCFFT_CB_NY 0
 #define HCFFT_CB_NZ 1
@@ -29,19 +52,27 @@
 #define HCFFT_CB_SIZE 32
 #define THREADS 16
 
-#define BUG_CHECK(_proposition) \
-  { bool btmp = (_proposition); assert (btmp); if (! btmp)  return HCFFT_ERROR; }
+#define BUG_CHECK(_proposition)    \
+  {                                \
+    bool btmp = (_proposition);    \
+    assert(btmp);                  \
+    if (!btmp) return HCFFT_ERROR; \
+  }
 
-#define ARG_CHECK(_proposition) \
-{ bool btmp = (_proposition); assert (btmp); if (! btmp)  return HCFFT_ERROR; }
+#define ARG_CHECK(_proposition)    \
+  {                                \
+    bool btmp = (_proposition);    \
+    assert(btmp);                  \
+    if (!btmp) return HCFFT_ERROR; \
+  }
 
 enum BlockComputeType {
   BCT_C2R,  // Column to row
   BCT_R2C,  // Row to column
-  BCT_C2C         // Column to Column
+  BCT_C2C   // Column to Column
 };
 
-//NonSquareKernelType
+// NonSquareKernelType
 enum NonSquareTransposeKernelType {
   NON_SQUARE_TRANS_PARENT,
   NON_SQUARE_TRANS_TRANSPOSE_BATCHED_LEADING,
@@ -50,23 +81,29 @@ enum NonSquareTransposeKernelType {
 };
 
 /*
-There are three ways of conducting inplace transpose with 1:2 (or 2:1) dimension ratio.
+There are three ways of conducting inplace transpose with 1:2 (or 2:1) dimension
+ratio.
 A. first conduct line swapping kernels for the whole non square matrix
-then conduct batched square transpose along column dim (a 'real' batched transpose)
-B. first conduct batched square transpose along column dim (a 'real' batched transpose)
-then conduct line swapping kernels for the whole non square matrix (for 2:1 case)
-C. first conduct batched square transpose along leading dim (row dim)
-then conduct line swapping kernels for the whole non square matrix
-Note that the twiddle computation has to go at the begining of the first kernel or the end of the second kernel
+   then conduct batched square transpose along column dim (a 'real' batched
+   transpose)
+B. first conduct batched square transpose along column dim (a 'real' batched
+   transpose) then conduct line swapping kernels for the whole non square
+   matrix (for 2:1 case)
+C. first conduct batched square transpose along leading dim (row dim) then conduct
+   line swapping kernels for the whole non square matrix Note that the twiddle
+   computation has to go at the begining of the first kernel or the end of the
+   second kernel
 
-if leading dimension is bigger, it makes more sense (faster) to swap line first and then conduct batched square transpose
-if leading dimension is smaller, it makes more sense (faster) to conduct batched transpose and then swap lines.
+- if leading dimension is bigger, it makes more sense (faster) to swap line first
+  and then conduct batched square transpose
+- if leading dimension is smaller, it makes more sense (faster) to conduct batched
+  transpose and then swap lines.
 */
 enum NON_SQUARE_KERNEL_ORDER {
   NOT_A_TRANSPOSE,
-  SWAP_AND_TRANSPOSE, // A.
-  TRANSPOSE_AND_SWAP, // B.
-  TRANSPOSE_LEADING_AND_SWAP, // C.
+  SWAP_AND_TRANSPOSE,          // A.
+  TRANSPOSE_AND_SWAP,          // B.
+  TRANSPOSE_LEADING_AND_SWAP,  // C.
 };
 
 typedef enum hcfftLibType_ {
@@ -78,22 +115,26 @@ typedef enum hcfftLibType_ {
 typedef size_t hcfftPlanHandle;
 
 typedef enum hcfftPrecision_ {
-  HCFFT_SINGLE  = 1,
+  HCFFT_SINGLE = 1,
   HCFFT_DOUBLE,
 } hcfftPrecision;
 
-typedef enum hcfftDim_ {
-  HCFFT_1D = 1,
-  HCFFT_2D,
-  HCFFT_3D
-} hcfftDim;
+typedef enum hcfftDim_ { HCFFT_1D = 1, HCFFT_2D, HCFFT_3D } hcfftDim;
 
 typedef enum hcfftLayout_ {
-  HCFFT_COMPLEX_INTERLEAVED = 1,  /*!< An array of complex numbers, with real and imaginary components together (default). */
-  HCFFT_COMPLEX_PLANAR,     /*!< Arrays of real componets and arrays of imaginary components that have been seperated out. */
-  HCFFT_HERMITIAN_INTERLEAVED,    /*!< Compressed form of complex numbers; complex-conjugates not stored, real and imaginary components in same array. */
-  HCFFT_HERMITIAN_PLANAR,   /*!< Compressed form of complex numbers; complex-conjugates not stored, real and imaginary components in separate arrays. */
-  HCFFT_REAL,       /*!< An array of real numbers, with no corresponding imaginary components. */
+  HCFFT_COMPLEX_INTERLEAVED = 1,  // An array of complex numbers, with real and
+  //                                 imaginary components together (default).
+  HCFFT_COMPLEX_PLANAR,          // Arrays of real componets and arrays of
+  //                                imaginary components that have been
+  //                                seperated out.
+  HCFFT_HERMITIAN_INTERLEAVED,   // Compressed form of complex numbers;
+  //                                complex-conjugates not stored, real and
+  //                                imaginary components in same array.
+  HCFFT_HERMITIAN_PLANAR,        // Compressed form of complex numbers;
+  //                                complex-conjugates not stored, real and
+  //                                imaginary components in separate arrays.
+  HCFFT_REAL,                   //  An array of real numbers, with no
+  //                                corresponding imaginary components.
 } hcfftIpLayout, hcfftOpLayout;
 
 typedef enum hcfftDirection_ {
@@ -126,24 +167,22 @@ typedef enum hcfftGenerators_ {
   Copy,
 } hcfftGenerators;
 
-static inline bool IsPo2 (size_t u) {
-  return (u != 0) &&  (0 == (u & (u - 1)));
+static inline bool IsPo2(size_t u) { return (u != 0) && (0 == (u & (u - 1))); }
+
+inline void BSF(unsigned long* index, size_t& mask) {
+  *index = __builtin_ctz(mask);
 }
 
-inline void BSF( unsigned long* index, size_t& mask ) {
-  *index = __builtin_ctz( mask );
-}
-
-template<typename T>
-static inline T DivRoundingUp (T a, T b) {
+template <typename T>
+static inline T DivRoundingUp(T a, T b) {
   return (a + (b - 1)) / b;
 }
 
-static inline size_t BitScanF (size_t n) {
-  assert (n != 0);
+static inline size_t BitScanF(size_t n) {
+  assert(n != 0);
   unsigned long tmp = 0;
-  BSF (& tmp, n);
-  return (size_t) tmp;
+  BSF(&tmp, n);
+  return (size_t)tmp;
 }
 
 static bool Is1DPossible(size_t length, size_t large1DThreshold) {
@@ -151,17 +190,19 @@ static bool Is1DPossible(size_t length, size_t large1DThreshold) {
     return false;
   }
 
-  if ( (length % 7 == 0) && (length % 5 == 0) && (length % 3 == 0) ) {
+  if ((length % 7 == 0) && (length % 5 == 0) && (length % 3 == 0)) {
     return false;
   }
 
   // radix 11 & 2 is ok, anything else we cannot do in 1 kernel
-  if ( (length % 11 == 0) && ((length % 13 == 0) || (length % 7 == 0) || (length % 5 == 0) || (length % 3 == 0)) ) {
+  if ((length % 11 == 0) && ((length % 13 == 0) || (length % 7 == 0) ||
+                             (length % 5 == 0) || (length % 3 == 0))) {
     return false;
   }
 
   // radix 13 & 2 is ok, anything else we cannot do in 1 kernel
-  if ( (length % 13 == 0) && ((length % 11 == 0) || (length % 7 == 0) || (length % 5 == 0) || (length % 3 == 0)) ) {
+  if ((length % 13 == 0) && ((length % 11 == 0) || (length % 7 == 0) ||
+                             (length % 5 == 0) || (length % 3 == 0))) {
     return false;
   }
 
@@ -170,10 +211,10 @@ static bool Is1DPossible(size_t length, size_t large1DThreshold) {
 
 //  Find the smallest power of 2 that is >= n; return its power of 2 factor
 //  e.g., CeilPo2 (7) returns 3 : (2^3 >= 7)
-inline size_t CeilPo2 (size_t n) {
+inline size_t CeilPo2(size_t n) {
   size_t v = 1, t = 0;
 
-  while(v < n) {
+  while (v < n) {
     v <<= 1;
     t++;
   }
@@ -181,11 +222,10 @@ inline size_t CeilPo2 (size_t n) {
   return t;
 }
 
-inline size_t FloorPo2 (size_t n)
+inline size_t FloorPo2(size_t n) {
 //  return the largest power of 2 that is <= n.
 //  e.g., FloorPo2 (7) returns 4.
 // *** TODO use x86 BSR instruction, using compiler intrinsics.
-{
   size_t tmp;
 
   while (0 != (tmp = n & (n - 1))) {
@@ -215,7 +255,7 @@ inline std::string hcHeader() {
 }
 
 static size_t width(hcfftPrecision precision) {
-  switch(precision) {
+  switch (precision) {
     case HCFFT_SINGLE:
       return 1;
 
@@ -235,13 +275,13 @@ inline std::string getHomeDir() {
 }
 
 namespace ARBITRARY {
-// TODO:  These arbitrary parameters should be tuned for the type of GPU
-//  being used.  These values are probably OK for Radeon 58xx and 68xx.
+// TODO(Neelakandan):  These arbitrary parameters should be tuned for the type
+// of GPU being used.  These values are probably OK for Radeon 58xx and 68xx.
 enum {
-  MAX_DIMS  = 3,
+  MAX_DIMS = 3,
   //  The # of dimensions is arbitrary, but limited by the OpenCL implementation
-  //  usually to 3 dimensions.
-  //  The kernel generator also assumes a limit on the # of dimensions.
+  //  usually to 3 dimensions. The kernel generator also assumes a limit on
+  //  the # of dimensions.
 
   SIMD_WIDTH = 64,
   //  Workgroup size.  This is the # of work items that share
@@ -250,19 +290,18 @@ enum {
 
   LDS_BANK_BITS = 5,
   LDS_BANK_SIZE = (1 << LDS_BANK_BITS),
-  LDS_PADDING   = false,//true,
+  LDS_PADDING = false,  // true,
   //  On AMD hardware, the low-order bits of the local_id enumerate
   //  the work items that access LDS in parallel.  Ideally, we will
   //  pad our LDS arrays so that these work items access different banks
-  //  of the LDS.
-  //  2 ** LDS_BANK_BITS is the number of LDS banks.
+  //  of the LDS. 2 ** LDS_BANK_BITS is the number of LDS banks.
   //  If LDS_PADDING is non-zero, the kernel generator should pad the
   //  LDS arrays to reduce or eliminate bank conflicts.
 
-  LDS_FRACTION_IDEAL = 6,    // i.e., 1/6th
-  LDS_FRACTION_MAX   = 4,    // i.e., 1/4
-  //  For best performance, each workgroup should use 1/IDEAL'th the amount of LDS
-  //  revealed by clGetDeviceInfo (.. CL_DEVICE_LOCAL_MEM_SIZE, ...)
+  LDS_FRACTION_IDEAL = 6,  // i.e., 1/6th
+  LDS_FRACTION_MAX = 4,    // i.e., 1/4
+  //  For best performance, each workgroup should use 1/IDEAL'th the amount of
+  //  LDS revealed by clGetDeviceInfo (.. CL_DEVICE_LOCAL_MEM_SIZE, ...)
   //  However, we can use up to 1/MAX'th of LDS per workgroup when necessary to
   //  perform the FFT in a single pass instead of multiple passes.
   //  This tuning parameter is a good value for Evergreen gpus,
@@ -270,66 +309,54 @@ enum {
 
   LDS_COMPLEX = false,
   //  This is the default value for FFTKernelGenKeyParams::fft_LdsComplex.
-  //  The generated kernels require so many bytes of LDS for each single precision
-  //..complex number in the vector.
-  //  If LDS_COMPLEX, then we declare an LDS array of complex numbers (8 bytes each)
-  //  and swap data between workitems with a single barrier.
-  //  If ! LDS_COMPLEX, then we declare an LDS array or scalar numbers (4 bytes each)
-  //  and swap data between workitems in two phases, with extra barriers.
-  //  The former approach uses fewer instructions and barriers;
-  //  The latter uses half as much LDS space, so twice as many wavefronts can be run
-  //  in parallel.
+  //  The generated kernels require so many bytes of LDS for each single
+  //  precision complex number in the vector. If LDS_COMPLEX, then we
+  //  declare an LDS array of complex numbers (8 bytes each) and swap data
+  //  between workitems with a single barrier. If ! LDS_COMPLEX, then we
+  //  declare an LDS array or scalar numbers (4 bytes each) and swap data
+  //  between workitems in two phases, with extra barriers. The former
+  //  approach uses fewer instructions and barriers; The latter uses half
+  //  as much LDS space, so twice as many wavefronts can be run in parallel.
 
   TWIDDLE_DEE = 8,
   //  4 bits per row of matrix.
 };
-};
+};  // namespace ARBITRARY
 
 class tofstreamRAII {
  public:
   FILE* outFile;
   std::string fileName;
-  tofstreamRAII( const std::string& name ): fileName( name ) {
-    outFile = fopen(fileName.c_str( ), "w");
+  explicit tofstreamRAII(const std::string& name) : fileName(name) {
+    outFile = fopen(fileName.c_str(), "w");
   }
 
-  ~tofstreamRAII( ) {
-    fclose( outFile);
-  }
+  ~tofstreamRAII() { fclose(outFile); }
 
-  std::string& getName( ) {
-    return fileName;
-  }
+  std::string& getName() { return fileName; }
 
-  void setName( const std::string& name ) {
-    fileName = name;
-  }
+  void setName(const std::string& name) { fileName = name; }
 
-  FILE* get( ) {
-    return outFile;
-  }
+  FILE* get() { return outFile; }
 };
 
 //  The "envelope" is a set of limits imposed by the hardware
-//  This will depend on the GPU(s).
-//  If there are multiple devices, this should be the least
-//  common denominators.
-//
+//  This will depend on the GPU(s). If there are multiple devices,
+//  this should be the least common denominators.
+
 struct FFTEnvelope {
-  long       limit_LocalMemSize;
+  long limit_LocalMemSize;
   //  this is the minimum of CL_DEVICE_LOCAL_MEM_SIZE
-  size_t     limit_Dimensions;
+  size_t limit_Dimensions;
   //  this is the minimum of CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS
-  size_t     limit_Size[8];
+  size_t limit_Size[8];
   //  these are the minimima of CL_DEVICE_MAX_WORK_ITEM_SIZES[0..n]
-  size_t     limit_WorkGroupSize;
+  size_t limit_WorkGroupSize;
   //  this is the minimum of CL_DEVICE_MAX_WORK_GROUP_SIZE
 
-  FFTEnvelope ()
-    : limit_LocalMemSize (0)
-    , limit_Dimensions (0)
-    , limit_WorkGroupSize (0) {
-    ::memset (& limit_Size, 0, sizeof (limit_Size));
+  FFTEnvelope()
+      : limit_LocalMemSize(0), limit_Dimensions(0), limit_WorkGroupSize(0) {
+    ::memset(&limit_Size, 0, sizeof(limit_Size));
   }
 };
 
@@ -340,48 +367,49 @@ struct FFTKernelGenKeyParams {
    *  This structure can be used as a key to reusing kernels that have already
    *  been compiled.
    */
-  size_t                   fft_DataDim;       // Dimensionality of the data
-  size_t                   fft_N[16];          // [0] is FFT size, e.g. 1024
+  size_t fft_DataDim;               // Dimensionality of the data
+  size_t fft_N[16];                 // [0] is FFT size, e.g. 1024
   // This must be <= size of LDS!
-  size_t                   fft_inStride [16];  // input strides
-  size_t                   fft_outStride[16];  // output strides
+  size_t fft_inStride[16];         // input strides
+  size_t fft_outStride[16];        // output strides
 
-  hcfftResLocation   fft_placeness;
-  hcfftIpLayout           fft_inputLayout;
-  hcfftOpLayout           fft_outputLayout;
-  hcfftPrecision        fft_precision;
-  double                   fft_fwdScale;
-  double                   fft_backScale;
+  hcfftResLocation fft_placeness;
+  hcfftIpLayout fft_inputLayout;
+  hcfftOpLayout fft_outputLayout;
+  hcfftPrecision fft_precision;
+  double fft_fwdScale;
+  double fft_backScale;
 
-  size_t                   fft_SIMD;          // Assume this SIMD/workgroup size
-  size_t                   fft_LDSsize;       // Limit the use of LDS to this many bytes.
-  size_t                   fft_R;             // # of complex values to keep in working registers
-  // SIMD size * R must be <= size of LDS!
-  size_t                   fft_MaxRadix;      // Limit the radix to this value.
-  size_t      fft_MaxWorkGroupSize; // Limit for work group size
-  bool                     fft_LdsComplex;    // If true, store complex values in LDS memory
-  // If false, store scalare values in LDS.
-  // Generally, false will provide more efficient kernels,
-  // but not always.
-  // see FFTPlan::bLdsComplex and ARBITRARY::LDS_COMPLEX
-  bool                     fft_ldsPadding;    // default padding is false
-  bool                     fft_3StepTwiddle;  // This is one pass of the "3-step" algorithm;
-  // so extra twiddles are applied on output.
+  size_t fft_SIMD;                //  Assume this SIMD/workgroup size
+  size_t fft_LDSsize;             //  Limit the use of LDS to this many bytes.
+  size_t fft_R;                  //   # of complex values to keep in working
+  //                                  registers SIMD size * R must be <= size
+  //                                  of LDS!
+  size_t fft_MaxRadix;           //   Limit the radix to this value.
+  size_t fft_MaxWorkGroupSize;  //    Limit for work group size
+  bool fft_LdsComplex;          //    If true, store complex values in LDS
+  //                                  memory If false, store scalare values
+  //                                  in LDS. Generally, false will provide
+  //                                  more efficient kernels, but not always.
+  //                                  see FFTPlan::bLdsComplex and
+  //                                  ARBITRARY::LDS_COMPLEX
+  bool fft_ldsPadding;          //    default padding is false
+  bool fft_3StepTwiddle;        //    This is one pass of the "3-step"
+  //                                  algorithm; so extra twiddles are applied
+  //                                  on output.
+  bool fft_twiddleFront;       //     do twiddle scaling at the beginning pass
+  bool fft_realSpecial;        //     this is the flag to control the special
+  //                                  case step (4th step) in the 5-step real
+  //                                  1D large breakdown
+  size_t fft_realSpecial_Nr;
+  bool transOutHorizontal;    //      tiles traverse the output buffer in
+  //                                  horizontal direction
+  bool blockCompute;
+  BlockComputeType blockComputeType;
+  size_t blockSIMD;
+  size_t blockLDS;
 
-  bool       fft_twiddleFront;  // do twiddle scaling at the beginning pass
-
-  bool       fft_realSpecial; // this is the flag to control the special case step (4th step)
-  // in the 5-step real 1D large breakdown
-  size_t       fft_realSpecial_Nr;
-
-  bool       transOutHorizontal;  // tiles traverse the output buffer in horizontal direction
-
-  bool       blockCompute;
-  BlockComputeType   blockComputeType;
-  size_t       blockSIMD;
-  size_t       blockLDS;
-
-  NonSquareTransposeKernelType      nonSquareKernelType;
+  NonSquareTransposeKernelType nonSquareKernelType;
   // sometimes non square matrix are broken down into a number of
   // square matrix during inplace transpose
   // let's call this number transposeMiniBatchSize
@@ -393,15 +421,15 @@ struct FFTKernelGenKeyParams {
   // no user of the library should set its value
   NON_SQUARE_KERNEL_ORDER nonSquareKernelOrder;
 
-  bool                     fft_RCsimple;
+  bool fft_RCsimple;
 
-  ulong   limit_LocalMemSize;
+  ulong limit_LocalMemSize;
 
   // Default constructor
   FFTKernelGenKeyParams() {
     fft_DataDim = 0;
 
-    for(int i = 0; i < 16; i++) {
+    for (int i = 0; i < 16; i++) {
       fft_N[i] = 0;
       fft_inStride[i] = 0;
       fft_outStride[i] = 0;
@@ -437,8 +465,9 @@ class FFTRepo;
 
 class FFTPlan {
  public:
-
-  typedef void (FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize, hc::accelerator_view &acc_view, hc::accelerator &acc);
+  typedef void(FUNC_FFTFwd)(std::map<int, void*>* vectArr, uint batchSize,
+                            hc::accelerator_view& acc_view,
+                            hc::accelerator& acc);
   FUNC_FFTFwd* kernelPtr;
 
   std::string kernellib;
@@ -457,14 +486,14 @@ class FFTPlan {
   hcfftPrecision precision;
   void* input;
   void* output;
-  std::vector< size_t > length;
-  std::vector< size_t > inStride, outStride;
+  std::vector<size_t> length;
+  std::vector<size_t> inStride, outStride;
   size_t batchSize;
   size_t iDist;
   size_t oDist;
   double forwardScale;
   double backwardScale;
-  bool  twiddleFront;
+  bool twiddleFront;
 
   bool baked;
   bool transformed;
@@ -492,7 +521,7 @@ class FFTPlan {
   unsigned uLdsFraction;
   bool ldsPadding;
 
-  size_t  large1D_Xfactor;
+  size_t large1D_Xfactor;
 
   size_t tmpBufSize;
   void* intBuffer;
@@ -500,7 +529,7 @@ class FFTPlan {
   size_t tmpBufSizeRC;
   void* intBufferRC;
 
-  size_t  tmpBufSizeC2R;
+  size_t tmpBufSizeC2R;
   void* intBufferC2R;
 
   void* twiddles;
@@ -509,20 +538,23 @@ class FFTPlan {
   bool transflag;
   bool transOutHorizontal;
 
-  size_t  large1D;
-  bool  large2D;
-  size_t  cacheSize;
+  size_t large1D;
+  bool large2D;
+  size_t cacheSize;
 
   // Real-Complex simple flag
   // if this is set we do real to-and-from full complex using simple algorithm
-  // where imaginary of input is set to zero in forward and imaginary not written in backward
+  // where imaginary of input is set to zero in forward and imaginary not
+  // written in backward
   bool RCsimple;
 
   // Real FFT special flag
-  // if this is set it means we are doing the 4th step in the 5-step real FFT breakdown algorithm
+  // if this is set it means we are doing the 4th step in the 5-step real FFT
+  // breakdown algorithm
   bool realSpecial;
 
-  size_t realSpecial_Nr; // this value stores the logical column height (N0) of matrix in the 4th step
+  size_t realSpecial_Nr;  // this value stores the logical column height (N0) of
+                          // matrix in the 4th step
   // length[1] should be 1 + N0/2
 
   // User created plan
@@ -532,7 +564,8 @@ class FFTPlan {
   bool allOpsInplace;
 
   // A flag to say that blocked FFTs are going to be performed
-  // It can only be one of these: column to row, row to column or column to column
+  // It can only be one of these: column to row, row to column or column to
+  // column
   // row to row is just the normal case where blocking is not needed
   bool blockCompute;
   BlockComputeType blockComputeType;
@@ -554,24 +587,70 @@ class FFTPlan {
   // Store the type of transform
   hcfftLibType hcfftlibtype;
 
-  FFTPlan() : dimension (HCFFT_1D), ipLayout (HCFFT_COMPLEX_INTERLEAVED),
-    opLayout (HCFFT_COMPLEX_INTERLEAVED), direction(HCFFT_FORWARD), location (HCFFT_INPLACE),
-    transposeType (HCFFT_NOTRANSPOSE), precision (HCFFT_SINGLE),
-    batchSize (1), iDist(1), oDist(1), forwardScale (1.0), backwardScale (1.0),
-    twiddleFront(false), baked (false), gen(Stockham), planX(0), planY(0), planZ(0),
-    planTX(0), planTY(0), planTZ(0), planRCcopy(0), planCopy(0), plHandle(0), plHandleOrigin(0),
-    bLdsComplex(false), uLdsFraction(0), ldsPadding(false), large1D_Xfactor(0), tmpBufSize(0),
-    intBuffer( NULL ), tmpBufSizeRC(0), intBufferRC(NULL),
-    tmpBufSizeC2R(0), intBufferC2R(NULL), transflag(false),
-    transpose_in_2d_inplace(false), twiddles(NULL), twiddleslarge(NULL), transOutHorizontal(false),
-    large1D(0), large2D(false), RCsimple(false), realSpecial(false), realSpecial_Nr(0),
-    userPlan(false), allOpsInplace(false), blockCompute(false), blockComputeType(BCT_C2C),
-    nonSquareKernelType(NON_SQUARE_TRANS_PARENT), transposeMiniBatchSize(1),
-    nonSquareKernelOrder(NOT_A_TRANSPOSE), hcfftlibtype(HCFFT_R2CD2Z), exist(false), transformed(false) {
+  FFTPlan()
+      : dimension(HCFFT_1D),
+        ipLayout(HCFFT_COMPLEX_INTERLEAVED),
+        opLayout(HCFFT_COMPLEX_INTERLEAVED),
+        direction(HCFFT_FORWARD),
+        location(HCFFT_INPLACE),
+        transposeType(HCFFT_NOTRANSPOSE),
+        precision(HCFFT_SINGLE),
+        batchSize(1),
+        iDist(1),
+        oDist(1),
+        forwardScale(1.0),
+        backwardScale(1.0),
+        twiddleFront(false),
+        baked(false),
+        gen(Stockham),
+        planX(0),
+        planY(0),
+        planZ(0),
+        planTX(0),
+        planTY(0),
+        planTZ(0),
+        planRCcopy(0),
+        planCopy(0),
+        plHandle(0),
+        plHandleOrigin(0),
+        bLdsComplex(false),
+        uLdsFraction(0),
+        ldsPadding(false),
+        large1D_Xfactor(0),
+        tmpBufSize(0),
+        intBuffer(NULL),
+        tmpBufSizeRC(0),
+        intBufferRC(NULL),
+        tmpBufSizeC2R(0),
+        intBufferC2R(NULL),
+        transflag(false),
+        transpose_in_2d_inplace(false),
+        twiddles(NULL),
+        twiddleslarge(NULL),
+        transOutHorizontal(false),
+        large1D(0),
+        large2D(false),
+        RCsimple(false),
+        realSpecial(false),
+        realSpecial_Nr(0),
+        userPlan(false),
+        allOpsInplace(false),
+        blockCompute(false),
+        blockComputeType(BCT_C2C),
+        nonSquareKernelType(NON_SQUARE_TRANS_PARENT),
+        transposeMiniBatchSize(1),
+        nonSquareKernelOrder(NOT_A_TRANSPOSE),
+        hcfftlibtype(HCFFT_R2CD2Z),
+        exist(false),
+        transformed(false) {
     originalLength.clear();
-  };
+  }
 
-  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle, hcfftDim dimension, const size_t* length, hcfftDirection dir, hcfftPrecision precision, hcfftLibType libType);
+  hcfftStatus hcfftCreateDefaultPlan(hcfftPlanHandle* plHandle,
+                                     hcfftDim dimension, const size_t* length,
+                                     hcfftDirection dir,
+                                     hcfftPrecision precision,
+                                     hcfftLibType libType);
 
   hcfftStatus hcfftBakePlan(hcfftPlanHandle plHandle);
 
@@ -579,168 +658,215 @@ class FFTPlan {
 
   hcfftStatus hcfftDestroyPlan(hcfftPlanHandle* plHandle);
 
-  template<typename T>
-  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle, hcfftDirection dir, T* inputBuffers,
+  template <typename T>
+  hcfftStatus hcfftEnqueueTransform(hcfftPlanHandle plHandle,
+                                    hcfftDirection dir, T* inputBuffers,
                                     T* outputBuffers, T* tmpBuffer);
 
-  template<typename T> 
-  hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle, hcfftDirection dir, T* inputBuffers,
-      T* outputBuffers, T* tmpBuffer);
+  template <typename T>
+  hcfftStatus hcfftEnqueueTransformInternal(hcfftPlanHandle plHandle,
+                                            hcfftDirection dir, T* inputBuffers,
+                                            T* outputBuffers, T* tmpBuffer);
 
+  hcfftStatus hcfftSetAcclView(hcfftPlanHandle plHandle,
+                               hc::accelerator_view accl_view);
 
-  hcfftStatus hcfftSetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view accl_view);
+  hcfftStatus hcfftGetAcclView(hcfftPlanHandle plHandle,
+                               hc::accelerator_view* accl_view);
 
-  hcfftStatus hcfftGetAcclView( hcfftPlanHandle plHandle, hc::accelerator_view* accl_view);
+  hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle,
+                                    hcfftPrecision* precision);
 
-  hcfftStatus hcfftGetPlanPrecision(const hcfftPlanHandle plHandle, hcfftPrecision* precision );
+  hcfftStatus hcfftSetPlanPrecision(hcfftPlanHandle plHandle,
+                                    hcfftPrecision precision);
 
-  hcfftStatus hcfftSetPlanPrecision(hcfftPlanHandle plHandle, hcfftPrecision precision );
+  hcfftStatus hcfftGetPlanScale(const hcfftPlanHandle plHandle,
+                                hcfftDirection dir, float* scale);
 
-  hcfftStatus hcfftGetPlanScale(const hcfftPlanHandle plHandle, hcfftDirection dir, float* scale );
+  hcfftStatus hcfftSetPlanScale(hcfftPlanHandle plHandle, hcfftDirection dir,
+                                float scale);
 
-  hcfftStatus hcfftSetPlanScale(hcfftPlanHandle plHandle, hcfftDirection dir, float scale );
+  hcfftStatus hcfftGetPlanBatchSize(const hcfftPlanHandle plHandle,
+                                    size_t* batchSize);
 
-  hcfftStatus hcfftGetPlanBatchSize(const hcfftPlanHandle plHandle, size_t* batchSize );
+  hcfftStatus hcfftSetPlanBatchSize(hcfftPlanHandle plHandle, size_t batchSize);
 
-  hcfftStatus hcfftSetPlanBatchSize(hcfftPlanHandle plHandle, size_t batchSize );
+  hcfftStatus hcfftGetPlanDim(const hcfftPlanHandle plHandle, hcfftDim* dim,
+                              int* size);
 
-  hcfftStatus hcfftGetPlanDim(const hcfftPlanHandle plHandle, hcfftDim* dim, int* size );
+  hcfftStatus hcfftSetPlanDim(hcfftPlanHandle plHandle, const hcfftDim dim);
 
-  hcfftStatus hcfftSetPlanDim(hcfftPlanHandle plHandle, const hcfftDim dim );
+  hcfftStatus hcfftGetPlanLength(const hcfftPlanHandle plHandle,
+                                 const hcfftDim dim, size_t* hcLengths);
 
-  hcfftStatus hcfftGetPlanLength(const hcfftPlanHandle plHandle, const hcfftDim dim, size_t* hcLengths );
+  hcfftStatus hcfftSetPlanLength(hcfftPlanHandle plHandle, const hcfftDim dim,
+                                 const size_t* hcLengths);
 
-  hcfftStatus hcfftSetPlanLength(hcfftPlanHandle plHandle, const hcfftDim dim, const size_t* hcLengths );
+  hcfftStatus hcfftGetPlanInStride(const hcfftPlanHandle plHandle,
+                                   const hcfftDim dim, size_t* hcStrides);
 
-  hcfftStatus hcfftGetPlanInStride(const hcfftPlanHandle plHandle, const hcfftDim dim, size_t* hcStrides );
+  hcfftStatus hcfftSetPlanInStride(hcfftPlanHandle plHandle, const hcfftDim dim,
+                                   size_t* hcStrides);
 
-  hcfftStatus hcfftSetPlanInStride(hcfftPlanHandle plHandle, const hcfftDim dim, size_t* hcStrides );
+  hcfftStatus hcfftGetPlanOutStride(const hcfftPlanHandle plHandle,
+                                    const hcfftDim dim, size_t* hcStrides);
 
-  hcfftStatus hcfftGetPlanOutStride(const hcfftPlanHandle plHandle, const hcfftDim dim, size_t* hcStrides );
+  hcfftStatus hcfftSetPlanOutStride(hcfftPlanHandle plHandle,
+                                    const hcfftDim dim, size_t* hcStrides);
 
-  hcfftStatus hcfftSetPlanOutStride(hcfftPlanHandle plHandle, const hcfftDim dim, size_t* hcStrides );
+  hcfftStatus hcfftGetPlanDistance(const hcfftPlanHandle plHandle,
+                                   size_t* iDist, size_t* oDist);
 
-  hcfftStatus hcfftGetPlanDistance(const hcfftPlanHandle plHandle, size_t* iDist, size_t* oDist );
+  hcfftStatus hcfftSetPlanDistance(hcfftPlanHandle plHandle, size_t iDist,
+                                   size_t oDist);
 
-  hcfftStatus hcfftSetPlanDistance(hcfftPlanHandle plHandle, size_t iDist, size_t oDist );
+  hcfftStatus hcfftGetLayout(const hcfftPlanHandle plHandle,
+                             hcfftIpLayout* iLayout, hcfftOpLayout* oLayout);
 
-  hcfftStatus hcfftGetLayout(const hcfftPlanHandle plHandle, hcfftIpLayout* iLayout, hcfftOpLayout* oLayout );
+  hcfftStatus hcfftSetLayout(hcfftPlanHandle plHandle, hcfftIpLayout iLayout,
+                             hcfftOpLayout oLayout);
 
-  hcfftStatus hcfftSetLayout(hcfftPlanHandle plHandle, hcfftIpLayout iLayout, hcfftOpLayout oLayout );
+  hcfftStatus hcfftGetResultLocation(const hcfftPlanHandle plHandle,
+                                     hcfftResLocation* placeness);
 
-  hcfftStatus hcfftGetResultLocation(const hcfftPlanHandle plHandle, hcfftResLocation* placeness );
+  hcfftStatus hcfftSetResultLocation(hcfftPlanHandle plHandle,
+                                     hcfftResLocation placeness);
 
-  hcfftStatus hcfftSetResultLocation(hcfftPlanHandle plHandle, hcfftResLocation placeness );
+  hcfftStatus hcfftGetPlanTransposeResult(const hcfftPlanHandle plHandle,
+                                          hcfftResTransposed* transposed);
 
-  hcfftStatus hcfftGetPlanTransposeResult(const hcfftPlanHandle plHandle, hcfftResTransposed* transposed );
+  hcfftStatus hcfftSetPlanTransposeResult(hcfftPlanHandle plHandle,
+                                          hcfftResTransposed transposed);
 
-  hcfftStatus hcfftSetPlanTransposeResult(hcfftPlanHandle plHandle, hcfftResTransposed transposed );
+  hcfftStatus GetEnvelope(const FFTEnvelope**) const;
 
-  hcfftStatus GetEnvelope (const FFTEnvelope**) const;
-
-  hcfftStatus SetEnvelope ();
+  hcfftStatus SetEnvelope();
 
   template <hcfftGenerators G>
-  hcfftStatus GetMax1DLengthPvt (size_t* longest ) const;
+  hcfftStatus GetMax1DLengthPvt(size_t* longtest) const;
 
   template <hcfftGenerators G>
-  hcfftStatus GetKernelGenKeyPvt (FFTKernelGenKeyParams & params) const;
+  hcfftStatus GetKernelGenKeyPvt(FFTKernelGenKeyParams& params) const;
 
   template <hcfftGenerators G>
-  hcfftStatus GetWorkSizesPvt (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
+  hcfftStatus GetWorkSizesPvt(std::vector<size_t>& globalws,
+                              std::vector<size_t>& localws) const;
 
   template <hcfftGenerators G>
-  hcfftStatus GenerateKernelPvt (const hcfftPlanHandle plHandle, FFTRepo& fftRepo, size_t count, bool exist) const;
+  hcfftStatus GenerateKernelPvt(const hcfftPlanHandle plHandle,
+                                FFTRepo& fftRepo, size_t count,
+                                bool exist) const;
 
-  hcfftStatus GetMax1DLength (size_t* longest ) const;
+  hcfftStatus GetMax1DLength(size_t* longtest) const;
 
-  hcfftStatus GetKernelGenKey (FFTKernelGenKeyParams & params) const;
+  hcfftStatus GetKernelGenKey(FFTKernelGenKeyParams& params) const;
 
-  hcfftStatus GetWorkSizes (std::vector<size_t> & globalws, std::vector<size_t> & localws) const;
+  hcfftStatus GetWorkSizes(std::vector<size_t>& globalws,
+                           std::vector<size_t>& localws) const;
 
-  hcfftStatus GenerateKernel (const hcfftPlanHandle plHandle, FFTRepo & fftRepo, size_t count, bool exist) const;
+  hcfftStatus GenerateKernel(const hcfftPlanHandle plHandle, FFTRepo& fftRepo,
+                             size_t count, bool exist) const;
 
-  hcfftStatus ReleaseBuffers ();
+  hcfftStatus ReleaseBuffers();
 
   size_t ElementSize() const;
 };
 
-
 class FFTRepo {
-  //  All plans that the user creates over the course of using the library are stored here.
-  //  Plans can be arbitrarily created and destroyed at anytime by the user, in arbitrary order, so vector
-  //  does not seem appropriate, so a map was chosen because of the O(log N) search properties
-  //  A lock object is created for each plan, such that any getter/setter can lock the 'plan' object before
-  //  reading/writing its values.  The lock object is kept seperate from the plan object so that the lock
-  //  object can be held the entire time a plan is getting destroyed in hcfftDestroyPlan.
-  typedef std::pair< FFTPlan*, lockRAII* > repoPlansValue;
-  typedef std::map< hcfftPlanHandle, repoPlansValue > repoPlansType;
+  //  All plans that the user creates over the course of using the library are
+  //  stored here.
+  //  Plans can be arbitrarily created and destroyed at anytime by the user, in
+  //  arbitrary order, so vector
+  //  does not seem appropriate, so a map was chosen because of the O(log N)
+  //  search properties
+  //  A lock object is created for each plan, such that any getter/setter can
+  //  lock the 'plan' object before
+  //  reading/writing its values.  The lock object is kept seperate from the
+  //  plan object so that the lock
+  //  object can be held the entire time a plan is getting destroyed in
+  //  hcfftDestroyPlan.
+  typedef std::pair<FFTPlan*, lockRAII*> repoPlansValue;
+  typedef std::map<hcfftPlanHandle, repoPlansValue> repoPlansType;
   repoPlansType repoPlans;
 
-  //  Structure containing all the data we need to remember for a specific invokation of a kernel
+  //  Structure containing all the data we need to remember for a specific
+  //  invokation of a kernel
   //  generator
   struct fftRepoValue {
     std::string ProgramString;
     std::string EntryPoint_fwd;
     std::string EntryPoint_back;
 
-    fftRepoValue () {
-    }
+    fftRepoValue() {}
   };
 
-  typedef std::pair< hcfftGenerators, hcfftPlanHandle> fftRepoKey;
-  typedef std::map< fftRepoKey, fftRepoValue > fftRepoType;
+  typedef std::pair<hcfftGenerators, hcfftPlanHandle> fftRepoKey;
+  typedef std::map<fftRepoKey, fftRepoValue> fftRepoType;
   typedef fftRepoType::iterator fftRepo_iterator;
 
   fftRepoType mapFFTs;
 
-  //  Static count of how many plans we have generated; always incrementing during the life of the library
+  //  Static count of how many plans we have generated; always incrementing
+  //  during the life of the library
   //  This is used as a unique identifier for plans
   static size_t planCount;
 
   // Private constructor to stop explicit instantiation
-  FFTRepo( ) {
-  }
+  FFTRepo() {}
 
   // Private copy constructor to stop implicit instantiation
-  FFTRepo( const FFTRepo& );
+  FFTRepo(const FFTRepo&);
 
   // Private operator= to assure only 1 copy of singleton
-  FFTRepo& operator=( const FFTRepo& );
+  FFTRepo& operator=(const FFTRepo&);
 
  public:
-
-  //  Used to make the FFTRepo struct thread safe; STL is not thread safe by default
-  //  Optimally, we could use a lock object per STL struct, as two different STL structures
-  //  can be modified at the same time, but a single lock object is easier and performance should
+  //  Used to make the FFTRepo struct thread safe; STL is not thread safe by
+  //  default
+  //  Optimally, we could use a lock object per STL struct, as two different STL
+  //  structures
+  //  can be modified at the same time, but a single lock object is easier and
+  //  performance should
   //  still be good
   static lockRAII lockRepo;
 
-  //  Everybody who wants to access the Repo calls this function to get a repo reference
-  static FFTRepo& getInstance( ) {
+  //  Everybody who wants to access the Repo calls this function to get a repo
+  //  reference
+  static FFTRepo& getInstance() {
     static FFTRepo fftRepo;
     return fftRepo;
-  };
-
-  hcfftStatus createPlan( hcfftPlanHandle* plHandle, FFTPlan*& fftPlan );
-
-  hcfftStatus getPlan( hcfftPlanHandle plHandle, FFTPlan*& fftPlan, lockRAII*& planLock );
-
-  hcfftStatus deletePlan( hcfftPlanHandle* plHandle );
-
-  hcfftStatus setProgramEntryPoints( const hcfftGenerators gen, const hcfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam,
-                                     const char* kernel_fwd, const char* kernel_back);
-
-  hcfftStatus getProgramEntryPoint( const hcfftGenerators gen, const hcfftPlanHandle& handle, const FFTKernelGenKeyParams& fftParam, hcfftDirection dir, std::string& kernel);
-
-  hcfftStatus setProgramCode( const hcfftGenerators gen, const hcfftPlanHandle& handle, const FFTKernelGenKeyParams&, const std::string& kernel);
-
-  hcfftStatus getProgramCode( const hcfftGenerators gen, const hcfftPlanHandle& handle, const FFTKernelGenKeyParams&, std::string& kernel);
-
-  hcfftStatus releaseResources( );
-
-  ~FFTRepo( ) {
-    releaseResources();
   }
+
+  hcfftStatus createPlan(hcfftPlanHandle* plHandle, FFTPlan*& fftPlan);
+
+  hcfftStatus getPlan(hcfftPlanHandle plHandle, FFTPlan*& fftPlan,
+                      lockRAII*& planLock);
+
+  hcfftStatus deletePlan(hcfftPlanHandle* plHandle);
+
+  hcfftStatus setProgramEntryPoints(const hcfftGenerators gen,
+                                    const hcfftPlanHandle& handle,
+                                    const FFTKernelGenKeyParams& fftParam,
+                                    const char* kernel_fwd,
+                                    const char* kernel_back);
+
+  hcfftStatus getProgramEntryPoint(const hcfftGenerators gen,
+                                   const hcfftPlanHandle& handle,
+                                   const FFTKernelGenKeyParams& fftParam,
+                                   hcfftDirection dir, std::string& kernel);
+
+  hcfftStatus setProgramCode(const hcfftGenerators gen,
+                             const hcfftPlanHandle& handle,
+                             const FFTKernelGenKeyParams&,
+                             const std::string& kernel);
+
+  hcfftStatus getProgramCode(const hcfftGenerators gen,
+                             const hcfftPlanHandle& handle,
+                             const FFTKernelGenKeyParams&, std::string& kernel);
+
+  hcfftStatus releaseResources();
+
+  ~FFTRepo() { releaseResources(); }
 };
-#endif
+
+#endif  // LIB_INCLUDE_HCFFTLIB_H_

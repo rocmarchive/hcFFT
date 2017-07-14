@@ -40,7 +40,7 @@ ELSE(WIN32)
                           OUTPUT_VARIABLE HCC_CXXFLAGS)
   execute_process(COMMAND ${HCC_CONFIG} --ldflags
                           OUTPUT_VARIABLE HCC_LDFLAGS)
-  SET(HCFFT_INCLUDE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../lib/include/")
+  SET(HCFFT_INCLUDE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../lib/")
   SET(HCFFT_LIBRARY_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../build/lib/src")
 
   string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)

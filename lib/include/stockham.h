@@ -1,11 +1,38 @@
-#include <iostream>
+/*
+Copyright (c) 2015-2016 Advanced Micro Devices, Inc. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+#ifndef LIB_INCLUDE_STOCKHAM_H_
+#define LIB_INCLUDE_STOCKHAM_H_
+
+#include "include/hcfftlib.h"
 #include <cassert>
-#include <vector>
-#include <sstream>
 #include <fstream>
-#include <map>
 #include <iomanip>
-#include "hcfftlib.h"
+#include <iostream>
+#include <map>
+#include <sstream>
+#include <utility>
+#include <vector>
+#include <string>
 
 namespace StockhamGenerator {
 // Precision
@@ -16,7 +43,7 @@ enum Precision {
 
 template <Precision PR>
 inline size_t PrecisionWidth() {
-  switch(PR) {
+  switch (PR) {
     case P_SINGLE:
       return 1;
 
@@ -29,8 +56,9 @@ inline size_t PrecisionWidth() {
   }
 }
 
-inline std::stringstream& hcKernWrite( std::stringstream& rhs, const size_t tabIndex ) {
-  rhs << std::setw( tabIndex ) << "";
+inline std::stringstream& hcKernWrite(std::stringstream& rhs,
+                                      const size_t tabIndex) {
+  rhs << std::setw(tabIndex) << "";
   return rhs;
 }
 
@@ -42,7 +70,8 @@ inline std::string FloatToStr(double f) {
 }
 
 typedef std::pair<std::string, std::string> stringpair;
-inline stringpair ComplexMul(const char* type, const char* a, const char* b, bool forward = true) {
+inline stringpair ComplexMul(const char* type, const char* a, const char* b,
+                             bool forward = true) {
   stringpair result;
   result.first += type;
   result.first += " ((";
@@ -69,9 +98,9 @@ inline stringpair ComplexMul(const char* type, const char* a, const char* b, boo
 // Register data base types
 template <Precision PR>
 inline std::string RegBaseType(size_t count) {
-  switch(PR) {
+  switch (PR) {
     case P_SINGLE:
-      switch(count) {
+      switch (count) {
         case 1:
           return "float";
 
@@ -89,7 +118,7 @@ inline std::string RegBaseType(size_t count) {
       break;
 
     case P_DOUBLE:
-      switch(count) {
+      switch (count) {
         case 1:
           return "double";
 
@@ -117,7 +146,7 @@ inline std::string FloatSuffix() {
   // Suffix for constants
   std::string sfx;
 
-  switch(PR) {
+  switch (PR) {
     case P_SINGLE:
       sfx = "f";
       break;
@@ -133,10 +162,11 @@ inline std::string FloatSuffix() {
   return sfx;
 }
 
-inline std::string ButterflyName(size_t radix, size_t count, bool fwd, const hcfftPlanHandle plHandle) {
+inline std::string ButterflyName(size_t radix, size_t count, bool fwd,
+                                 const hcfftPlanHandle plHandle) {
   std::string str;
 
-  if(fwd) {
+  if (fwd) {
     str += "Fwd";
   } else {
     str += "Inv";
@@ -151,10 +181,11 @@ inline std::string ButterflyName(size_t radix, size_t count, bool fwd, const hcf
   return str;
 }
 
-inline std::string PassName(const hcfftPlanHandle plHandle, size_t pos, bool fwd) {
+inline std::string PassName(const hcfftPlanHandle plHandle, size_t pos,
+                            bool fwd) {
   std::string str;
 
-  if(fwd) {
+  if (fwd) {
     str += "Fwd";
   } else {
     str += "Inv";
@@ -166,31 +197,25 @@ inline std::string PassName(const hcfftPlanHandle plHandle, size_t pos, bool fwd
   return str;
 }
 
-inline std::string TwTableName() {
-  return "twiddles";
-}
+inline std::string TwTableName() { return "twiddles"; }
 
-inline std::string TwTableLargeName() {
-  return "twiddle_dee";
-}
+inline std::string TwTableLargeName() { return "twiddle_dee"; }
 
-inline std::string TwTableLargeFunc() {
-  return "TW3step";
-}
+inline std::string TwTableLargeFunc() { return "TW3step"; }
 
 // Twiddle factors table for large N
 // used in 3-step algorithm
 template <typename T, Precision PR>
 class TwiddleTableLarge {
-  size_t N; // length
+  size_t N;  // length
   size_t X, Y;
   size_t tableSize;
-  T* wc; // cosine, sine arrays
+  T* wc;  // cosine, sine arrays
 
  public:
-  TwiddleTableLarge(size_t length) : N(length) {
+  explicit TwiddleTableLarge(size_t length) : N(length) {
     X = size_t(1) << ARBITRARY::TWIDDLE_DEE;
-    Y = DivRoundingUp<size_t> (CeilPo2(N), ARBITRARY::TWIDDLE_DEE);
+    Y = DivRoundingUp<size_t>(CeilPo2(N), ARBITRARY::TWIDDLE_DEE);
     tableSize = X * Y;
     // Allocate memory for the tables
     wc = new T[tableSize];
@@ -205,18 +230,18 @@ class TwiddleTableLarge {
     const double TWO_PI = -6.283185307179586476925286766559;
     // Generate the table
     size_t nt = 0;
-    double phi = TWO_PI / double (N);
+    double phi = TWO_PI / static_cast<double>(N);
 
     for (size_t iY = 0; iY < Y; ++iY) {
       size_t i = size_t(1) << (iY * ARBITRARY::TWIDDLE_DEE);
 
       for (size_t iX = 0; iX < X; ++iX) {
         size_t j = i * iX;
-        double c = cos(phi * (double)j);
-        double s = sin(phi * (double)j);
-        //if (fabs(c) < 1.0E-12)  c = 0.0;
-        //if (fabs(s) < 1.0E-12)  s = 0.0;
-        wc[nt].x   = c;
+        double c = cos(phi * static_cast<double>(j));
+        double s = sin(phi * static_cast<double>(j));
+        // if (fabs(c) < 1.0E-12)  c = 0.0;
+        // if (fabs(s) < 1.0E-12)  s = 0.0;
+        wc[nt].x = c;
         wc[nt++].y = s;
       }
     }
@@ -227,20 +252,23 @@ class TwiddleTableLarge {
     assert(*twiddleslarge != NULL);
   }
 
-  void GenerateTwiddleTable(std::string &twStr, const hcfftPlanHandle plHandle) {
+  void GenerateTwiddleTable(std::string& twStr,
+                            const hcfftPlanHandle plHandle) {
     std::stringstream ss;
     // Twiddle calc function
     ss << "inline ";
     ss << RegBaseType<PR>(2);
-    ss << "\n" << TwTableLargeFunc() ;
+    ss << "\n" << TwTableLargeFunc();
     ss << SztToStr(plHandle);
     ss << "(size_t u, ";
     ss << RegBaseType<PR>(2);
     ss << " *";
     ss << TwTableLargeName();
     ss << ")  __attribute__((hc))\n{\n";
-    ss << "\t" "size_t j = u & " << unsigned(X - 1) << ";\n";
-    ss << "\t" ;
+    ss << "\t"
+          "size_t j = u & "
+       << unsigned(X - 1) << ";\n";
+    ss << "\t";
     ss << RegBaseType<PR>(2);
     ss << " result = ";
     ss << TwTableLargeName();
@@ -249,16 +277,26 @@ class TwiddleTableLarge {
     for (size_t iY = 1; iY < Y; ++iY) {
       std::string phasor = TwTableLargeName();
       phasor += "[";
-      phasor += SztToStr(iY * X) ;
+      phasor += SztToStr(iY * X);
       phasor += "+ j]";
-      stringpair product = ComplexMul((RegBaseType<PR>(2)).c_str(), "result", phasor.c_str());
-      ss << "\t" "u >>= " << unsigned (ARBITRARY::TWIDDLE_DEE) << ";\n";
-      ss << "\t" "j = u & " << unsigned(X - 1) << ";\n";
-      ss << "\t" "result = " << product.first << "\n";
-      ss << "\t" "\t" << product.second << ";\n";
+      stringpair product =
+          ComplexMul((RegBaseType<PR>(2)).c_str(), "result", phasor.c_str());
+      ss << "\t"
+            "u >>= "
+         << unsigned(ARBITRARY::TWIDDLE_DEE) << ";\n";
+      ss << "\t"
+            "j = u & "
+         << unsigned(X - 1) << ";\n";
+      ss << "\t"
+            "result = "
+         << product.first << "\n";
+      ss << "\t"
+            "\t"
+         << product.second << ";\n";
     }
 
-    ss << "\t" "return result;\n}\n\n";
+    ss << "\t"
+          "return result;\n}\n\n";
     twStr += ss.str();
   }
 };
@@ -266,15 +304,17 @@ class TwiddleTableLarge {
 // FFT butterfly
 template <Precision PR>
 class Butterfly {
-  size_t radix;   // Base radix
-  size_t count;       // Number of basic butterflies, valid values: 1,2,4
-  bool fwd;     // FFT direction
-  bool cReg;      // registers are complex numbers, .x (real), .y(imag)
+  size_t radix;  // Base radix
+  size_t count;  // Number of basic butterflies, valid values: 1,2,4
+  bool fwd;      // FFT direction
+  bool cReg;     // registers are complex numbers, .x (real), .y(imag)
 
-  size_t BitReverse (size_t n, size_t N) const {
-    return (N < 2) ? n : (BitReverse (n >> 1, N >> 1) | ((n & 1) != 0 ? (N >> 1) : 0));
+  size_t BitReverse(size_t n, size_t N) const {
+    return (N < 2) ? n : (BitReverse(n >> 1, N >> 1) |
+                          ((n & 1) != 0 ? (N >> 1) : 0));
   }
-  void GenerateButterflyStr(std::string &bflyStr, const hcfftPlanHandle plHandle) const {
+  void GenerateButterflyStr(std::string& bflyStr,
+                            const hcfftPlanHandle plHandle) const {
     std::string regType = cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
     // Function attribute
     bflyStr += "inline void \n";
@@ -283,12 +323,12 @@ class Butterfly {
     // Function Arguments
     bflyStr += "(";
 
-    for(size_t i = 0;; i++) {
-      if(cReg) {
+    for (size_t i = 0;; i++) {
+      if (cReg) {
         bflyStr += regType;
         bflyStr += " *R";
 
-        if(radix & (radix - 1)) {
+        if (radix & (radix - 1)) {
           bflyStr += SztToStr(i);
         } else {
           bflyStr += SztToStr(BitReverse(i, radix));
@@ -300,10 +340,10 @@ class Butterfly {
         bflyStr += ", ";  // real arguments
         bflyStr += regType;
         bflyStr += " *I";
-        bflyStr += SztToStr(i);         // imaginary arguments
+        bflyStr += SztToStr(i);  // imaginary arguments
       }
 
-      if(i == radix - 1) {
+      if (i == radix - 1) {
         bflyStr += ")";
         break;
       } else {
@@ -314,26 +354,28 @@ class Butterfly {
     bflyStr += " __attribute__((hc))\n{\n\n";
 
     // Temporary variables
-    // Allocate temporary variables if we are not using complex registers (cReg = 0) or if cReg is true, then
+    // Allocate temporary variables if we are not using complex registers (cReg
+    // = 0) or if cReg is true, then
     // allocate temporary variables only for non power-of-2 radices
-    if (!( (radix == 7 && cReg) || (radix == 11 && cReg) || (radix == 13 && cReg) )) {
-      if( (radix & (radix - 1)) || (!cReg) ) {
+    if (!((radix == 7 && cReg) || (radix == 11 && cReg) ||
+          (radix == 13 && cReg))) {
+      if ((radix & (radix - 1)) || (!cReg)) {
         bflyStr += "\t";
 
-        if(cReg) {
+        if (cReg) {
           bflyStr += RegBaseType<PR>(1);
         } else {
           bflyStr += regType;
         }
 
-        for(size_t i = 0;; i++) {
+        for (size_t i = 0;; i++) {
           bflyStr += " TR";
           bflyStr += SztToStr(i);
-          bflyStr += ","; // real arguments
+          bflyStr += ",";  // real arguments
           bflyStr += " TI";
-          bflyStr += SztToStr(i);     // imaginary arguments
+          bflyStr += SztToStr(i);  // imaginary arguments
 
-          if(i == radix - 1) {
+          if (i == radix - 1) {
             bflyStr += ";";
             break;
           } else {
@@ -350,975 +392,1065 @@ class Butterfly {
     bflyStr += "\n\n\t";
 
     // Butterfly for different radices
-    switch(radix) {
+    switch (radix) {
       case 2: {
-          if(cReg) {
-            bflyStr +=
+        if (cReg) {
+          bflyStr +=
               "(R1[0]) = (R0[0]) - (R1[0]);\n\t"
               "(R0[0]) = ";
-            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-            bflyStr += "(2.0f) * (R0[0]) - (R1[0]);\n\t";
-          } else {
-            bflyStr +=
+          bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+          bflyStr += "(2.0f) * (R0[0]) - (R1[0]);\n\t";
+        } else {
+          bflyStr +=
               "TR0 = (R0[0]) + (R1[0]);\n\t"
               "TI0 = (I0[0]) + (I1[0]);\n\t"
               "TR1 = (R0[0]) - (R1[0]);\n\t"
               "TI1 = (I0[0]) - (I1[0]);\n\t";
-          }
         }
-        break;
+      } break;
 
       case 3: {
-          if(fwd) {
-            if(cReg) {
-              bflyStr +=
+        if (fwd) {
+          if (cReg) {
+            bflyStr +=
                 "TR0 = (R0[0]).x + (R1[0]).x + (R2[0]).x;\n\t"
                 "TR1 = ((R0[0]).x - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QA)*((R1[0]).x + (R2[0]).x)) + ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QB)*((R1[0]).y - (R2[0]).y);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R1[0]).x + (R2[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*((R1[0]).y - (R2[0]).y);\n\t"
                 "TR2 = ((R0[0]).x - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QA)*((R1[0]).x + (R2[0]).x)) - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QB)*((R1[0]).y - (R2[0]).y);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R1[0]).x + (R2[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*((R1[0]).y - (R2[0]).y);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = (R0[0]).y + (R1[0]).y + (R2[0]).y;\n\t"
                 "TI1 = ((R0[0]).y - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QA)*((R1[0]).y + (R2[0]).y)) - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QB)*((R1[0]).x - (R2[0]).x);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R1[0]).y + (R2[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*((R1[0]).x - (R2[0]).x);\n\t"
                 "TI2 = ((R0[0]).y - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QA)*((R1[0]).y + (R2[0]).y)) + ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QB)*((R1[0]).x - (R2[0]).x);\n\t";
-            } else {
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R1[0]).y + (R2[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*((R1[0]).x - (R2[0]).x);\n\t";
+          } else {
+            bflyStr +=
                 "TR0 = R0[0] + R1[0] + R2[0];\n\t"
                 "TR1 = (R0[0] - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QA)*(R1[0] + R2[0])) + ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QB)*(I1[0] - I2[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(R1[0] + R2[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*(I1[0] - I2[0]);\n\t"
                 "TR2 = (R0[0] - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QA)*(R1[0] + R2[0])) - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QB)*(I1[0] - I2[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(R1[0] + R2[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*(I1[0] - I2[0]);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = I0[0] + I1[0] + I2[0];\n\t"
                 "TI1 = (I0[0] - ;";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QA)*(I1[0] + I2[0])) - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QB)*(R1[0] - R2[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(I1[0] + I2[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*(R1[0] - R2[0]);\n\t"
                 "TI2 = (I0[0] - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QA)*(I1[0] + I2[0])) + ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QB)*(R1[0] - R2[0]);\n\t";
-            }
-          } else {
-            if(cReg) {
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(I1[0] + I2[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*(R1[0] - R2[0]);\n\t";
+          }
+        } else {
+          if (cReg) {
+            bflyStr +=
                 "TR0 = (R0[0]).x + (R1[0]).x + (R2[0]).x;\n\t"
                 "TR1 = ((R0[0]).x - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QA)*((R1[0]).x + (R2[0]).x)) - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QB)*((R1[0]).y - (R2[0]).y);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R1[0]).x + (R2[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*((R1[0]).y - (R2[0]).y);\n\t"
                 "TR2 = ((R0[0]).x - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QA)*((R1[0]).x + (R2[0]).x)) + ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QB)*((R1[0]).y - (R2[0]).y);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R1[0]).x + (R2[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*((R1[0]).y - (R2[0]).y);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = (R0[0]).y + (R1[0]).y + (R2[0]).y;\n\t"
                 "TI1 = ((R0[0]).y - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QA)*((R1[0]).y + (R2[0]).y)) + ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QB)*((R1[0]).x - (R2[0]).x);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R1[0]).y + (R2[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*((R1[0]).x - (R2[0]).x);\n\t"
                 "TI2 = ((R0[0]).y - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QA)*((R1[0]).y + (R2[0]).y)) - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C3QB)*((R1[0]).x - (R2[0]).x);\n\t";
-            } else {
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R1[0]).y + (R2[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*((R1[0]).x - (R2[0]).x);\n\t";
+          } else {
+            bflyStr +=
                 "TR0 = R0[0] + R1[0] + R2[0];\n\t"
                 "TR1 = (R0[0] - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QA)*(R1[0] + R2[0])) - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QB)*(I1[0] - I2[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(R1[0] + R2[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*(I1[0] - I2[0]);\n\t"
                 "TR2 = (R0[0] - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QA)*(R1[0] + R2[0])) + ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QB)*(I1[0] - I2[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(R1[0] + R2[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*(I1[0] - I2[0]);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = I0[0] + I1[0] + I2[0];\n\t"
                 "TI1 = (I0[0] - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QA)*(I1[0] + I2[0])) + ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QB)*(R1[0] - R2[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(I1[0] + I2[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*(R1[0] - R2[0]);\n\t"
                 "TI2 = (I0[0] - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QA)*(I1[0] + I2[0])) - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(C3QB)*(R1[0] - R2[0]);\n\t";
-            }
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(I1[0] + I2[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*(R1[0] - R2[0]);\n\t";
           }
         }
-        break;
+      } break;
 
       case 4: {
-          if(fwd) {
-            if(cReg) {
-              bflyStr +=
+        if (fwd) {
+          if (cReg) {
+            bflyStr +=
                 "(R1[0]) = (R0[0]) - (R1[0]);\n\t"
                 "(R0[0]) = ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(2.0f) * (R0[0]) - (R1[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R0[0]) - (R1[0]);\n\t"
                 "(R3[0]) = (R2[0]) - (R3[0]);\n\t"
                 "(R2[0]) = ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(2.0f) * (R2[0]) - (R3[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R2[0]) - (R3[0]);\n\t"
                 "\n\t"
                 "(R2[0]) = (R0[0]) - (R2[0]);\n\t"
                 "(R0[0]) = ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(2.0f) * (R0[0]) - (R2[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R0[0]) - (R2[0]);\n\t"
                 "(R3[0]) = (R1[0]) + fvect2(-(R3[0]).y, (R3[0]).x);\n\t"
                 "(R1[0]) = ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(2.0f) * (R1[0]) - (R3[0]);\n\t";
-            } else {
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(2.0f) * (R1[0]) - (R3[0]);\n\t";
+          } else {
+            bflyStr +=
                 "TR0 = (R0[0]) + (R2[0]) + (R1[0]) + (R3[0]);\n\t"
                 "TR1 = (R0[0]) - (R2[0]) + (I1[0]) - (I3[0]);\n\t"
                 "TR2 = (R0[0]) + (R2[0]) - (R1[0]) - (R3[0]);\n\t"
                 "TR3 = (R0[0]) - (R2[0]) - (I1[0]) + (I3[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = (I0[0]) + (I2[0]) + (I1[0]) + (I3[0]);\n\t"
                 "TI1 = (I0[0]) - (I2[0]) - (R1[0]) + (R3[0]);\n\t"
                 "TI2 = (I0[0]) + (I2[0]) - (I1[0]) - (I3[0]);\n\t"
                 "TI3 = (I0[0]) - (I2[0]) + (R1[0]) - (R3[0]);\n\t";
-            }
-          } else {
-            if(cReg) {
-              bflyStr +=
+          }
+        } else {
+          if (cReg) {
+            bflyStr +=
                 "(R1[0]) = (R0[0]) - (R1[0]);\n\t"
                 "(R0[0]) = ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(2.0f) * (R0[0]) - (R1[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R0[0]) - (R1[0]);\n\t"
                 "(R3[0]) = (R2[0]) - (R3[0]);\n\t"
                 "(R2[0]) = ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(2.0f) * (R2[0]) - (R3[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R2[0]) - (R3[0]);\n\t"
                 "\n\t"
                 "(R2[0]) = (R0[0]) - (R2[0]);\n\t"
                 "(R0[0]) = ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(2.0f) * (R0[0]) - (R2[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R0[0]) - (R2[0]);\n\t"
                 "(R3[0]) = (R1[0]) + fvect2((R3[0]).y, -(R3[0]).x);\n\t"
                 "(R1[0]) = ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(2.0f) * (R1[0]) - (R3[0]);\n\t";
-            } else {
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(2.0f) * (R1[0]) - (R3[0]);\n\t";
+          } else {
+            bflyStr +=
                 "TR0 = (R0[0]) + (R2[0]) + (R1[0]) + (R3[0]);\n\t"
                 "TR1 = (R0[0]) - (R2[0]) - (I1[0]) + (I3[0]);\n\t"
                 "TR2 = (R0[0]) + (R2[0]) - (R1[0]) - (R3[0]);\n\t"
                 "TR3 = (R0[0]) - (R2[0]) + (I1[0]) - (I3[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = (I0[0]) + (I2[0]) + (I1[0]) + (I3[0]);\n\t"
                 "TI1 = (I0[0]) - (I2[0]) + (R1[0]) - (R3[0]);\n\t"
                 "TI2 = (I0[0]) + (I2[0]) - (I1[0]) - (I3[0]);\n\t"
                 "TI3 = (I0[0]) - (I2[0]) - (R1[0]) + (R3[0]);\n\t";
-            }
           }
         }
-        break;
+      } break;
 
       case 5: {
-          if(fwd) {
-            if(cReg) {
-              bflyStr +=
-                "TR0 = (R0[0]).x + (R1[0]).x + (R2[0]).x + (R3[0]).x + (R4[0]).x;\n\t"
+        if (fwd) {
+          if (cReg) {
+            bflyStr +=
+                "TR0 = (R0[0]).x + (R1[0]).x + (R2[0]).x + (R3[0]).x + "
+                "(R4[0]).x;\n\t"
                 "TR1 = ((R0[0]).x - ";
-                bflyStr += RegBaseType<PR>(1);
-                bflyStr += "(C5QC)*((R2[0]).x + (R3[0]).x)) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QB)*((R1[0]).y - (R4[0]).y) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QD)*((R2[0]).y - (R3[0]).y) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QA)*(((R1[0]).x - (R2[0]).x) + ((R4[0]).x - (R3[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).x + (R3[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R1[0]).y - (R4[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).y - (R3[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R1[0]).x - (R2[0]).x) + ((R4[0]).x - "
+                "(R3[0]).x));\n\t"
                 "TR4 = ((R0[0]).x - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QC)*((R2[0]).x + (R3[0]).x)) - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QB)*((R1[0]).y - (R4[0]).y) - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QD)*((R2[0]).y - (R3[0]).y) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QA)*(((R1[0]).x - (R2[0]).x) + ((R4[0]).x - (R3[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).x + (R3[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R1[0]).y - (R4[0]).y) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).y - (R3[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R1[0]).x - (R2[0]).x) + ((R4[0]).x - "
+                "(R3[0]).x));\n\t"
                 "TR2 = ((R0[0]).x - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QC)*((R1[0]).x + (R4[0]).x)) - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QB)*((R2[0]).y - (R3[0]).y) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QD)*((R1[0]).y - (R4[0]).y) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QA)*(((R2[0]).x - (R1[0]).x) + ((R3[0]).x - (R4[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R1[0]).x + (R4[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).y - (R3[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R1[0]).y - (R4[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).x - (R1[0]).x) + ((R3[0]).x - "
+                "(R4[0]).x));\n\t"
                 "TR3 = ((R0[0]).x - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QC)*((R1[0]).x + (R4[0]).x)) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QB)*((R2[0]).y - (R3[0]).y) - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QD)*((R1[0]).y - (R4[0]).y) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QA)*(((R2[0]).x - (R1[0]).x) + ((R3[0]).x - (R4[0]).x));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
-                "TI0 = (R0[0]).y + (R1[0]).y + (R2[0]).y + (R3[0]).y + (R4[0]).y;\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R1[0]).x + (R4[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).y - (R3[0]).y) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R1[0]).y - (R4[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).x - (R1[0]).x) + ((R3[0]).x - "
+                "(R4[0]).x));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
+                "TI0 = (R0[0]).y + (R1[0]).y + (R2[0]).y + (R3[0]).y + "
+                "(R4[0]).y;\n\t"
                 "TI1 = ((R0[0]).y - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QC)*((R2[0]).y + (R3[0]).y)) - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QB)*((R1[0]).x - (R4[0]).x) - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QD)*((R2[0]).x - (R3[0]).x) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QA)*(((R1[0]).y - (R2[0]).y) + ((R4[0]).y - (R3[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).y + (R3[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R1[0]).x - (R4[0]).x) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).x - (R3[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R1[0]).y - (R2[0]).y) + ((R4[0]).y - "
+                "(R3[0]).y));\n\t"
                 "TI4 = ((R0[0]).y - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QC)*((R2[0]).y + (R3[0]).y)) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QB)*((R1[0]).x - (R4[0]).x) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QD)*((R2[0]).x - (R3[0]).x) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QA)*(((R1[0]).y - (R2[0]).y) + ((R4[0]).y - (R3[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).y + (R3[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R1[0]).x - (R4[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).x - (R3[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R1[0]).y - (R2[0]).y) + ((R4[0]).y - "
+                "(R3[0]).y));\n\t"
                 "TI2 = ((R0[0]).y - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QC)*((R1[0]).y + (R4[0]).y)) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QB)*((R2[0]).x - (R3[0]).x) - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QD)*((R1[0]).x - (R4[0]).x) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QA)*(((R2[0]).y - (R1[0]).y) + ((R3[0]).y - (R4[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R1[0]).y + (R4[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).x - (R3[0]).x) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R1[0]).x - (R4[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).y - (R1[0]).y) + ((R3[0]).y - "
+                "(R4[0]).y));\n\t"
                 "TI3 = ((R0[0]).y - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QC)*((R1[0]).y + (R4[0]).y)) - ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QB)*((R2[0]).x - (R3[0]).x) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QD)*((R1[0]).x - (R4[0]).x) + ";
-                bflyStr += RegBaseType<PR>(1); 
-                bflyStr += "(C5QA)*(((R2[0]).y - (R1[0]).y) + ((R3[0]).y - (R4[0]).y));\n\t";
-            } else {
-              bflyStr +=
-                "TR0 = R0[0] + R1[0] + R2[0] + R3[0] + R4[0];\n\t"
-                "TR1 = (R0[0] - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-                bflyStr += "(C5QC)*(R2[0] + R3[0])) + ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-                bflyStr += "(C5QB)*(I1[0] - I4[0]) + ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-                bflyStr += "(C5QD)*(I2[0] - I3[0]) + ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-                bflyStr += "(C5QA)*((R1[0] - R2[0]) + (R4[0] - R3[0]));\n\t"
-                "TR4 = (R0[0] - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-                bflyStr += "(C5QC)*(R2[0] + R3[0])) - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-                bflyStr += "(C5QB)*(I1[0] - I4[0]) - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-                bflyStr += "(C5QD)*(I2[0] - I3[0]) + ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-                bflyStr += "(C5QA)*((R1[0] - R2[0]) + (R4[0] - R3[0]));\n\t"
-                "TR2 = (R0[0] - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-                bflyStr += "(C5QC)*(R1[0] + R4[0])) - ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-                bflyStr += "(C5QB)*(I2[0] - I3[0]) + ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I1[0] - I4[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R2[0] - R1[0]) + (R3[0] - R4[0]));\n\t"
-                "TR3 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R1[0] + R4[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I2[0] - I3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I1[0] - I4[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R2[0] - R1[0]) + (R3[0] - R4[0]));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
-                "TI0 = I0[0] + I1[0] + I2[0] + I3[0] + I4[0];\n\t"
-                "TI1 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I2[0] + I3[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R1[0] - R4[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R2[0] - R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I1[0] - I2[0]) + (I4[0] - I3[0]));\n\t"
-                "TI4 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I2[0] + I3[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R1[0] - R4[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R2[0] - R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I1[0] - I2[0]) + (I4[0] - I3[0]));\n\t"
-                "TI2 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I1[0] + I4[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R2[0] - R3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R1[0] - R4[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I2[0] - I1[0]) + (I3[0] - I4[0]));\n\t"
-                "TI3 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I1[0] + I4[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R2[0] - R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R1[0] - R4[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I2[0] - I1[0]) + (I3[0] - I4[0]));\n\t";
-            }
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R1[0]).y + (R4[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).x - (R3[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R1[0]).x - (R4[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).y - (R1[0]).y) + ((R3[0]).y - "
+                "(R4[0]).y));\n\t";
           } else {
-            if(cReg) {
-              bflyStr +=
-                "TR0 = (R0[0]).x + (R1[0]).x + (R2[0]).x + (R3[0]).x + (R4[0]).x;\n\t"
-                "TR1 = ((R0[0]).x - ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QC)*((R2[0]).x + (R3[0]).x)) - ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QB)*((R1[0]).y - (R4[0]).y) - ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QD)*((R2[0]).y - (R3[0]).y) + ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QA)*(((R1[0]).x - (R2[0]).x) + ((R4[0]).x - (R3[0]).x));\n\t"
-                "TR4 = ((R0[0]).x - ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QC)*((R2[0]).x + (R3[0]).x)) + ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QB)*((R1[0]).y - (R4[0]).y) + ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QD)*((R2[0]).y - (R3[0]).y) + ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QA)*(((R1[0]).x - (R2[0]).x) + ((R4[0]).x - (R3[0]).x));\n\t"
-                "TR2 = ((R0[0]).x - ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QC)*((R1[0]).x + (R4[0]).x)) + ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QB)*((R2[0]).y - (R3[0]).y) - ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QD)*((R1[0]).y - (R4[0]).y) + ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QA)*(((R2[0]).x - (R1[0]).x) + ((R3[0]).x - (R4[0]).x));\n\t"
-                "TR3 = ((R0[0]).x - ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QC)*((R1[0]).x + (R4[0]).x)) - ";
-              bflyStr += RegBaseType<PR>(1); 
-              bflyStr += "(C5QB)*((R2[0]).y - (R3[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R1[0]).y - (R4[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R2[0]).x - (R1[0]).x) + ((R3[0]).x - (R4[0]).x));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
-                "TI0 = (R0[0]).y + (R1[0]).y + (R2[0]).y + (R3[0]).y + (R4[0]).y;\n\t"
-                "TI1 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R2[0]).y + (R3[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R1[0]).x - (R4[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R2[0]).x - (R3[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R1[0]).y - (R2[0]).y) + ((R4[0]).y - (R3[0]).y));\n\t"
-                "TI4 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R2[0]).y + (R3[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R1[0]).x - (R4[0]).x) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R2[0]).x - (R3[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R1[0]).y - (R2[0]).y) + ((R4[0]).y - (R3[0]).y));\n\t"
-                "TI2 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R1[0]).y + (R4[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R2[0]).x - (R3[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R1[0]).x - (R4[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R2[0]).y - (R1[0]).y) + ((R3[0]).y - (R4[0]).y));\n\t"
-                "TI3 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R1[0]).y + (R4[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R2[0]).x - (R3[0]).x) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R1[0]).x - (R4[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R2[0]).y - (R1[0]).y) + ((R3[0]).y - (R4[0]).y));\n\t";
-            } else {
-              bflyStr +=
+            bflyStr +=
                 "TR0 = R0[0] + R1[0] + R2[0] + R3[0] + R4[0];\n\t"
                 "TR1 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R2[0] + R3[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I1[0] - I4[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I2[0] - I3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R1[0] - R2[0]) + (R4[0] - R3[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R2[0] + R3[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I1[0] - I4[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I2[0] - I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R1[0] - R2[0]) + (R4[0] - R3[0]));\n\t"
                 "TR4 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R2[0] + R3[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I1[0] - I4[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I2[0] - I3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R1[0] - R2[0]) + (R4[0] - R3[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R2[0] + R3[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I1[0] - I4[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I2[0] - I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R1[0] - R2[0]) + (R4[0] - R3[0]));\n\t"
                 "TR2 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R1[0] + R4[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I2[0] - I3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I1[0] - I4[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R2[0] - R1[0]) + (R3[0] - R4[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R1[0] + R4[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I2[0] - I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I1[0] - I4[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R2[0] - R1[0]) + (R3[0] - R4[0]));\n\t"
                 "TR3 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R1[0] + R4[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I2[0] - I3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I1[0] - I4[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R2[0] - R1[0]) + (R3[0] - R4[0]));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R1[0] + R4[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I2[0] - I3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I1[0] - I4[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*((R2[0] - R1[0]) + (R3[0] - R4[0]));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = I0[0] + I1[0] + I2[0] + I3[0] + I4[0];\n\t"
                 "TI1 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I2[0] + I3[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R1[0] - R4[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R2[0] - R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I1[0] - I2[0]) + (I4[0] - I3[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I2[0] + I3[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R1[0] - R4[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R2[0] - R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I1[0] - I2[0]) + (I4[0] - I3[0]));\n\t"
                 "TI4 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I2[0] + I3[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R1[0] - R4[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R2[0] - R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I1[0] - I2[0]) + (I4[0] - I3[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I2[0] + I3[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R1[0] - R4[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R2[0] - R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I1[0] - I2[0]) + (I4[0] - I3[0]));\n\t"
                 "TI2 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I1[0] + I4[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R2[0] - R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R1[0] - R4[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I2[0] - I1[0]) + (I3[0] - I4[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I1[0] + I4[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R2[0] - R3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R1[0] - R4[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I2[0] - I1[0]) + (I3[0] - I4[0]));\n\t"
                 "TI3 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I1[0] + I4[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R2[0] - R3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R1[0] - R4[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I2[0] - I1[0]) + (I3[0] - I4[0]));\n\t";
-            }
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I1[0] + I4[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R2[0] - R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R1[0] - R4[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*((I2[0] - I1[0]) + (I3[0] - I4[0]));\n\t";
+          }
+        } else {
+          if (cReg) {
+            bflyStr +=
+                "TR0 = (R0[0]).x + (R1[0]).x + (R2[0]).x + (R3[0]).x + "
+                "(R4[0]).x;\n\t"
+                "TR1 = ((R0[0]).x - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).x + (R3[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R1[0]).y - (R4[0]).y) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).y - (R3[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R1[0]).x - (R2[0]).x) + ((R4[0]).x - "
+                "(R3[0]).x));\n\t"
+                "TR4 = ((R0[0]).x - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).x + (R3[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R1[0]).y - (R4[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).y - (R3[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R1[0]).x - (R2[0]).x) + ((R4[0]).x - "
+                "(R3[0]).x));\n\t"
+                "TR2 = ((R0[0]).x - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R1[0]).x + (R4[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).y - (R3[0]).y) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R1[0]).y - (R4[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).x - (R1[0]).x) + ((R3[0]).x - "
+                "(R4[0]).x));\n\t"
+                "TR3 = ((R0[0]).x - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R1[0]).x + (R4[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).y - (R3[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R1[0]).y - (R4[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).x - (R1[0]).x) + ((R3[0]).x - "
+                "(R4[0]).x));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
+                "TI0 = (R0[0]).y + (R1[0]).y + (R2[0]).y + (R3[0]).y + "
+                "(R4[0]).y;\n\t"
+                "TI1 = ((R0[0]).y - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).y + (R3[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R1[0]).x - (R4[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).x - (R3[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R1[0]).y - (R2[0]).y) + ((R4[0]).y - "
+                "(R3[0]).y));\n\t"
+                "TI4 = ((R0[0]).y - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).y + (R3[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R1[0]).x - (R4[0]).x) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).x - (R3[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R1[0]).y - (R2[0]).y) + ((R4[0]).y - "
+                "(R3[0]).y));\n\t"
+                "TI2 = ((R0[0]).y - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R1[0]).y + (R4[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).x - (R3[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R1[0]).x - (R4[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).y - (R1[0]).y) + ((R3[0]).y - "
+                "(R4[0]).y));\n\t"
+                "TI3 = ((R0[0]).y - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R1[0]).y + (R4[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).x - (R3[0]).x) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R1[0]).x - (R4[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).y - (R1[0]).y) + ((R3[0]).y - "
+                "(R4[0]).y));\n\t";
+          } else {
+            bflyStr +=
+                "TR0 = R0[0] + R1[0] + R2[0] + R3[0] + R4[0];\n\t"
+                "TR1 = (R0[0] - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R2[0] + R3[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I1[0] - I4[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I2[0] - I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R1[0] - R2[0]) + (R4[0] - R3[0]));\n\t"
+                "TR4 = (R0[0] - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R2[0] + R3[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I1[0] - I4[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I2[0] - I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R1[0] - R2[0]) + (R4[0] - R3[0]));\n\t"
+                "TR2 = (R0[0] - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R1[0] + R4[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I2[0] - I3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I1[0] - I4[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R2[0] - R1[0]) + (R3[0] - R4[0]));\n\t"
+                "TR3 = (R0[0] - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R1[0] + R4[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I2[0] - I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I1[0] - I4[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*((R2[0] - R1[0]) + (R3[0] - R4[0]));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
+                "TI0 = I0[0] + I1[0] + I2[0] + I3[0] + I4[0];\n\t"
+                "TI1 = (I0[0] - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I2[0] + I3[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R1[0] - R4[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R2[0] - R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I1[0] - I2[0]) + (I4[0] - I3[0]));\n\t"
+                "TI4 = (I0[0] - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I2[0] + I3[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R1[0] - R4[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R2[0] - R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I1[0] - I2[0]) + (I4[0] - I3[0]));\n\t"
+                "TI2 = (I0[0] - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I1[0] + I4[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R2[0] - R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R1[0] - R4[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I2[0] - I1[0]) + (I3[0] - I4[0]));\n\t"
+                "TI3 = (I0[0] - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I1[0] + I4[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R2[0] - R3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R1[0] - R4[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*((I2[0] - I1[0]) + (I3[0] - I4[0]));\n\t";
           }
         }
-        break;
+      } break;
 
       case 6: {
-          if(fwd) {
-            if(cReg) {
-              bflyStr +=
+        if (fwd) {
+          if (cReg) {
+            bflyStr +=
                 "TR0 = (R0[0]).x + (R2[0]).x + (R4[0]).x;\n\t"
                 "TR2 = ((R0[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R2[0]).x + (R4[0]).x)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R2[0]).y - (R4[0]).y);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R2[0]).x + (R4[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*((R2[0]).y - (R4[0]).y);\n\t"
                 "TR4 = ((R0[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R2[0]).x + (R4[0]).x)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R2[0]).y - (R4[0]).y);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R2[0]).x + (R4[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*((R2[0]).y - (R4[0]).y);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = (R0[0]).y + (R2[0]).y + (R4[0]).y;\n\t"
                 "TI2 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R2[0]).y + (R4[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R2[0]).x - (R4[0]).x);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R2[0]).y + (R4[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*((R2[0]).x - (R4[0]).x);\n\t"
                 "TI4 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R2[0]).y + (R4[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R2[0]).x - (R4[0]).x);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R2[0]).y + (R4[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*((R2[0]).x - (R4[0]).x);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TR1 = (R1[0]).x + (R3[0]).x + (R5[0]).x;\n\t"
                 "TR3 = ((R1[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R3[0]).x + (R5[0]).x)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R3[0]).y - (R5[0]).y);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R3[0]).x + (R5[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*((R3[0]).y - (R5[0]).y);\n\t"
                 "TR5 = ((R1[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R3[0]).x + (R5[0]).x)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R3[0]).y - (R5[0]).y);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R3[0]).x + (R5[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*((R3[0]).y - (R5[0]).y);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI1 = (R1[0]).y + (R3[0]).y + (R5[0]).y;\n\t"
                 "TI3 = ((R1[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R3[0]).y + (R5[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R3[0]).x - (R5[0]).x);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R3[0]).y + (R5[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*((R3[0]).x - (R5[0]).x);\n\t"
                 "TI5 = ((R1[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R3[0]).y + (R5[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R3[0]).x - (R5[0]).x);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R3[0]).y + (R5[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*((R3[0]).x - (R5[0]).x);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R0[0]).x = TR0 + TR1;\n\t"
                 "(R1[0]).x = TR2 + ( ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*TR3 + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*TR3 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*TI3);\n\t"
                 "(R2[0]).x = TR4 + (-";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*TR5 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TI5);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*TR5 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*TI5);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R0[0]).y = TI0 + TI1;\n\t"
                 "(R1[0]).y = TI2 + (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TR3 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*TR3 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QA)*TI3);\n\t"
                 "(R2[0]).y = TI4 + (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TR5 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TI5);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*TR5 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*TI5);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R3[0]).x = TR0 - TR1;\n\t"
                 "(R4[0]).x = TR2 - ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TR3 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*TR3 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*TI3);\n\t"
                 "(R5[0]).x = TR4 - (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TR5 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TI5);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*TR5 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*TI5);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R3[0]).y = TI0 - TI1;\n\t"
                 "(R4[0]).y = TI2 - (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TR3 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*TR3 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QA)*TI3);\n\t"
                 "(R5[0]).y = TI4 - (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TR5 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TI5);\n\t";
-            } else {
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*TR5 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*TI5);\n\t";
+          } else {
+            bflyStr +=
                 "TR0 = R0[0] + R2[0] + R4[0];\n\t"
                 "TR2 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(R2[0] + R4[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(I2[0] - I4[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(R2[0] + R4[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*(I2[0] - I4[0]);\n\t"
                 "TR4 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(R2[0] + R4[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(I2[0] - I4[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(R2[0] + R4[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*(I2[0] - I4[0]);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = I0[0] + I2[0] + I4[0];\n\t"
                 "TI2 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(I2[0] + I4[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(R2[0] - R4[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(I2[0] + I4[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*(R2[0] - R4[0]);\n\t"
                 "TI4 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(I2[0] + I4[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(R2[0] - R4[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(I2[0] + I4[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*(R2[0] - R4[0]);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TR1 = R1[0] + R3[0] + R5[0];\n\t"
                 "TR3 = (R1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(R3[0] + R5[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(I3[0] - I5[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(R3[0] + R5[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*(I3[0] - I5[0]);\n\t"
                 "TR5 = (R1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(R3[0] + R5[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(I3[0] - I5[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(R3[0] + R5[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*(I3[0] - I5[0]);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI1 = I1[0] + I3[0] + I5[0];\n\t"
                 "TI3 = (I1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(I3[0] + I5[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(R3[0] - R5[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(I3[0] + I5[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*(R3[0] - R5[0]);\n\t"
                 "TI5 = (I1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(I3[0] + I5[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(R3[0] - R5[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(I3[0] + I5[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*(R3[0] - R5[0]);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R0[0]) = TR0 + TR1;\n\t"
                 "(R1[0]) = TR2 + ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TR3 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*TR3 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*TI3);\n\t"
                 "(R2[0]) = TR4 + (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TR5 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TI5);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*TR5 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*TI5);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(I0[0]) = TI0 + TI1;\n\t"
                 "(I1[0]) = TI2 + (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TR3 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*TR3 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QA)*TI3);\n\t"
                 "(I2[0]) = TI4 + (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TR5 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TI5);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*TR5 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*TI5);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R3[0]) = TR0 - TR1;\n\t"
                 "(R4[0]) = TR2 - ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TR3 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*TR3 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*TI3);\n\t"
                 "(R5[0]) = TR4 - (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TR5 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TI5);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*TR5 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*TI5);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(I3[0]) = TI0 - TI1;\n\t"
                 "(I4[0]) = TI2 - (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TR3 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*TR3 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QA)*TI3);\n\t"
                 "(I5[0]) = TI4 - (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TR5 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TI5);\n\t";
-            }
-          } else {
-            if(cReg) {
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*TR5 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*TI5);\n\t";
+          }
+        } else {
+          if (cReg) {
+            bflyStr +=
                 "TR0 = (R0[0]).x + (R2[0]).x + (R4[0]).x;\n\t"
                 "TR2 = ((R0[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R2[0]).x + (R4[0]).x)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R2[0]).y - (R4[0]).y);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R2[0]).x + (R4[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*((R2[0]).y - (R4[0]).y);\n\t"
                 "TR4 = ((R0[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R2[0]).x + (R4[0]).x)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R2[0]).y - (R4[0]).y);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R2[0]).x + (R4[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*((R2[0]).y - (R4[0]).y);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = (R0[0]).y + (R2[0]).y + (R4[0]).y;\n\t"
                 "TI2 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R2[0]).y + (R4[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R2[0]).x - (R4[0]).x);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R2[0]).y + (R4[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*((R2[0]).x - (R4[0]).x);\n\t"
                 "TI4 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R2[0]).y + (R4[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R2[0]).x - (R4[0]).x);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R2[0]).y + (R4[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*((R2[0]).x - (R4[0]).x);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TR1 = (R1[0]).x + (R3[0]).x + (R5[0]).x;\n\t"
                 "TR3 = ((R1[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R3[0]).x + (R5[0]).x)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R3[0]).y - (R5[0]).y);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R3[0]).x + (R5[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*((R3[0]).y - (R5[0]).y);\n\t"
                 "TR5 = ((R1[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R3[0]).x + (R5[0]).x)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R3[0]).y - (R5[0]).y);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R3[0]).x + (R5[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*((R3[0]).y - (R5[0]).y);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI1 = (R1[0]).y + (R3[0]).y + (R5[0]).y;\n\t"
                 "TI3 = ((R1[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R3[0]).y + (R5[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R3[0]).x - (R5[0]).x);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R3[0]).y + (R5[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*((R3[0]).x - (R5[0]).x);\n\t"
                 "TI5 = ((R1[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QA)*((R3[0]).y + (R5[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C3QB)*((R3[0]).x - (R5[0]).x);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*((R3[0]).y + (R5[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*((R3[0]).x - (R5[0]).x);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R0[0]).x = TR0 + TR1;\n\t"
                 "(R1[0]).x = TR2 + ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TR3 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*TR3 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*TI3);\n\t"
                 "(R2[0]).x = TR4 + (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TR5 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TI5);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*TR5 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*TI5);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R0[0]).y = TI0 + TI1;\n\t"
                 "(R1[0]).y = TI2 + ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TR3 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*TR3 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QA)*TI3);\n\t"
                 "(R2[0]).y = TI4 + ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TR5 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TI5);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*TR5 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*TI5);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R3[0]).x = TR0 - TR1;\n\t"
                 "(R4[0]).x = TR2 - ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TR3 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*TR3 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QB)*TI3);\n\t"
                 "(R5[0]).x = TR4 - (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TR5 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TI5);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*TR5 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*TI5);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R3[0]).y = TI0 - TI1;\n\t"
                 "(R4[0]).y = TI2 - ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TR3 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*TR3 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C3QA)*TI3);\n\t"
                 "(R5[0]).y = TI4 - ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QB)*TR5 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C3QA)*TI5);\n\t";
-            } else {
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QB)*TR5 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C3QA)*TI5);\n\t";
+          } else {
+            bflyStr +=
                 "TR0 = R0[0] + R2[0] + R4[0];\n\t"
                 "TR2 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(R2[0] + R4[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(I2[0] - I4[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(R2[0] + R4[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*(I2[0] - I4[0]);\n\t"
                 "TR4 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(R2[0] + R4[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(I2[0] - I4[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(R2[0] + R4[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*(I2[0] - I4[0]);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = I0[0] + I2[0] + I4[0];\n\t"
                 "TI2 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(I2[0] + I4[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(R2[0] - R4[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(I2[0] + I4[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*(R2[0] - R4[0]);\n\t"
                 "TI4 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(I2[0] + I4[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(R2[0] - R4[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(I2[0] + I4[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*(R2[0] - R4[0]);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TR1 = R1[0] + R3[0] + R5[0];\n\t"
                 "TR3 = (R1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(R3[0] + R5[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(I3[0] - I5[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(R3[0] + R5[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*(I3[0] - I5[0]);\n\t"
                 "TR5 = (R1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(R3[0] + R5[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(I3[0] - I5[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(R3[0] + R5[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*(I3[0] - I5[0]);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI1 = I1[0] + I3[0] + I5[0];\n\t"
                 "TI3 = (I1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(I3[0] + I5[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(R3[0] - R5[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(I3[0] + I5[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*(R3[0] - R5[0]);\n\t"
                 "TI5 = (I1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*(I3[0] + I5[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*(R3[0] - R5[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*(I3[0] + I5[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*(R3[0] - R5[0]);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R0[0]) = TR0 + TR1;\n\t"
                 "(R1[0]) = TR2 + ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TR3 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*TR3 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*TI3);\n\t"
                 "(R2[0]) = TR4 + (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TR5 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TI5);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*TR5 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*TI5);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(I0[0]) = TI0 + TI1;\n\t"
                 "(I1[0]) = TI2 + ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TR3 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*TR3 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QA)*TI3);\n\t"
                 "(I2[0]) = TI4 + ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TR5 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TI5);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*TR5 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*TI5);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R3[0]) = TR0 - TR1;\n\t"
                 "(R4[0]) = TR2 - ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TR3 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*TR3 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QB)*TI3);\n\t"
                 "(R5[0]) = TR4 - (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TR5 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TI5);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*TR5 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*TI5);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(I3[0]) = TI0 - TI1;\n\t"
                 "(I4[0]) = TI2 - ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TR3 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*TR3 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C3QA)*TI3);\n\t"
                 "(I5[0]) = TI4 - ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QB)*TR5 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C3QA)*TI5);\n\t";
-            }
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QB)*TR5 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C3QA)*TI5);\n\t";
           }
         }
-        break;
+      } break;
 
       case 7: {
-          static const char* C7SFR = "\
-				/*FFT7 Forward Real */ \n\
-				\n\
-				pr0 = R1[0] + R6[0]; \n\
-				pi0 = I1[0] + I6[0]; \n\
-				pr1 = R1[0] - R6[0]; \n\
-				pi1 = I1[0] - I6[0]; \n\
-				pr2 = R2[0] + R5[0]; \n\
-				pi2 = I2[0] + I5[0]; \n\
-				pr3 = R2[0] - R5[0]; \n\
-				pi3 = I2[0] - I5[0]; \n\
-				pr4 = R4[0] + R3[0]; \n\
-				pi4 = I4[0] + I3[0]; \n\
-				pr5 = R4[0] - R3[0]; \n\
-				pi5 = I4[0] - I3[0]; \n\
-				\n\
-				pr6 = pr2 + pr0; \n\
-				pi6 = pi2 + pi0; \n\
-				qr4 = pr2 - pr0; \n\
-				qi4 = pi2 - pi0; \n\
+        static const char* C7SFR =
+                                "\
+                                /*FFT7 Forward Real */ \n\
+                                \n\
+                                pr0 = R1[0] + R6[0]; \n\
+                                pi0 = I1[0] + I6[0]; \n\
+                                pr1 = R1[0] - R6[0]; \n\
+                                pi1 = I1[0] - I6[0]; \n\
+                                pr2 = R2[0] + R5[0]; \n\
+                                pi2 = I2[0] + I5[0]; \n\
+                                pr3 = R2[0] - R5[0]; \n\
+                                pi3 = I2[0] - I5[0]; \n\
+                                pr4 = R4[0] + R3[0]; \n\
+                                pi4 = I4[0] + I3[0]; \n\
+                                pr5 = R4[0] - R3[0]; \n\
+                                pi5 = I4[0] - I3[0]; \n\
+                                \n\
+                                pr6 = pr2 + pr0; \n\
+                                pi6 = pi2 + pi0; \n\
+                                qr4 = pr2 - pr0; \n\
+                                qi4 = pi2 - pi0; \n\
 				qr2 = pr0 - pr4; \n\
 				qi2 = pi0 - pi4; \n\
 				qr3 = pr4 - pr2; \n\
@@ -1397,7 +1529,8 @@ bflyStr += "(C3QA)*TI5);\n\t";
 				TR6 = pr7 - qi6; \n\
 				TI6 = pi7 + qr6; \n\
 				";
-          static const char* C7SBR = "\
+        static const char* C7SBR =
+            "\
 				/*FFT7 Backward Real */ \n\
 				\n\
 				pr0 = R1[0] + R6[0]; \n\
@@ -1495,7 +1628,8 @@ bflyStr += "(C3QA)*TI5);\n\t";
 				TR6 = pr7 - qi6; \n\
 				TI6 = pi7 + qr6; \n\
 			";
-          static const char* C7SFC = "\
+        static const char* C7SFC =
+            "\
 			/*FFT7 Forward Complex */ \n\
 			\n\
 				p0 = R1[0] + R6[0]; \n\
@@ -1555,7 +1689,8 @@ bflyStr += "(C3QA)*TI5);\n\t";
 				(R6[0]).x = p7.x - q6.y; \n\
 				(R6[0]).y = p7.y + q6.x; \n\
 			";
-          static const char* C7SBC = "\
+        static const char* C7SBC =
+            "\
 			/*FFT7 Backward Complex */ \n\
 			\n\
 				p0 = R1[0] + R6[0]; \n\
@@ -1616,1466 +1751,1680 @@ bflyStr += "(C3QA)*TI5);\n\t";
 				(R6[0]).y = p7.y + q6.x; \n\
 			";
 
-          if (!cReg) {
-            for (size_t i = 0; i < 10; i++) {
-              bflyStr += regType + " pr" + SztToStr(i) + ", pi" + SztToStr(i) + ";\n\t";
-            }
+        if (!cReg) {
+          for (size_t i = 0; i < 10; i++) {
+            bflyStr +=
+                regType + " pr" + SztToStr(i) + ", pi" + SztToStr(i) + ";\n\t";
+          }
 
-            for (size_t i = 0; i < 9; i++) {
-              bflyStr += regType + " qr" + SztToStr(i) + ", qi" + SztToStr(i) + ";\n\t";
-            }
+          for (size_t i = 0; i < 9; i++) {
+            bflyStr +=
+                regType + " qr" + SztToStr(i) + ", qi" + SztToStr(i) + ";\n\t";
+          }
 
-            if (fwd) {
-              bflyStr += C7SFR;
-            } else {
-              bflyStr += C7SBR;
-            }
+          if (fwd) {
+            bflyStr += C7SFR;
           } else {
-            for (size_t i = 0; i < 10; i++) {
-              bflyStr += regType + " p" + SztToStr(i) + ";\n\t";
-            }
+            bflyStr += C7SBR;
+          }
+        } else {
+          for (size_t i = 0; i < 10; i++) {
+            bflyStr += regType + " p" + SztToStr(i) + ";\n\t";
+          }
 
-            for (size_t i = 0; i < 9; i++) {
-              bflyStr += regType + " q" + SztToStr(i) + ";\n\t";
-            }
+          for (size_t i = 0; i < 9; i++) {
+            bflyStr += regType + " q" + SztToStr(i) + ";\n\t";
+          }
 
-            if (fwd) {
-              bflyStr += C7SFC;
-            } else {
-              bflyStr += C7SBC;
-            }
+          if (fwd) {
+            bflyStr += C7SFC;
+          } else {
+            bflyStr += C7SBC;
           }
         }
-        break;
+      } break;
 
       case 8: {
-          if(fwd) {
-            if(cReg) {
-              bflyStr +=
+        if (fwd) {
+          if (cReg) {
+            bflyStr +=
                 "(R1[0]) = (R0[0]) - (R1[0]);\n\t"
                 "(R0[0]) = ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(2.0f) * (R0[0]) - (R1[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R0[0]) - (R1[0]);\n\t"
                 "(R3[0]) = (R2[0]) - (R3[0]);\n\t"
                 "(R2[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R2[0]) - (R3[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R2[0]) - (R3[0]);\n\t"
                 "(R5[0]) = (R4[0]) - (R5[0]);\n\t"
                 "(R4[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R4[0]) - (R5[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R4[0]) - (R5[0]);\n\t"
                 "(R7[0]) = (R6[0]) - (R7[0]);\n\t"
                 "(R6[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R6[0]) - (R7[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R6[0]) - (R7[0]);\n\t"
                 "\n\t"
                 "(R2[0]) = (R0[0]) - (R2[0]);\n\t"
                 "(R0[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R0[0]) - (R2[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R0[0]) - (R2[0]);\n\t"
                 "(R3[0]) = (R1[0]) + fvect2(-(R3[0]).y, (R3[0]).x);\n\t"
                 "(R1[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R1[0]) - (R3[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R1[0]) - (R3[0]);\n\t"
                 "(R6[0]) = (R4[0]) - (R6[0]);\n\t"
                 "(R4[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R4[0]) - (R6[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R4[0]) - (R6[0]);\n\t"
                 "(R7[0]) = (R5[0]) + fvect2(-(R7[0]).y, (R7[0]).x);\n\t"
                 "(R5[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R5[0]) - (R7[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R5[0]) - (R7[0]);\n\t"
                 "\n\t"
                 "(R4[0]) = (R0[0]) - (R4[0]);\n\t"
                 "(R0[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R0[0]) - (R4[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R0[0]) - (R4[0]);\n\t"
                 "(R5[0]) = ((R1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q) * (R5[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q) * fvect2((R5[0]).y, -(R5[0]).x);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q) * (R5[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q) * fvect2((R5[0]).y, -(R5[0]).x);\n\t"
                 "(R1[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R1[0]) - (R5[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R1[0]) - (R5[0]);\n\t"
                 "(R6[0]) = (R2[0]) + fvect2(-(R6[0]).y, (R6[0]).x);\n\t"
                 "(R2[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R2[0]) - (R6[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R2[0]) - (R6[0]);\n\t"
                 "(R7[0]) = ((R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q) * (R7[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q) * fvect2((R7[0]).y, -(R7[0]).x);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q) * (R7[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q) * fvect2((R7[0]).y, -(R7[0]).x);\n\t"
                 "(R3[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R3[0]) - (R7[0]);\n\t";
-            } else {
-              bflyStr +=
-                "TR0 = (R0[0]) + (R4[0]) + (R2[0]) + (R6[0]) +     (R1[0])             +     (R3[0])             +     (R5[0])             +     (R7[0])            ;\n\t"
-                "TR1 = (R0[0]) - (R4[0]) + (I2[0]) - (I6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t"
-                "TR2 = (R0[0]) + (R4[0]) - (R2[0]) - (R6[0])             +     (I1[0])             -     (I3[0])             +     (I5[0])             -     (I7[0]);\n\t"
-                "TR3 = (R0[0]) - (R4[0]) - (I2[0]) + (I6[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t"
-                "TR4 = (R0[0]) + (R4[0]) + (R2[0]) + (R6[0]) -     (R1[0])             -     (R3[0])             -     (R5[0])             -     (R7[0])            ;\n\t"
-                "TR5 = (R0[0]) - (R4[0]) + (I2[0]) - (I6[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t"
-                "TR6 = (R0[0]) + (R4[0]) - (R2[0]) - (R6[0])             -    (I1[0])              +     (I3[0])             -     (I5[0])             +     (I7[0]);\n\t"
-                "TR7 = (R0[0]) - (R4[0]) - (I2[0]) + (I6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
-                "TI0 = (I0[0]) + (I4[0]) + (I2[0]) + (I6[0])             +     (I1[0])             +     (I3[0])             +     (I5[0])             +     (I7[0]);\n\t"
-                "TI1 = (I0[0]) - (I4[0]) - (R2[0]) + (R6[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t"
-                "TI2 = (I0[0]) + (I4[0]) - (I2[0]) - (I6[0]) -     (R1[0])             +     (R3[0])             -     (R5[0])             +     (R7[0])            ;\n\t"
-                "TI3 = (I0[0]) - (I4[0]) + (R2[0]) - (R6[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t"
-                "TI4 = (I0[0]) + (I4[0]) + (I2[0]) + (I6[0])             -    (I1[0])              -     (I3[0])             -     (I5[0])             -     (I7[0]);\n\t"
-                "TI5 = (I0[0]) - (I4[0]) - (R2[0]) + (R6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t"
-                "TI6 = (I0[0]) + (I4[0]) - (I2[0]) - (I6[0]) +     (R1[0])             -     (R3[0])             +     (R5[0])             -     (R7[0])            ;\n\t"
-                "TI7 = (I0[0]) - (I4[0]) + (R2[0]) - (R6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t";
-            }
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(2.0f) * (R3[0]) - (R7[0]);\n\t";
           } else {
-            if(cReg) {
-              bflyStr +=
+            bflyStr +=
+                "TR0 = (R0[0]) + (R4[0]) + (R2[0]) + (R6[0]) +     (R1[0])     "
+                "        +     (R3[0])             +     (R5[0])             + "
+                "    (R7[0])            ;\n\t"
+                "TR1 = (R0[0]) - (R4[0]) + (I2[0]) - (I6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q)*(I7[0]);\n\t"
+                "TR2 = (R0[0]) + (R4[0]) - (R2[0]) - (R6[0])             +     "
+                "(I1[0])             -     (I3[0])             +     (I5[0])   "
+                "          -     (I7[0]);\n\t"
+                "TR3 = (R0[0]) - (R4[0]) - (I2[0]) + (I6[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q)*(I7[0]);\n\t"
+                "TR4 = (R0[0]) + (R4[0]) + (R2[0]) + (R6[0]) -     (R1[0])     "
+                "        -     (R3[0])             -     (R5[0])             - "
+                "    (R7[0])            ;\n\t"
+                "TR5 = (R0[0]) - (R4[0]) + (I2[0]) - (I6[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q)*(I7[0]);\n\t"
+                "TR6 = (R0[0]) + (R4[0]) - (R2[0]) - (R6[0])             -    "
+                "(I1[0])              +     (I3[0])             -     (I5[0])  "
+                "           +     (I7[0]);\n\t"
+                "TR7 = (R0[0]) - (R4[0]) - (I2[0]) + (I6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I7[0]);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
+                "TI0 = (I0[0]) + (I4[0]) + (I2[0]) + (I6[0])             +     "
+                "(I1[0])             +     (I3[0])             +     (I5[0])   "
+                "          +     (I7[0]);\n\t"
+                "TI1 = (I0[0]) - (I4[0]) - (R2[0]) + (R6[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q)*(I7[0]);\n\t"
+                "TI2 = (I0[0]) + (I4[0]) - (I2[0]) - (I6[0]) -     (R1[0])     "
+                "        +     (R3[0])             -     (R5[0])             + "
+                "    (R7[0])            ;\n\t"
+                "TI3 = (I0[0]) - (I4[0]) + (R2[0]) - (R6[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q)*(I7[0]);\n\t"
+                "TI4 = (I0[0]) + (I4[0]) + (I2[0]) + (I6[0])             -    "
+                "(I1[0])              -     (I3[0])             -     (I5[0])  "
+                "           -     (I7[0]);\n\t"
+                "TI5 = (I0[0]) - (I4[0]) - (R2[0]) + (R6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q)*(I7[0]);\n\t"
+                "TI6 = (I0[0]) + (I4[0]) - (I2[0]) - (I6[0]) +     (R1[0])     "
+                "        -     (R3[0])             +     (R5[0])             - "
+                "    (R7[0])            ;\n\t"
+                "TI7 = (I0[0]) - (I4[0]) + (R2[0]) - (R6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I7[0]);\n\t";
+          }
+        } else {
+          if (cReg) {
+            bflyStr +=
                 "(R1[0]) = (R0[0]) - (R1[0]);\n\t"
                 "(R0[0]) = ";
-                bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
-                bflyStr += "(2.0f) * (R0[0]) - (R1[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R0[0]) - (R1[0]);\n\t"
                 "(R3[0]) = (R2[0]) - (R3[0]);\n\t"
                 "(R2[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R2[0]) - (R3[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R2[0]) - (R3[0]);\n\t"
                 "(R5[0]) = (R4[0]) - (R5[0]);\n\t"
                 "(R4[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R4[0]) - (R5[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R4[0]) - (R5[0]);\n\t"
                 "(R7[0]) = (R6[0]) - (R7[0]);\n\t"
                 "(R6[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R6[0]) - (R7[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R6[0]) - (R7[0]);\n\t"
                 "\n\t"
                 "(R2[0]) = (R0[0]) - (R2[0]);\n\t"
                 "(R0[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R0[0]) - (R2[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R0[0]) - (R2[0]);\n\t"
                 "(R3[0]) = (R1[0]) + fvect2((R3[0]).y, -(R3[0]).x);\n\t"
                 "(R1[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R1[0]) - (R3[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R1[0]) - (R3[0]);\n\t"
                 "(R6[0]) = (R4[0]) - (R6[0]);\n\t"
                 "(R4[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R4[0]) - (R6[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R4[0]) - (R6[0]);\n\t"
                 "(R7[0]) = (R5[0]) + fvect2((R7[0]).y, -(R7[0]).x);\n\t"
                 "(R5[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R5[0]) - (R7[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R5[0]) - (R7[0]);\n\t"
                 "\n\t"
                 "(R4[0]) = (R0[0]) - (R4[0]);\n\t"
                 "(R0[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R0[0]) - (R4[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R0[0]) - (R4[0]);\n\t"
                 "(R5[0]) = ((R1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q) * (R5[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q) * fvect2((R5[0]).y, -(R5[0]).x);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q) * (R5[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q) * fvect2((R5[0]).y, -(R5[0]).x);\n\t"
                 "(R1[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R1[0]) - (R5[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R1[0]) - (R5[0]);\n\t"
                 "(R6[0]) = (R2[0]) + fvect2((R6[0]).y, -(R6[0]).x);\n\t"
                 "(R2[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R2[0]) - (R6[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(2.0f) * (R2[0]) - (R6[0]);\n\t"
                 "(R7[0]) = ((R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q) * (R7[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q) * fvect2((R7[0]).y, -(R7[0]).x);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q) * (R7[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q) * fvect2((R7[0]).y, -(R7[0]).x);\n\t"
                 "(R3[0]) = ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(2.0f) * (R3[0]) - (R7[0]);\n\t";
-            } else {
-              bflyStr +=
-                "TR0 = (R0[0]) + (R4[0]) + (R2[0]) + (R6[0]) +     (R1[0])             +     (R3[0])             +     (R5[0])             +     (R7[0])            ;\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(2.0f) * (R3[0]) - (R7[0]);\n\t";
+          } else {
+            bflyStr +=
+                "TR0 = (R0[0]) + (R4[0]) + (R2[0]) + (R6[0]) +     (R1[0])     "
+                "        +     (R3[0])             +     (R5[0])             + "
+                "    (R7[0])            ;\n\t"
                 "TR1 = (R0[0]) - (R4[0]) - (I2[0]) + (I6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t"
-                "TR2 = (R0[0]) + (R4[0]) - (R2[0]) - (R6[0])             -     (I1[0])             +     (I3[0])             -     (I5[0])             +     (I7[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q)*(I7[0]);\n\t"
+                "TR2 = (R0[0]) + (R4[0]) - (R2[0]) - (R6[0])             -     "
+                "(I1[0])             +     (I3[0])             -     (I5[0])   "
+                "          +     (I7[0]);\n\t"
                 "TR3 = (R0[0]) - (R4[0]) + (I2[0]) - (I6[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t"
-                "TR4 = (R0[0]) + (R4[0]) + (R2[0]) + (R6[0]) -     (R1[0])             -    (R3[0])              -     (R5[0])             -     (R7[0])            ;\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q)*(I7[0]);\n\t"
+                "TR4 = (R0[0]) + (R4[0]) + (R2[0]) + (R6[0]) -     (R1[0])     "
+                "        -    (R3[0])              -     (R5[0])             - "
+                "    (R7[0])            ;\n\t"
                 "TR5 = (R0[0]) - (R4[0]) - (I2[0]) + (I6[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t"
-                "TR6 = (R0[0]) + (R4[0]) - (R2[0]) - (R6[0])             +     (I1[0])             -     (I3[0])             +     (I5[0])             -     (I7[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q)*(I7[0]);\n\t"
+                "TR6 = (R0[0]) + (R4[0]) - (R2[0]) - (R6[0])             +     "
+                "(I1[0])             -     (I3[0])             +     (I5[0])   "
+                "          -     (I7[0]);\n\t"
                 "TR7 = (R0[0]) - (R4[0]) + (I2[0]) - (I6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
-                "TI0 = (I0[0]) + (I4[0]) + (I2[0]) + (I6[0])             +     (I1[0])             +    (I3[0])              +     (I5[0])             +     (I7[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I7[0]);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
+                "TI0 = (I0[0]) + (I4[0]) + (I2[0]) + (I6[0])             +     "
+                "(I1[0])             +    (I3[0])              +     (I5[0])   "
+                "          +     (I7[0]);\n\t"
                 "TI1 = (I0[0]) - (I4[0]) + (R2[0]) - (R6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t"
-                "TI2 = (I0[0]) + (I4[0]) - (I2[0]) - (I6[0]) +     (R1[0])             -     (R3[0])             +     (R5[0])             -     (R7[0])            ;\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q)*(I7[0]);\n\t"
+                "TI2 = (I0[0]) + (I4[0]) - (I2[0]) - (I6[0]) +     (R1[0])     "
+                "        -     (R3[0])             +     (R5[0])             - "
+                "    (R7[0])            ;\n\t"
                 "TI3 = (I0[0]) - (I4[0]) - (R2[0]) + (R6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t"
-                "TI4 = (I0[0]) + (I4[0]) + (I2[0]) + (I6[0])             -     (I1[0])             -     (I3[0])             -     (I5[0])             -     (I7[0]);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q)*(I7[0]);\n\t"
+                "TI4 = (I0[0]) + (I4[0]) + (I2[0]) + (I6[0])             -     "
+                "(I1[0])             -     (I3[0])             -     (I5[0])   "
+                "          -     (I7[0]);\n\t"
                 "TI5 = (I0[0]) - (I4[0]) + (R2[0]) - (R6[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t"
-                "TI6 = (I0[0]) + (I4[0]) - (I2[0]) - (I6[0]) -     (R1[0])             +     (R3[0])             -     (R5[0])             +     (R7[0])            ;\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C8Q)*(I7[0]);\n\t"
+                "TI6 = (I0[0]) + (I4[0]) - (I2[0]) - (I6[0]) -     (R1[0])     "
+                "        +     (R3[0])             -     (R5[0])             + "
+                "    (R7[0])            ;\n\t"
                 "TI7 = (I0[0]) - (I4[0]) - (R2[0]) + (R6[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R1[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I1[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R3[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I3[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R5[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I5[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C8Q)*(I7[0]);\n\t";
-            }
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R1[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I1[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R3[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I3[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R5[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I5[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C8Q)*(I7[0]);\n\t";
           }
         }
-        break;
+      } break;
 
       case 10: {
-          if(fwd) {
-            if(cReg) {
-              bflyStr +=
-                "TR0 = (R0[0]).x + (R2[0]).x + (R4[0]).x + (R6[0]).x + (R8[0]).x;\n\t"
+        if (fwd) {
+          if (cReg) {
+            bflyStr +=
+                "TR0 = (R0[0]).x + (R2[0]).x + (R4[0]).x + (R6[0]).x + "
+                "(R8[0]).x;\n\t"
                 "TR2 = ((R0[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R4[0]).x + (R6[0]).x)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R2[0]).y - (R8[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R4[0]).y - (R6[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R2[0]).x - (R4[0]).x) + ((R8[0]).x - (R6[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R4[0]).x + (R6[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).y - (R8[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R4[0]).y - (R6[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).x - (R4[0]).x) + ((R8[0]).x - "
+                "(R6[0]).x));\n\t"
                 "TR8 = ((R0[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R4[0]).x + (R6[0]).x)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R2[0]).y - (R8[0]).y) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R4[0]).y - (R6[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R2[0]).x - (R4[0]).x) + ((R8[0]).x - (R6[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R4[0]).x + (R6[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).y - (R8[0]).y) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R4[0]).y - (R6[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).x - (R4[0]).x) + ((R8[0]).x - "
+                "(R6[0]).x));\n\t"
                 "TR4 = ((R0[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R2[0]).x + (R8[0]).x)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R4[0]).y - (R6[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R2[0]).y - (R8[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R4[0]).x - (R2[0]).x) + ((R6[0]).x - (R8[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).x + (R8[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R4[0]).y - (R6[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).y - (R8[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R4[0]).x - (R2[0]).x) + ((R6[0]).x - "
+                "(R8[0]).x));\n\t"
                 "TR6 = ((R0[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R2[0]).x + (R8[0]).x)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R4[0]).y - (R6[0]).y) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R2[0]).y - (R8[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R4[0]).x - (R2[0]).x) + ((R6[0]).x - (R8[0]).x));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
-                "TI0 = (R0[0]).y + (R2[0]).y + (R4[0]).y + (R6[0]).y + (R8[0]).y;\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).x + (R8[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R4[0]).y - (R6[0]).y) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).y - (R8[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R4[0]).x - (R2[0]).x) + ((R6[0]).x - "
+                "(R8[0]).x));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
+                "TI0 = (R0[0]).y + (R2[0]).y + (R4[0]).y + (R6[0]).y + "
+                "(R8[0]).y;\n\t"
                 "TI2 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R4[0]).y + (R6[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R2[0]).x - (R8[0]).x) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R4[0]).x - (R6[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R2[0]).y - (R4[0]).y) + ((R8[0]).y - (R6[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R4[0]).y + (R6[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).x - (R8[0]).x) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R4[0]).x - (R6[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).y - (R4[0]).y) + ((R8[0]).y - "
+                "(R6[0]).y));\n\t"
                 "TI8 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R4[0]).y + (R6[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R2[0]).x - (R8[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R4[0]).x - (R6[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R2[0]).y - (R4[0]).y) + ((R8[0]).y - (R6[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R4[0]).y + (R6[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).x - (R8[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R4[0]).x - (R6[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).y - (R4[0]).y) + ((R8[0]).y - "
+                "(R6[0]).y));\n\t"
                 "TI4 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R2[0]).y + (R8[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R4[0]).x - (R6[0]).x) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R2[0]).x - (R8[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R4[0]).y - (R2[0]).y) + ((R6[0]).y - (R8[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).y + (R8[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R4[0]).x - (R6[0]).x) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).x - (R8[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R4[0]).y - (R2[0]).y) + ((R6[0]).y - "
+                "(R8[0]).y));\n\t"
                 "TI6 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R2[0]).y + (R8[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R4[0]).x - (R6[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R2[0]).x - (R8[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R4[0]).y - (R2[0]).y) + ((R6[0]).y - (R8[0]).y));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
-                "TR1 = (R1[0]).x + (R3[0]).x + (R5[0]).x + (R7[0]).x + (R9[0]).x;\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).y + (R8[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R4[0]).x - (R6[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).x - (R8[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R4[0]).y - (R2[0]).y) + ((R6[0]).y - "
+                "(R8[0]).y));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
+                "TR1 = (R1[0]).x + (R3[0]).x + (R5[0]).x + (R7[0]).x + "
+                "(R9[0]).x;\n\t"
                 "TR3 = ((R1[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R5[0]).x + (R7[0]).x)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R3[0]).y - (R9[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R5[0]).y - (R7[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R3[0]).x - (R5[0]).x) + ((R9[0]).x - (R7[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R5[0]).x + (R7[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R3[0]).y - (R9[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R5[0]).y - (R7[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R3[0]).x - (R5[0]).x) + ((R9[0]).x - "
+                "(R7[0]).x));\n\t"
                 "TR9 = ((R1[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R5[0]).x + (R7[0]).x)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R3[0]).y - (R9[0]).y) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R5[0]).y - (R7[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R3[0]).x - (R5[0]).x) + ((R9[0]).x - (R7[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R5[0]).x + (R7[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R3[0]).y - (R9[0]).y) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R5[0]).y - (R7[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R3[0]).x - (R5[0]).x) + ((R9[0]).x - "
+                "(R7[0]).x));\n\t"
                 "TR5 = ((R1[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R3[0]).x + (R9[0]).x)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R5[0]).y - (R7[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R3[0]).y - (R9[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R5[0]).x - (R3[0]).x) + ((R7[0]).x - (R9[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R3[0]).x + (R9[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R5[0]).y - (R7[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R3[0]).y - (R9[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R5[0]).x - (R3[0]).x) + ((R7[0]).x - "
+                "(R9[0]).x));\n\t"
                 "TR7 = ((R1[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R3[0]).x + (R9[0]).x)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R5[0]).y - (R7[0]).y) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R3[0]).y - (R9[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R5[0]).x - (R3[0]).x) + ((R7[0]).x - (R9[0]).x));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
-                "TI1 = (R1[0]).y + (R3[0]).y + (R5[0]).y + (R7[0]).y + (R9[0]).y;\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R3[0]).x + (R9[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R5[0]).y - (R7[0]).y) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R3[0]).y - (R9[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R5[0]).x - (R3[0]).x) + ((R7[0]).x - "
+                "(R9[0]).x));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
+                "TI1 = (R1[0]).y + (R3[0]).y + (R5[0]).y + (R7[0]).y + "
+                "(R9[0]).y;\n\t"
                 "TI3 = ((R1[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R5[0]).y + (R7[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R3[0]).x - (R9[0]).x) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R5[0]).x - (R7[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R3[0]).y - (R5[0]).y) + ((R9[0]).y - (R7[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R5[0]).y + (R7[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R3[0]).x - (R9[0]).x) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R5[0]).x - (R7[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R3[0]).y - (R5[0]).y) + ((R9[0]).y - "
+                "(R7[0]).y));\n\t"
                 "TI9 = ((R1[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R5[0]).y + (R7[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R3[0]).x - (R9[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R5[0]).x - (R7[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R3[0]).y - (R5[0]).y) + ((R9[0]).y - (R7[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R5[0]).y + (R7[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R3[0]).x - (R9[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R5[0]).x - (R7[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R3[0]).y - (R5[0]).y) + ((R9[0]).y - "
+                "(R7[0]).y));\n\t"
                 "TI5 = ((R1[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R3[0]).y + (R9[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R5[0]).x - (R7[0]).x) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R3[0]).x - (R9[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R5[0]).y - (R3[0]).y) + ((R7[0]).y - (R9[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R3[0]).y + (R9[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R5[0]).x - (R7[0]).x) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R3[0]).x - (R9[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R5[0]).y - (R3[0]).y) + ((R7[0]).y - "
+                "(R9[0]).y));\n\t"
                 "TI7 = ((R1[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R3[0]).y + (R9[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R5[0]).x - (R7[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R3[0]).x - (R9[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R5[0]).y - (R3[0]).y) + ((R7[0]).y - (R9[0]).y));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R3[0]).y + (R9[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R5[0]).x - (R7[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R3[0]).x - (R9[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R5[0]).y - (R3[0]).y) + ((R7[0]).y - "
+                "(R9[0]).y));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R0[0]).x = TR0 + TR1;\n\t"
                 "(R1[0]).x = TR2 + ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TR3 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QE)*TR3 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QD)*TI3);\n\t"
                 "(R2[0]).x = TR4 + ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TR5 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TI5);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QA)*TR5 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QB)*TI5);\n\t"
                 "(R3[0]).x = TR6 + (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TR7 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TI7);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QA)*TR7 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QB)*TI7);\n\t"
                 "(R4[0]).x = TR8 + (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TR9 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TI9);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QE)*TR9 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*TI9);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R0[0]).y = TI0 + TI1;\n\t"
                 "(R1[0]).y = TI2 + (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TR3 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*TR3 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QE)*TI3);\n\t"
                 "(R2[0]).y = TI4 + (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TR5 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TI5);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*TR5 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*TI5);\n\t"
                 "(R3[0]).y = TI6 + (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TR7 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TI7);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*TR7 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*TI7);\n\t"
                 "(R4[0]).y = TI8 + (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TR9 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TI9);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*TR9 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QE)*TI9);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R5[0]).x = TR0 - TR1;\n\t"
                 "(R6[0]).x = TR2 - ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TR3 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QE)*TR3 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QD)*TI3);\n\t"
                 "(R7[0]).x = TR4 - ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TR5 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TI5);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QA)*TR5 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QB)*TI5);\n\t"
                 "(R8[0]).x = TR6 - (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TR7 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TI7);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QA)*TR7 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QB)*TI7);\n\t"
                 "(R9[0]).x = TR8 - (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TR9 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TI9);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QE)*TR9 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*TI9);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R5[0]).y = TI0 - TI1;\n\t"
                 "(R6[0]).y = TI2 - (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TR3 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*TR3 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QE)*TI3);\n\t"
                 "(R7[0]).y = TI4 - (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TR5 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TI5);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*TR5 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*TI5);\n\t"
                 "(R8[0]).y = TI6 - (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TR7 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TI7);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*TR7 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*TI7);\n\t"
                 "(R9[0]).y = TI8 - (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TR9 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TI9);\n\t";
-            } else {
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*TR9 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QE)*TI9);\n\t";
+          } else {
+            bflyStr +=
                 "TR0 = R0[0] + R2[0] + R4[0] + R6[0] + R8[0];\n\t"
                 "TR2 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R4[0] + R6[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I2[0] - I8[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I4[0] - I6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R2[0] - R4[0]) + (R8[0] - R6[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R4[0] + R6[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I2[0] - I8[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I4[0] - I6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R2[0] - R4[0]) + (R8[0] - R6[0]));\n\t"
                 "TR8 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R4[0] + R6[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I2[0] - I8[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I4[0] - I6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R2[0] - R4[0]) + (R8[0] - R6[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R4[0] + R6[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I2[0] - I8[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I4[0] - I6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R2[0] - R4[0]) + (R8[0] - R6[0]));\n\t"
                 "TR4 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R2[0] + R8[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I4[0] - I6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I2[0] - I8[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R4[0] - R2[0]) + (R6[0] - R8[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R2[0] + R8[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I4[0] - I6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I2[0] - I8[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R4[0] - R2[0]) + (R6[0] - R8[0]));\n\t"
                 "TR6 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R2[0] + R8[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I4[0] - I6[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I2[0] - I8[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R4[0] - R2[0]) + (R6[0] - R8[0]));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R2[0] + R8[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I4[0] - I6[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I2[0] - I8[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*((R4[0] - R2[0]) + (R6[0] - R8[0]));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = I0[0] + I2[0] + I4[0] + I6[0] + I8[0];\n\t"
                 "TI2 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I4[0] + I6[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R2[0] - R8[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R4[0] - R6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I2[0] - I4[0]) + (I8[0] - I6[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I4[0] + I6[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R2[0] - R8[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R4[0] - R6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I2[0] - I4[0]) + (I8[0] - I6[0]));\n\t"
                 "TI8 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I4[0] + I6[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R2[0] - R8[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R4[0] - R6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I2[0] - I4[0]) + (I8[0] - I6[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I4[0] + I6[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R2[0] - R8[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R4[0] - R6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I2[0] - I4[0]) + (I8[0] - I6[0]));\n\t"
                 "TI4 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I2[0] + I8[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R4[0] - R6[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R2[0] - R8[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I4[0] - I2[0]) + (I6[0] - I8[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I2[0] + I8[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R4[0] - R6[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R2[0] - R8[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I4[0] - I2[0]) + (I6[0] - I8[0]));\n\t"
                 "TI6 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I2[0] + I8[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R4[0] - R6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R2[0] - R8[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I4[0] - I2[0]) + (I6[0] - I8[0]));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I2[0] + I8[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R4[0] - R6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R2[0] - R8[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*((I4[0] - I2[0]) + (I6[0] - I8[0]));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TR1 = R1[0] + R3[0] + R5[0] + R7[0] + R9[0];\n\t"
                 "TR3 = (R1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R5[0] + R7[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I3[0] - I9[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I5[0] - I7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R3[0] - R5[0]) + (R9[0] - R7[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R5[0] + R7[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I3[0] - I9[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I5[0] - I7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R3[0] - R5[0]) + (R9[0] - R7[0]));\n\t"
                 "TR9 = (R1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R5[0] + R7[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I3[0] - I9[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I5[0] - I7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R3[0] - R5[0]) + (R9[0] - R7[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R5[0] + R7[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I3[0] - I9[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I5[0] - I7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R3[0] - R5[0]) + (R9[0] - R7[0]));\n\t"
                 "TR5 = (R1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R3[0] + R9[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I5[0] - I7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I3[0] - I9[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R5[0] - R3[0]) + (R7[0] - R9[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R3[0] + R9[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I5[0] - I7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I3[0] - I9[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R5[0] - R3[0]) + (R7[0] - R9[0]));\n\t"
                 "TR7 = (R1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R3[0] + R9[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I5[0] - I7[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I3[0] - I9[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R5[0] - R3[0]) + (R7[0] - R9[0]));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R3[0] + R9[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I5[0] - I7[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I3[0] - I9[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*((R5[0] - R3[0]) + (R7[0] - R9[0]));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI1 = I1[0] + I3[0] + I5[0] + I7[0] + I9[0];\n\t"
                 "TI3 = (I1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I5[0] + I7[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R3[0] - R9[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R5[0] - R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I3[0] - I5[0]) + (I9[0] - I7[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I5[0] + I7[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R3[0] - R9[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R5[0] - R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I3[0] - I5[0]) + (I9[0] - I7[0]));\n\t"
                 "TI9 = (I1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I5[0] + I7[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R3[0] - R9[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R5[0] - R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I3[0] - I5[0]) + (I9[0] - I7[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I5[0] + I7[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R3[0] - R9[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R5[0] - R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I3[0] - I5[0]) + (I9[0] - I7[0]));\n\t"
                 "TI5 = (I1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I3[0] + I9[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R5[0] - R7[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R3[0] - R9[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I5[0] - I3[0]) + (I7[0] - I9[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I3[0] + I9[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R5[0] - R7[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R3[0] - R9[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I5[0] - I3[0]) + (I7[0] - I9[0]));\n\t"
                 "TI7 = (I1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I3[0] + I9[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R5[0] - R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R3[0] - R9[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I5[0] - I3[0]) + (I7[0] - I9[0]));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I3[0] + I9[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R5[0] - R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R3[0] - R9[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*((I5[0] - I3[0]) + (I7[0] - I9[0]));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R0[0]) = TR0 + TR1;\n\t"
                 "(R1[0]) = TR2 + ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TR3 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QE)*TR3 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QD)*TI3);\n\t"
                 "(R2[0]) = TR4 + ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TR5 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TI5);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*TR5 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QB)*TI5);\n\t"
                 "(R3[0]) = TR6 + (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TR7 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TI7);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*TR7 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QB)*TI7);\n\t"
                 "(R4[0]) = TR8 + (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TR9 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TI9);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QE)*TR9 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*TI9);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(I0[0]) = TI0 + TI1;\n\t"
                 "(I1[0]) = TI2 + (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TR3 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*TR3 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QE)*TI3);\n\t"
                 "(I2[0]) = TI4 + (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TR5 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TI5);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*TR5 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*TI5);\n\t"
                 "(I3[0]) = TI6 + (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TR7 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TI7);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*TR7 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*TI7);\n\t"
                 "(I4[0]) = TI8 + (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TR9 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TI9);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*TR9 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QE)*TI9);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R5[0]) = TR0 - TR1;\n\t"
                 "(R6[0]) = TR2 - ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TR3 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QE)*TR3 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QD)*TI3);\n\t"
                 "(R7[0]) = TR4 - ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TR5 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TI5);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*TR5 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QB)*TI5);\n\t"
                 "(R8[0]) = TR6 - (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TR7 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TI7);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*TR7 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QB)*TI7);\n\t"
                 "(R9[0]) = TR8 - (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TR9 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TI9);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QE)*TR9 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*TI9);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(I5[0]) = TI0 - TI1;\n\t"
                 "(I6[0]) = TI2 - (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TR3 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*TR3 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QE)*TI3);\n\t"
                 "(I7[0]) = TI4 - (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TR5 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TI5);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*TR5 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*TI5);\n\t"
                 "(I8[0]) = TI6 - (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TR7 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TI7);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*TR7 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*TI7);\n\t"
                 "(I9[0]) = TI8 - (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TR9 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TI9);\n\t";
-            }
-          } else {
-            if(cReg) {
-              bflyStr +=
-                "TR0 = (R0[0]).x + (R2[0]).x + (R4[0]).x + (R6[0]).x + (R8[0]).x;\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*TR9 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QE)*TI9);\n\t";
+          }
+        } else {
+          if (cReg) {
+            bflyStr +=
+                "TR0 = (R0[0]).x + (R2[0]).x + (R4[0]).x + (R6[0]).x + "
+                "(R8[0]).x;\n\t"
                 "TR2 = ((R0[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R4[0]).x + (R6[0]).x)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R2[0]).y - (R8[0]).y) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R4[0]).y - (R6[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R2[0]).x - (R4[0]).x) + ((R8[0]).x - (R6[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R4[0]).x + (R6[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).y - (R8[0]).y) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R4[0]).y - (R6[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).x - (R4[0]).x) + ((R8[0]).x - "
+                "(R6[0]).x));\n\t"
                 "TR8 = ((R0[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R4[0]).x + (R6[0]).x)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R2[0]).y - (R8[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R4[0]).y - (R6[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R2[0]).x - (R4[0]).x) + ((R8[0]).x - (R6[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R4[0]).x + (R6[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).y - (R8[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R4[0]).y - (R6[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).x - (R4[0]).x) + ((R8[0]).x - "
+                "(R6[0]).x));\n\t"
                 "TR4 = ((R0[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R2[0]).x + (R8[0]).x)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R4[0]).y - (R6[0]).y) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R2[0]).y - (R8[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R4[0]).x - (R2[0]).x) + ((R6[0]).x - (R8[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).x + (R8[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R4[0]).y - (R6[0]).y) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).y - (R8[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R4[0]).x - (R2[0]).x) + ((R6[0]).x - "
+                "(R8[0]).x));\n\t"
                 "TR6 = ((R0[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R2[0]).x + (R8[0]).x)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R4[0]).y - (R6[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R2[0]).y - (R8[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R4[0]).x - (R2[0]).x) + ((R6[0]).x - (R8[0]).x));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
-                "TI0 = (R0[0]).y + (R2[0]).y + (R4[0]).y + (R6[0]).y + (R8[0]).y;\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).x + (R8[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R4[0]).y - (R6[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).y - (R8[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R4[0]).x - (R2[0]).x) + ((R6[0]).x - "
+                "(R8[0]).x));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
+                "TI0 = (R0[0]).y + (R2[0]).y + (R4[0]).y + (R6[0]).y + "
+                "(R8[0]).y;\n\t"
                 "TI2 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R4[0]).y + (R6[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R2[0]).x - (R8[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R4[0]).x - (R6[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R2[0]).y - (R4[0]).y) + ((R8[0]).y - (R6[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R4[0]).y + (R6[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).x - (R8[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R4[0]).x - (R6[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).y - (R4[0]).y) + ((R8[0]).y - "
+                "(R6[0]).y));\n\t"
                 "TI8 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R4[0]).y + (R6[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R2[0]).x - (R8[0]).x) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R4[0]).x - (R6[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R2[0]).y - (R4[0]).y) + ((R8[0]).y - (R6[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R4[0]).y + (R6[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R2[0]).x - (R8[0]).x) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R4[0]).x - (R6[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R2[0]).y - (R4[0]).y) + ((R8[0]).y - "
+                "(R6[0]).y));\n\t"
                 "TI4 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R2[0]).y + (R8[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R4[0]).x - (R6[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R2[0]).x - (R8[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R4[0]).y - (R2[0]).y) + ((R6[0]).y - (R8[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).y + (R8[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R4[0]).x - (R6[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).x - (R8[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R4[0]).y - (R2[0]).y) + ((R6[0]).y - "
+                "(R8[0]).y));\n\t"
                 "TI6 = ((R0[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R2[0]).y + (R8[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R4[0]).x - (R6[0]).x) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R2[0]).x - (R8[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R4[0]).y - (R2[0]).y) + ((R6[0]).y - (R8[0]).y));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
-                "TR1 = (R1[0]).x + (R3[0]).x + (R5[0]).x + (R7[0]).x + (R9[0]).x;\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R2[0]).y + (R8[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R4[0]).x - (R6[0]).x) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R2[0]).x - (R8[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R4[0]).y - (R2[0]).y) + ((R6[0]).y - "
+                "(R8[0]).y));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
+                "TR1 = (R1[0]).x + (R3[0]).x + (R5[0]).x + (R7[0]).x + "
+                "(R9[0]).x;\n\t"
                 "TR3 = ((R1[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R5[0]).x + (R7[0]).x)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R3[0]).y - (R9[0]).y) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R5[0]).y - (R7[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R3[0]).x - (R5[0]).x) + ((R9[0]).x - (R7[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R5[0]).x + (R7[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R3[0]).y - (R9[0]).y) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R5[0]).y - (R7[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R3[0]).x - (R5[0]).x) + ((R9[0]).x - "
+                "(R7[0]).x));\n\t"
                 "TR9 = ((R1[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R5[0]).x + (R7[0]).x)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R3[0]).y - (R9[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R5[0]).y - (R7[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R3[0]).x - (R5[0]).x) + ((R9[0]).x - (R7[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R5[0]).x + (R7[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R3[0]).y - (R9[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R5[0]).y - (R7[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R3[0]).x - (R5[0]).x) + ((R9[0]).x - "
+                "(R7[0]).x));\n\t"
                 "TR5 = ((R1[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R3[0]).x + (R9[0]).x)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R5[0]).y - (R7[0]).y) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R3[0]).y - (R9[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R5[0]).x - (R3[0]).x) + ((R7[0]).x - (R9[0]).x));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R3[0]).x + (R9[0]).x)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R5[0]).y - (R7[0]).y) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R3[0]).y - (R9[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R5[0]).x - (R3[0]).x) + ((R7[0]).x - "
+                "(R9[0]).x));\n\t"
                 "TR7 = ((R1[0]).x - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R3[0]).x + (R9[0]).x)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R5[0]).y - (R7[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R3[0]).y - (R9[0]).y) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R5[0]).x - (R3[0]).x) + ((R7[0]).x - (R9[0]).x));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
-                "TI1 = (R1[0]).y + (R3[0]).y + (R5[0]).y + (R7[0]).y + (R9[0]).y;\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R3[0]).x + (R9[0]).x)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R5[0]).y - (R7[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R3[0]).y - (R9[0]).y) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R5[0]).x - (R3[0]).x) + ((R7[0]).x - "
+                "(R9[0]).x));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
+                "TI1 = (R1[0]).y + (R3[0]).y + (R5[0]).y + (R7[0]).y + "
+                "(R9[0]).y;\n\t"
                 "TI3 = ((R1[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R5[0]).y + (R7[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R3[0]).x - (R9[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R5[0]).x - (R7[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R3[0]).y - (R5[0]).y) + ((R9[0]).y - (R7[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R5[0]).y + (R7[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R3[0]).x - (R9[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R5[0]).x - (R7[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R3[0]).y - (R5[0]).y) + ((R9[0]).y - "
+                "(R7[0]).y));\n\t"
                 "TI9 = ((R1[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R5[0]).y + (R7[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R3[0]).x - (R9[0]).x) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R5[0]).x - (R7[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R3[0]).y - (R5[0]).y) + ((R9[0]).y - (R7[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R5[0]).y + (R7[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R3[0]).x - (R9[0]).x) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R5[0]).x - (R7[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R3[0]).y - (R5[0]).y) + ((R9[0]).y - "
+                "(R7[0]).y));\n\t"
                 "TI5 = ((R1[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R3[0]).y + (R9[0]).y)) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R5[0]).x - (R7[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R3[0]).x - (R9[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R5[0]).y - (R3[0]).y) + ((R7[0]).y - (R9[0]).y));\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R3[0]).y + (R9[0]).y)) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R5[0]).x - (R7[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R3[0]).x - (R9[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R5[0]).y - (R3[0]).y) + ((R7[0]).y - "
+                "(R9[0]).y));\n\t"
                 "TI7 = ((R1[0]).y - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QC)*((R3[0]).y + (R9[0]).y)) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QB)*((R5[0]).x - (R7[0]).x) - ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QD)*((R3[0]).x - (R9[0]).x) + ";
-bflyStr += RegBaseType<PR>(1); 
-bflyStr += "(C5QA)*(((R5[0]).y - (R3[0]).y) + ((R7[0]).y - (R9[0]).y));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QC)*((R3[0]).y + (R9[0]).y)) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*((R5[0]).x - (R7[0]).x) - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*((R3[0]).x - (R9[0]).x) + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*(((R5[0]).y - (R3[0]).y) + ((R7[0]).y - "
+                "(R9[0]).y));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R0[0]).x = TR0 + TR1;\n\t"
                 "(R1[0]).x = TR2 + ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TR3 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QE)*TR3 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QD)*TI3);\n\t"
                 "(R2[0]).x = TR4 + ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TR5 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TI5);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QA)*TR5 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QB)*TI5);\n\t"
                 "(R3[0]).x = TR6 + (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TR7 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TI7);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QA)*TR7 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QB)*TI7);\n\t"
                 "(R4[0]).x = TR8 + (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TR9 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TI9);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QE)*TR9 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*TI9);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R0[0]).y = TI0 + TI1;\n\t"
                 "(R1[0]).y = TI2 + ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TR3 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*TR3 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QE)*TI3);\n\t"
                 "(R2[0]).y = TI4 + ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TR5 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TI5);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*TR5 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*TI5);\n\t"
                 "(R3[0]).y = TI6 + ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TR7 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TI7);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*TR7 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*TI7);\n\t"
                 "(R4[0]).y = TI8 + ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TR9 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TI9);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*TR9 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QE)*TI9);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R5[0]).x = TR0 - TR1;\n\t"
                 "(R6[0]).x = TR2 - ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TR3 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QE)*TR3 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QD)*TI3);\n\t"
                 "(R7[0]).x = TR4 - ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TR5 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TI5);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QA)*TR5 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QB)*TI5);\n\t"
                 "(R8[0]).x = TR6 - (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TR7 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TI7);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QA)*TR7 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QB)*TI7);\n\t"
                 "(R9[0]).x = TR8 - (-";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TR9 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TI9);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QE)*TR9 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*TI9);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R5[0]).y = TI0 - TI1;\n\t"
                 "(R6[0]).y = TI2 - ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TR3 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TI3);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*TR3 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QE)*TI3);\n\t"
                 "(R7[0]).y = TI4 - ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TR5 + ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TI5);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*TR5 + ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*TI5);\n\t"
                 "(R8[0]).y = TI6 - ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QB)*TR7 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QA)*TI7);\n\t"
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QB)*TR7 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr +=
+                "(C5QA)*TI7);\n\t"
                 "(R9[0]).y = TI8 - ( ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QD)*TR9 - ";
-bflyStr += RegBaseType<PR>(1);
-bflyStr += "(C5QE)*TI9);\n\t";
-            } else {
-              bflyStr +=
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QD)*TR9 - ";
+            bflyStr += RegBaseType<PR>(1);
+            bflyStr += "(C5QE)*TI9);\n\t";
+          } else {
+            bflyStr +=
                 "TR0 = R0[0] + R2[0] + R4[0] + R6[0] + R8[0];\n\t"
                 "TR2 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R4[0] + R6[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I2[0] - I8[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I4[0] - I6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R2[0] - R4[0]) + (R8[0] - R6[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R4[0] + R6[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I2[0] - I8[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I4[0] - I6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R2[0] - R4[0]) + (R8[0] - R6[0]));\n\t"
                 "TR8 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R4[0] + R6[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I2[0] - I8[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I4[0] - I6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R2[0] - R4[0]) + (R8[0] - R6[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R4[0] + R6[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I2[0] - I8[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I4[0] - I6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R2[0] - R4[0]) + (R8[0] - R6[0]));\n\t"
                 "TR4 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R2[0] + R8[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I4[0] - I6[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I2[0] - I8[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R4[0] - R2[0]) + (R6[0] - R8[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R2[0] + R8[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I4[0] - I6[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I2[0] - I8[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R4[0] - R2[0]) + (R6[0] - R8[0]));\n\t"
                 "TR6 = (R0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R2[0] + R8[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I4[0] - I6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I2[0] - I8[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R4[0] - R2[0]) + (R6[0] - R8[0]));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R2[0] + R8[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I4[0] - I6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I2[0] - I8[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*((R4[0] - R2[0]) + (R6[0] - R8[0]));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI0 = I0[0] + I2[0] + I4[0] + I6[0] + I8[0];\n\t"
                 "TI2 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I4[0] + I6[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R2[0] - R8[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R4[0] - R6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I2[0] - I4[0]) + (I8[0] - I6[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I4[0] + I6[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R2[0] - R8[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R4[0] - R6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I2[0] - I4[0]) + (I8[0] - I6[0]));\n\t"
                 "TI8 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I4[0] + I6[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R2[0] - R8[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R4[0] - R6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I2[0] - I4[0]) + (I8[0] - I6[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I4[0] + I6[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R2[0] - R8[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R4[0] - R6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I2[0] - I4[0]) + (I8[0] - I6[0]));\n\t"
                 "TI4 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I2[0] + I8[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R4[0] - R6[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R2[0] - R8[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I4[0] - I2[0]) + (I6[0] - I8[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I2[0] + I8[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R4[0] - R6[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R2[0] - R8[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I4[0] - I2[0]) + (I6[0] - I8[0]));\n\t"
                 "TI6 = (I0[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I2[0] + I8[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R4[0] - R6[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R2[0] - R8[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I4[0] - I2[0]) + (I6[0] - I8[0]));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I2[0] + I8[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R4[0] - R6[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R2[0] - R8[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*((I4[0] - I2[0]) + (I6[0] - I8[0]));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TR1 = R1[0] + R3[0] + R5[0] + R7[0] + R9[0];\n\t"
                 "TR3 = (R1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R5[0] + R7[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I3[0] - I9[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I5[0] - I7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R3[0] - R5[0]) + (R9[0] - R7[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R5[0] + R7[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I3[0] - I9[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I5[0] - I7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R3[0] - R5[0]) + (R9[0] - R7[0]));\n\t"
                 "TR9 = (R1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R5[0] + R7[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I3[0] - I9[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I5[0] - I7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R3[0] - R5[0]) + (R9[0] - R7[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R5[0] + R7[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I3[0] - I9[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I5[0] - I7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R3[0] - R5[0]) + (R9[0] - R7[0]));\n\t"
                 "TR5 = (R1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R3[0] + R9[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I5[0] - I7[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I3[0] - I9[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R5[0] - R3[0]) + (R7[0] - R9[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R3[0] + R9[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I5[0] - I7[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I3[0] - I9[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((R5[0] - R3[0]) + (R7[0] - R9[0]));\n\t"
                 "TR7 = (R1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(R3[0] + R9[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(I5[0] - I7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(I3[0] - I9[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((R5[0] - R3[0]) + (R7[0] - R9[0]));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(R3[0] + R9[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(I5[0] - I7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(I3[0] - I9[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*((R5[0] - R3[0]) + (R7[0] - R9[0]));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "TI1 = I1[0] + I3[0] + I5[0] + I7[0] + I9[0];\n\t"
                 "TI3 = (I1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I5[0] + I7[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R3[0] - R9[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R5[0] - R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I3[0] - I5[0]) + (I9[0] - I7[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I5[0] + I7[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R3[0] - R9[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R5[0] - R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I3[0] - I5[0]) + (I9[0] - I7[0]));\n\t"
                 "TI9 = (I1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I5[0] + I7[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R3[0] - R9[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R5[0] - R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I3[0] - I5[0]) + (I9[0] - I7[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I5[0] + I7[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R3[0] - R9[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R5[0] - R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I3[0] - I5[0]) + (I9[0] - I7[0]));\n\t"
                 "TI5 = (I1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I3[0] + I9[0])) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R5[0] - R7[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R3[0] - R9[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I5[0] - I3[0]) + (I7[0] - I9[0]));\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I3[0] + I9[0])) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R5[0] - R7[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R3[0] - R9[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*((I5[0] - I3[0]) + (I7[0] - I9[0]));\n\t"
                 "TI7 = (I1[0] - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QC)*(I3[0] + I9[0])) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*(R5[0] - R7[0]) - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*(R3[0] - R9[0]) + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*((I5[0] - I3[0]) + (I7[0] - I9[0]));\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QC)*(I3[0] + I9[0])) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*(R5[0] - R7[0]) - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*(R3[0] - R9[0]) + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*((I5[0] - I3[0]) + (I7[0] - I9[0]));\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R0[0]) = TR0 + TR1;\n\t"
                 "(R1[0]) = TR2 + ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TR3 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QE)*TR3 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QD)*TI3);\n\t"
                 "(R2[0]) = TR4 + ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TR5 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TI5);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*TR5 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QB)*TI5);\n\t"
                 "(R3[0]) = TR6 + (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TR7 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TI7);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*TR7 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QB)*TI7);\n\t"
                 "(R4[0]) = TR8 + (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TR9 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TI9);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QE)*TR9 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*TI9);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(I0[0]) = TI0 + TI1;\n\t"
                 "(I1[0]) = TI2 + ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TR3 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*TR3 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QE)*TI3);\n\t"
                 "(I2[0]) = TI4 + ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TR5 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TI5);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*TR5 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*TI5);\n\t"
                 "(I3[0]) = TI6 + ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TR7 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TI7);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*TR7 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*TI7);\n\t"
                 "(I4[0]) = TI8 + ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TR9 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TI9);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*TR9 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QE)*TI9);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(R5[0]) = TR0 - TR1;\n\t"
                 "(R6[0]) = TR2 - ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TR3 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QE)*TR3 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QD)*TI3);\n\t"
                 "(R7[0]) = TR4 - ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TR5 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TI5);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*TR5 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QB)*TI5);\n\t"
                 "(R8[0]) = TR6 - (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TR7 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TI7);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QA)*TR7 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QB)*TI7);\n\t"
                 "(R9[0]) = TR8 - (-";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TR9 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TI9);\n\t";
-              bflyStr += "\n\t";
-              bflyStr +=
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QE)*TR9 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*TI9);\n\t";
+            bflyStr += "\n\t";
+            bflyStr +=
                 "(I5[0]) = TI0 - TI1;\n\t"
                 "(I6[0]) = TI2 - ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TR3 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TI3);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*TR3 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QE)*TI3);\n\t"
                 "(I7[0]) = TI4 - ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TR5 + ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TI5);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*TR5 + ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*TI5);\n\t"
                 "(I8[0]) = TI6 - ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QB)*TR7 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QA)*TI7);\n\t"
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QB)*TR7 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr +=
+                "(C5QA)*TI7);\n\t"
                 "(I9[0]) = TI8 - ( ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QD)*TR9 - ";
-bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count); 
-bflyStr += "(C5QE)*TI9);\n\t";
-            }
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QD)*TR9 - ";
+            bflyStr += cReg ? RegBaseType<PR>(2) : RegBaseType<PR>(count);
+            bflyStr += "(C5QE)*TI9);\n\t";
           }
         }
-        break;
+      } break;
 
       case 11: {
-          static const char* radix11str = " \
+        static const char* radix11str =
+            " \
 						fptype p0, p1, p2, p3, p4, p5, p6, p7, p8, p9; \n\
 						p0 = (R1[0].x - R10[0].x)*dir; \n\
 						p1 = R1[0].x + R10[0].x; \n\
@@ -3229,18 +3578,18 @@ bflyStr += "(C5QE)*TI9);\n\t";
 						R10[0].x = z1 - w14* b11_0; \n\
 						R10[0].y = z7 - w1* b11_0; \n";
 
-          if (fwd) {
-            bflyStr += "fptype dir = -1;\n\n";
-          } else {
-            bflyStr += "fptype dir = 1;\n\n";
-          }
-
-          bflyStr += radix11str;
+        if (fwd) {
+          bflyStr += "fptype dir = -1;\n\n";
+        } else {
+          bflyStr += "fptype dir = 1;\n\n";
         }
-        break;
+
+        bflyStr += radix11str;
+      } break;
 
       case 13: {
-          static const char* radix13str = " \
+        static const char* radix13str =
+            " \
 						fptype p0, p1, p2, p3, p4, p5, p6, p7, p8, p9;\n\
 						p0 = R7[0].x - R2[0].x;\n\
 						p1 = R7[0].x + R2[0].x;\n\
@@ -3445,15 +3794,14 @@ bflyStr += "(C5QE)*TI9);\n\t";
 						R12[0].x =  e6 -  f2 * dir * b13_9 ;\n\
 						R12[0].y = e12 + f12 * dir * b13_9 ;\n";
 
-          if (fwd) {
-            bflyStr += "fptype dir = -1;\n\n";
-          } else {
-            bflyStr += "fptype dir = 1;\n\n";
-          }
-
-          bflyStr += radix13str;
+        if (fwd) {
+          bflyStr += "fptype dir = -1;\n\n";
+        } else {
+          bflyStr += "fptype dir = 1;\n\n";
         }
-        break;
+
+        bflyStr += radix13str;
+      } break;
 
       default:
         assert(false);
@@ -3462,11 +3810,11 @@ bflyStr += "(C5QE)*TI9);\n\t";
     bflyStr += "\n\t";
 
     // Assign results
-    if( (radix & (radix - 1)) || (!cReg) ) {
-      if( (radix != 10) && (radix != 6) ) {
-        for(size_t i = 0; i < radix; i++) {
-          if(cReg) {
-            if ( (radix != 7) && (radix != 11) && (radix != 13) ) {
+    if ((radix & (radix - 1)) || (!cReg)) {
+      if ((radix != 10) && (radix != 6)) {
+        for (size_t i = 0; i < radix; i++) {
+          if (cReg) {
+            if ((radix != 7) && (radix != 11) && (radix != 13)) {
               bflyStr += "((R";
               bflyStr += SztToStr(i);
               bflyStr += "[0]).x) = TR";
@@ -3493,10 +3841,10 @@ bflyStr += "(C5QE)*TI9);\n\t";
         }
       }
     } else {
-      for(size_t i = 0; i < radix; i++) {
+      for (size_t i = 0; i < radix; i++) {
         size_t j = BitReverse(i, radix);
 
-        if(i < j) {
+        if (i < j) {
           bflyStr += "T = (R";
           bflyStr += SztToStr(i);
           bflyStr += "[0]); (R";
@@ -3512,15 +3860,20 @@ bflyStr += "(C5QE)*TI9);\n\t";
 
     bflyStr += "\n}\n";
   }
- public:
-  Butterfly(size_t radixVal, size_t countVal, bool fwdVal, bool cRegVal) : radix(radixVal), count(countVal), fwd(fwdVal), cReg(cRegVal) {}
 
-  void GenerateButterfly(std::string &bflyStr, const hcfftPlanHandle plHandle) const {
+ public:
+  Butterfly(size_t radixVal, size_t countVal, bool fwdVal, bool cRegVal)
+      : radix(radixVal), count(countVal), fwd(fwdVal), cReg(cRegVal) {}
+
+  void GenerateButterfly(std::string& bflyStr,
+                         const hcfftPlanHandle plHandle) const {
     assert(count <= 4);
 
-    if(count > 0) {
+    if (count > 0) {
       GenerateButterflyStr(bflyStr, plHandle);
     }
   }
 };
-}
+}  // namespace StockhamGenerator
+
+#endif  // LIB_INCLUDE_STOCKHAM_H_

@@ -1,238 +1,280 @@
+/*
+Copyright (c) 2015-2016 Advanced Micro Devices, Inc. All rights reserved.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+#include "include/hipfft.h"
+#include "include/hcfft.h"
 #include <iostream>
-#include "hipfft.h"
-#include "hcfft.h"
-#include "hcc_detail/hip_fft.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-hipfftResult hipHCFFTResultToHIPFFTResult(hcfftResult hcResult) 
-{
-   switch(hcResult) 
-   {
+hipfftResult hipHCFFTResultToHIPFFTResult(hcfftResult hcResult) {
+  switch (hcResult) {
     case HCFFT_SUCCESS:
-        return HIPFFT_SUCCESS;
+      return HIPFFT_SUCCESS;
     case HCFFT_INVALID_PLAN:
-        return HIPFFT_INVALID_PLAN;
+      return HIPFFT_INVALID_PLAN;
     case HCFFT_ALLOC_FAILED:
-        return HIPFFT_ALLOC_FAILED;
+      return HIPFFT_ALLOC_FAILED;
     case HCFFT_INVALID_TYPE:
-        return HIPFFT_INVALID_TYPE;
+      return HIPFFT_INVALID_TYPE;
     case HCFFT_INVALID_VALUE:
-        return HIPFFT_INVALID_VALUE;
+      return HIPFFT_INVALID_VALUE;
     case HCFFT_INTERNAL_ERROR:
-        return HIPFFT_INTERNAL_ERROR;
+      return HIPFFT_INTERNAL_ERROR;
     case HCFFT_EXEC_FAILED:
-        return HIPFFT_EXEC_FAILED;
+      return HIPFFT_EXEC_FAILED;
     case HCFFT_SETUP_FAILED:
-        return HIPFFT_SETUP_FAILED;
+      return HIPFFT_SETUP_FAILED;
     case HCFFT_INVALID_SIZE:
-        return HIPFFT_INVALID_SIZE;
+      return HIPFFT_INVALID_SIZE;
     case HCFFT_UNALIGNED_DATA:
-        return HIPFFT_UNALIGNED_DATA;
+      return HIPFFT_UNALIGNED_DATA;
     case HCFFT_INCOMPLETE_PARAMETER_LIST:
-        return HIPFFT_INCOMPLETE_PARAMETER_LIST;
+      return HIPFFT_INCOMPLETE_PARAMETER_LIST;
     case HCFFT_INVALID_DEVICE:
-        return HIPFFT_INVALID_DEVICE;
+      return HIPFFT_INVALID_DEVICE;
     case HCFFT_PARSE_ERROR:
-        return HIPFFT_PARSE_ERROR;
+      return HIPFFT_PARSE_ERROR;
     case HCFFT_NO_WORKSPACE:
-        return HIPFFT_NO_WORKSPACE;
+      return HIPFFT_NO_WORKSPACE;
     default:
-         throw "Unimplemented Result";
-   }
-}
-
-hcfftType hipHIPFFTTypeToHCFFTType(hipfftType hipType) 
-{
-   switch(hipType) 
-   {
-    case HIPFFT_R2C:
-        return HCFFT_R2C;
-    case HIPFFT_C2R:
-        return HCFFT_C2R;
-    case HIPFFT_C2C:
-        return HCFFT_C2C;
-    case HIPFFT_D2Z:
-        return HCFFT_D2Z;
-    case HIPFFT_Z2D:
-        return HCFFT_Z2D;
-    case HIPFFT_Z2Z:
-        return HCFFT_Z2Z;
-    default:
-        throw "Unimplemented Type";
+      throw "Unimplemented Result";
   }
 }
 
-int hipHIPFFTDirectionToHCFFTDirection(int hipDirection)
-{
-    switch(hipDirection)
-    {
-        case HIPFFT_FORWARD:
-          return -1;
-        case HIPFFT_INVERSE:
-          return 1;
-        default:
-          throw "Unimplemented direction";
-    }
+hcfftType hipHIPFFTTypeToHCFFTType(hipfftType hipType) {
+  switch (hipType) {
+    case HIPFFT_R2C:
+      return HCFFT_R2C;
+    case HIPFFT_C2R:
+      return HCFFT_C2R;
+    case HIPFFT_C2C:
+      return HCFFT_C2C;
+    case HIPFFT_D2Z:
+      return HCFFT_D2Z;
+    case HIPFFT_Z2D:
+      return HCFFT_Z2D;
+    case HIPFFT_Z2Z:
+      return HCFFT_Z2Z;
+    default:
+      throw "Unimplemented Type";
+  }
 }
 
-    hipfftResult hipfftCreate(hipfftHandle *plan){
-    return hipHCFFTResultToHIPFFTResult(hcfftCreate(plan));
+int hipHIPFFTDirectionToHCFFTDirection(int hipDirection) {
+  switch (hipDirection) {
+    case HIPFFT_FORWARD:
+      return -1;
+    case HIPFFT_INVERSE:
+      return 1;
+    default:
+      throw "Unimplemented direction";
+  }
 }
 
-    hipfftResult hipfftDestroy(hipfftHandle plan){
-    return hipHCFFTResultToHIPFFTResult(hcfftDestroy(plan));
+hipfftResult hipfftCreate(hipfftHandle *plan) {
+  return hipHCFFTResultToHIPFFTResult(hcfftCreate(plan));
 }
 
-    hipfftResult hipfftSetStream(hipfftHandle plan, hipStream_t stream){
-    return HIPFFT_RESULT_NOT_SUPPORTED;
+hipfftResult hipfftDestroy(hipfftHandle plan) {
+  return hipHCFFTResultToHIPFFTResult(hcfftDestroy(plan));
+}
+
+hipfftResult hipfftSetStream(hipfftHandle plan, hipStream_t stream) {
+  return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
 /*hipFFT Basic Plans*/
 
-    hipfftResult hipfftPlan1d(hipfftHandle *plan, int nx, hipfftType type, int batch){
-    return hipHCFFTResultToHIPFFTResult(hcfftPlan1d(plan, nx, hipHIPFFTTypeToHCFFTType(type))); 
+hipfftResult hipfftPlan1d(hipfftHandle *plan, int nx, hipfftType type,
+                          int batch) {
+  return hipHCFFTResultToHIPFFTResult(
+      hcfftPlan1d(plan, nx, hipHIPFFTTypeToHCFFTType(type)));
 }
-//hcfftPlan2d accept the dimensions in the inverse order of that of how hipfft/cufft accepts it
-    hipfftResult hipfftPlan2d(hipfftHandle *plan, int nx, int ny, hipfftType type){
-    return hipHCFFTResultToHIPFFTResult(hcfftPlan2d(plan, ny, nx, hipHIPFFTTypeToHCFFTType(type)));
+// hcfftPlan2d accept the dimensions in the inverse order of that of how
+// hipfft/cufft accepts it
+hipfftResult hipfftPlan2d(hipfftHandle *plan, int nx, int ny, hipfftType type) {
+  return hipHCFFTResultToHIPFFTResult(
+      hcfftPlan2d(plan, ny, nx, hipHIPFFTTypeToHCFFTType(type)));
 }
 
-//hcfftPlan3d accept the dimensions in the inverse order of that of how hipfft/cufft accepts it
-    hipfftResult hipfftPlan3d(hipfftHandle *plan, int nx, int ny, int nz, hipfftType type){
-    return hipHCFFTResultToHIPFFTResult(hcfftPlan3d(plan, nz, ny, nx, hipHIPFFTTypeToHCFFTType(type)));
+// hcfftPlan3d accept the dimensions in the inverse order of that of how
+// hipfft/cufft accepts it
+hipfftResult hipfftPlan3d(hipfftHandle *plan, int nx, int ny, int nz,
+                          hipfftType type) {
+  return hipHCFFTResultToHIPFFTResult(
+      hcfftPlan3d(plan, nz, ny, nx, hipHIPFFTTypeToHCFFTType(type)));
 }
 
-    hipfftResult hipfftPlanMany(hipfftHandle *plan, int rank, int *n, int *inembed,int istride, 
-                                          int idist, int *onembed, int ostride,
-                                          int odist, hipfftType type, int batch){
-    return HIPFFT_RESULT_NOT_SUPPORTED;
+hipfftResult hipfftPlanMany(hipfftHandle *plan, int rank, int *n, int *inembed,
+                            int istride, int idist, int *onembed, int ostride,
+                            int odist, hipfftType type, int batch) {
+  return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
 /*hipFFT Extensible Plans*/
 
-    hipfftResult hipfftMakePlan1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t *workSize){
-    return HIPFFT_RESULT_NOT_SUPPORTED;
+hipfftResult hipfftMakePlan1d(hipfftHandle plan, int nx, hipfftType type,
+                              int batch, size_t *workSize) {
+  return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t *workSize){
-    return HIPFFT_RESULT_NOT_SUPPORTED;
+hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny,
+                              hipfftType type, size_t *workSize) {
+  return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftMakePlan3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, size_t *workSize){
-    return HIPFFT_RESULT_NOT_SUPPORTED;
+hipfftResult hipfftMakePlan3d(hipfftHandle plan, int nx, int ny, int nz,
+                              hipfftType type, size_t *workSize) {
+  return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-
-    hipfftResult hipfftMakePlanMany(hipfftHandle plan, int rank, int *n, int *inembed, int istride, 
-                                              int idist, int *onembed, int ostride, int odist, hipfftType type, 
-                                              int batch, size_t *workSize){
-  	return HIPFFT_RESULT_NOT_SUPPORTED;
+hipfftResult hipfftMakePlanMany(hipfftHandle plan, int rank, int *n,
+                                int *inembed, int istride, int idist,
+                                int *onembed, int ostride, int odist,
+                                hipfftType type, int batch, size_t *workSize) {
+  return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftMakePlanMany64(hipfftHandle plan, int rank, long long int *n, 
-                                                long long int *inembed, long long int istride, long long int idist, 
-                                                long long int *onembed, long long int ostride, long long int odist, 
-                                                hipfftType type, long long int batch, size_t *workSize){
-  	return HIPFFT_RESULT_NOT_SUPPORTED; 
+hipfftResult hipfftMakePlanMany64(
+    hipfftHandle plan, int rank, long long int *n,
+    long long int *inembed, long long int istride,
+    long long int idist, long long int *onembed,
+    long long int ostride, long long int odist,
+    hipfftType type, long long int batch, size_t *workSize) {
+  return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
 /*hipFFT Estimated Size of Work Area*/
 
-    hipfftResult hipfftEstimate1d(int nx, hipfftType type, int batch, size_t *workSize){
-  	return HIPFFT_RESULT_NOT_SUPPORTED;
+hipfftResult hipfftEstimate1d(int nx, hipfftType type, int batch,
+                              size_t *workSize) {
+  return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type, size_t *workSize){
-  	return HIPFFT_RESULT_NOT_SUPPORTED;
+hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type,
+                              size_t *workSize) {
+  return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type, size_t *workSize){
-  	return HIPFFT_RESULT_NOT_SUPPORTED;
+hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type,
+                              size_t *workSize) {
+  return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftEstimateMany(int rank, int *n, int *inembed, int istride, int idist, int *onembed, 
-                                              int ostride, int odist, hipfftType type, int batch, size_t *workSize){
-  	return HIPFFT_RESULT_NOT_SUPPORTED;
+hipfftResult hipfftEstimateMany(int rank, int *n, int *inembed, int istride,
+                                int idist, int *onembed, int ostride, int odist,
+                                hipfftType type, int batch, size_t *workSize) {
+  return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
 /*hipFFT Refined Estimated Size of Work Area*/
 
-    hipfftResult hipfftGetSize1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t *workSize){
+hipfftResult hipfftGetSize1d(hipfftHandle plan, int nx, hipfftType type,
+                             int batch, size_t *workSize) {
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t *workSize){
+hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type,
+                             size_t *workSize) {
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, 
-                                            size_t *workSize){
+hipfftResult hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz,
+                             hipfftType type, size_t *workSize) {
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftGetSizeMany(hipfftHandle plan, int rank, int *n, int *inembed,
-                                             int istride, int idist, int *onembed, int ostride,
-                                             int odist, hipfftType type, int batch, size_t *workSize){
+hipfftResult hipfftGetSizeMany(hipfftHandle plan, int rank, int *n,
+                               int *inembed, int istride, int idist,
+                               int *onembed, int ostride, int odist,
+                               hipfftType type, int batch, size_t *workSize) {
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftGetSizeMany64(hipfftHandle plan, int rank, long long int *n, 
-                                              long long int *inembed, long long int istride, long long int idist, 
-                                              long long int *onembed, long long int ostride, long long int odist, 
-                                              hipfftType type, long long int batch, size_t *workSize){
+hipfftResult hipfftGetSizeMany64(
+    hipfftHandle plan, int rank, long long int *n,
+    long long int *inembed, long long int istride,
+    long long int idist, long long int *onembed,
+    long long int ostride, long long int odist,
+    hipfftType type, long long int batch, size_t *workSize) {
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftGetSize(hipfftHandle plan, size_t *workSize){
+hipfftResult hipfftGetSize(hipfftHandle plan, size_t *workSize) {
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
 /*hipFFT Caller Allocated Work Area Support*/
 
-    hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAllocate){
+hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAllocate) {
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
 
-    hipfftResult hipfftSetWorkArea(hipfftHandle plan, void *workArea){
+hipfftResult hipfftSetWorkArea(hipfftHandle plan, void *workArea) {
   return HIPFFT_RESULT_NOT_SUPPORTED;
 }
-
 
 /*hipFFT Execution*/
 
-    hipfftResult hipfftExecC2C(hipfftHandle plan, hipfftComplex *idata, 
-                                         hipfftComplex *odata, int direction){
-    return hipHCFFTResultToHIPFFTResult(hcfftExecC2C(plan, (hcfftComplex *)idata, (hcfftComplex *)odata, hipHIPFFTDirectionToHCFFTDirection(direction)));
+hipfftResult hipfftExecC2C(hipfftHandle plan, hipfftComplex *idata,
+                           hipfftComplex *odata, int direction) {
+  return hipHCFFTResultToHIPFFTResult(
+      hcfftExecC2C(plan, (hcfftComplex *)idata, (hcfftComplex *)odata,
+                   hipHIPFFTDirectionToHCFFTDirection(direction)));
 }
 
-    hipfftResult hipfftExecZ2Z(hipfftHandle plan, hipfftDoubleComplex *idata, 
-                                         hipfftDoubleComplex *odata, int direction){
-    return hipHCFFTResultToHIPFFTResult(hcfftExecZ2Z(plan, (hcfftDoubleComplex *)idata, (hcfftDoubleComplex *)odata, hipHIPFFTDirectionToHCFFTDirection(direction)));
+hipfftResult hipfftExecZ2Z(hipfftHandle plan, hipfftDoubleComplex *idata,
+                           hipfftDoubleComplex *odata, int direction) {
+  return hipHCFFTResultToHIPFFTResult(hcfftExecZ2Z(
+      plan, (hcfftDoubleComplex *)idata, (hcfftDoubleComplex *)odata,
+      hipHIPFFTDirectionToHCFFTDirection(direction)));
 }
 
-    hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal *idata, 
-                                         hipfftComplex *odata){
-    return hipHCFFTResultToHIPFFTResult(hcfftExecR2C(plan, idata, (hcfftComplex *)odata));
+hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal *idata,
+                           hipfftComplex *odata) {
+  return hipHCFFTResultToHIPFFTResult(
+      hcfftExecR2C(plan, idata, (hcfftComplex *)odata));
 }
 
-    hipfftResult hipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal *idata, 
-                                         hipfftDoubleComplex *odata){
-    return hipHCFFTResultToHIPFFTResult(hcfftExecD2Z(plan, idata, (hcfftDoubleComplex *)odata));
+hipfftResult hipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal *idata,
+                           hipfftDoubleComplex *odata) {
+  return hipHCFFTResultToHIPFFTResult(
+      hcfftExecD2Z(plan, idata, (hcfftDoubleComplex *)odata));
 }
 
-    hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex *idata, 
-                                         hipfftReal *odata){
-    return hipHCFFTResultToHIPFFTResult(hcfftExecC2R(plan, (hcfftComplex *)idata, odata));
+hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex *idata,
+                           hipfftReal *odata) {
+  return hipHCFFTResultToHIPFFTResult(
+      hcfftExecC2R(plan, (hcfftComplex *)idata, odata));
 }
 
-    hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex *idata, 
-                                         hipfftDoubleReal *odata){
-    return hipHCFFTResultToHIPFFTResult(hcfftExecZ2D(plan, (hcfftDoubleComplex *)idata, odata));
+hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex *idata,
+                           hipfftDoubleReal *odata) {
+  return hipHCFFTResultToHIPFFTResult(
+      hcfftExecZ2D(plan, (hcfftDoubleComplex *)idata, odata));
 }
-
 
 #ifdef __cplusplus
 }

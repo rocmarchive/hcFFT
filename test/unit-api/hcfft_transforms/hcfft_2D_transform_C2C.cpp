@@ -1,27 +1,47 @@
-#include "hcfft.h"
-#include "../gtest/gtest.h"
-#include "fftw3.h"
-#include "helper_functions.h"
-#include "hc_am.hpp"
-#include "hcfftlib.h"
+/*
+Copyright (c) 2015-2016 Advanced Micro Devices, Inc. All rights reserved.
 
-TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+
+#include "include/hcfft.h"
+#include "../gtest/gtest.h"
+#include <fftw3.h>
+#include <hc_am.hpp>
+#include "include/hcfftlib.h"
+#include "./helper_functions.h"
+
+TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C) {
   size_t N1, N2;
   N1 = my_argc > 1 ? atoi(my_argv[1]) : 8;
   N2 = my_argc > 2 ? atoi(my_argv[2]) : 8;
   hcfftHandle plan;
-  hcfftResult status  = hcfftPlan2d(&plan, N1, N2, HCFFT_C2C);
+  hcfftResult status = hcfftPlan2d(&plan, N1, N2, HCFFT_C2C);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int hSize = N1 * N2;
   hcfftComplex* input = (hcfftComplex*)calloc(hSize, sizeof(hcfftComplex));
   hcfftComplex* output = (hcfftComplex*)calloc(hSize, sizeof(hcfftComplex));
-  int seed = 123456789;
-  srand(seed);
 
   // Populate the input
-  for(int i = 0; i < hSize ; i++) {
-    input[i].x = i%8;
-    input[i].y = i%8;
+  for (int i = 0; i < hSize; i++) {
+    input[i].x = i % 8;
+    input[i].y = i % 8;
   }
 
   std::vector<hc::accelerator> accs = hc::accelerator::get_all();
@@ -34,16 +54,17 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   status = hcfftExecC2C(plan, idata, odata, HCFFT_FORWARD);
   EXPECT_EQ(status, HCFFT_SUCCESS);
   accl_view.copy(odata, output, sizeof(hcfftComplex) * hSize);
-  status =  hcfftDestroy(plan);
+  status = hcfftDestroy(plan);
   EXPECT_EQ(status, HCFFT_SUCCESS);
-  //FFTW work flow
+  // FFTW work flow
   // input output arrays
-  fftwf_complex *fftw_in,*fftw_out;
+  fftwf_complex *fftw_in, *fftw_out;
   fftwf_plan p;
-  fftw_in = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * hSize);
-  fftw_out = (fftwf_complex*) fftwf_malloc(sizeof(fftwf_complex) * hSize);
+  fftw_in = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * hSize);
+  fftw_out = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex) * hSize);
+
   // Populate inputs
-  for(int i = 0; i < hSize ; i++) {
+  for (int i = 0; i < hSize; i++) {
     fftw_in[i][0] = input[i].x;
     fftw_in[i][1] = input[i].y;
   }
@@ -53,19 +74,22 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   fftwf_execute(p);
 
   // Check RMSE: If fails go for pointwise comparison
-  if (JudgeRMSEAccuracyComplex<fftwf_complex, hcfftComplex>(fftw_out, output, hSize)) {
-    //Check Real Outputs
-    for (int i =0; i < hSize; i++) {
-      EXPECT_NEAR(fftw_out[i][0] , output[i].x, 0.1); 
+  if (JudgeRMSEAccuracyComplex<fftwf_complex, hcfftComplex>(fftw_out, output,
+                                                            hSize)) {
+    // Check Real Outputs
+    for (int i = 0; i < hSize; i++) {
+      EXPECT_NEAR(fftw_out[i][0], output[i].x, 0.1);
     }
-    //Check Imaginary Outputs
-    for (int i =0; i < hSize; i++) {
-      EXPECT_NEAR(fftw_out[i][1] , output[i].y, 0.1); 
+    // Check Imaginary Outputs
+    for (int i = 0; i < hSize; i++) {
+      EXPECT_NEAR(fftw_out[i][1], output[i].y, 0.1);
     }
   }
+
   // Free up resources
   fftwf_destroy_plan(p);
-  fftwf_free(fftw_in); fftwf_free(fftw_out);
+  fftwf_free(fftw_in);
+  fftwf_free(fftw_out);
   free(input);
   free(output);
   hc::am_free(idata);

@@ -21,24 +21,23 @@ THE SOFTWARE.
 */
 #pragma once
 
-#include <hip/hip_runtime_api.h>
 #include "../hcfft.h"
 #include <hip/hip_complex.h>
+#include <hip/hip_runtime_api.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
 typedef hcfftHandle hipfftHandle;
-typedef hipComplex hipfftComplex; 
+typedef hipComplex hipfftComplex;
 typedef hipDoubleComplex hipfftDoubleComplex;
-typedef hcfftReal  hipfftReal;
+typedef hcfftReal hipfftReal;
 typedef hcfftDoubleReal hipfftDoubleReal;
 
-hipfftResult hipHCFFTResultToHIPFFTResult(hcfftResult hcResult); 
+hipfftResult hipHCFFTResultToHIPFFTResult(hcfftResult hcResult);
 
-hcfftType hipHIPFFTTypeToHCFFTType(hipfftType hipType); 
+hcfftType hipHIPFFTTypeToHCFFTType(hipfftType hipType);
 
 int hipHIPFFTDirectionToHCFFTDirection(int hipDirection);
 
@@ -50,62 +49,78 @@ hipfftResult hipfftSetStream(hipfftHandle plan, hipStream_t stream);
 
 /*hipFFT Basic Plans*/
 
-hipfftResult hipfftPlan1d(hipfftHandle *plan, int nx, hipfftType type, int batch);
+hipfftResult hipfftPlan1d(hipfftHandle *plan, int nx, hipfftType type,
+                          int batch);
 
 hipfftResult hipfftPlan2d(hipfftHandle *plan, int nx, int ny, hipfftType type);
 
-hipfftResult hipfftPlan3d(hipfftHandle *plan, int nx, int ny, int nz, hipfftType type);
+hipfftResult hipfftPlan3d(hipfftHandle *plan, int nx, int ny, int nz,
+                          hipfftType type);
 
-hipfftResult hipfftPlanMany(hipfftHandle *plan, int rank, int *n, int *inembed,int istride, 
-                                          int idist, int *onembed, int ostride,
-                                          int odist, hipfftType type, int batch);
+hipfftResult hipfftPlanMany(hipfftHandle *plan, int rank, int *n, int *inembed,
+                            int istride, int idist, int *onembed, int ostride,
+                            int odist, hipfftType type, int batch);
 
 /*hipFFT Extensible Plans*/
 
-hipfftResult hipfftMakePlan1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t *workSize);
+hipfftResult hipfftMakePlan1d(hipfftHandle plan, int nx, hipfftType type,
+                              int batch, size_t *workSize);
 
-hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t *workSize);
+hipfftResult hipfftMakePlan2d(hipfftHandle plan, int nx, int ny,
+                              hipfftType type, size_t *workSize);
 
-hipfftResult hipfftMakePlan3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, size_t *workSize);
+hipfftResult hipfftMakePlan3d(hipfftHandle plan, int nx, int ny, int nz,
+                              hipfftType type, size_t *workSize);
 
+hipfftResult hipfftMakePlanMany(hipfftHandle plan, int rank, int *n,
+                                int *inembed, int istride, int idist,
+                                int *onembed, int ostride, int odist,
+                                hipfftType type, int batch, size_t *workSize);
 
-hipfftResult hipfftMakePlanMany(hipfftHandle plan, int rank, int *n, int *inembed, int istride, 
-                                              int idist, int *onembed, int ostride, int odist, hipfftType type, 
-                                              int batch, size_t *workSize);
-
-hipfftResult hipfftMakePlanMany64(hipfftHandle plan, int rank, long long int *n, 
-                                                long long int *inembed, long long int istride, long long int idist, 
-                                                long long int *onembed, long long int ostride, long long int odist, 
-                                                hipfftType type, long long int batch, size_t *workSize);
+hipfftResult hipfftMakePlanMany64(
+    hipfftHandle plan, int rank, long long int *n,
+    long long int *inembed, long long int istride,
+    long long int idist, long long int *onembed,
+    long long int ostride, long long int odist,
+    hipfftType type, long long int batch, size_t *workSize);
 
 /*hipFFT Estimated Size of Work Area*/
 
-hipfftResult hipfftEstimate1d(int nx, hipfftType type, int batch, size_t *workSize);
+hipfftResult hipfftEstimate1d(int nx, hipfftType type, int batch,
+                              size_t *workSize);
 
-hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type, size_t *workSize);
+hipfftResult hipfftEstimate2d(int nx, int ny, hipfftType type,
+                              size_t *workSize);
 
-hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type, size_t *workSize);
+hipfftResult hipfftEstimate3d(int nx, int ny, int nz, hipfftType type,
+                              size_t *workSize);
 
-hipfftResult hipfftEstimateMany(int rank, int *n, int *inembed, int istride, int idist, int *onembed, 
-                                              int ostride, int odist, hipfftType type, int batch, size_t *workSize);
+hipfftResult hipfftEstimateMany(int rank, int *n, int *inembed, int istride,
+                                int idist, int *onembed, int ostride, int odist,
+                                hipfftType type, int batch, size_t *workSize);
 
 /*hipFFT Refined Estimated Size of Work Area*/
 
-hipfftResult hipfftGetSize1d(hipfftHandle plan, int nx, hipfftType type, int batch, size_t *workSize);
+hipfftResult hipfftGetSize1d(hipfftHandle plan, int nx, hipfftType type,
+                             int batch, size_t *workSize);
 
-hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type, size_t *workSize);
+hipfftResult hipfftGetSize2d(hipfftHandle plan, int nx, int ny, hipfftType type,
+                             size_t *workSize);
 
-hipfftResult hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz, hipfftType type, 
-                                           size_t *workSize);
+hipfftResult hipfftGetSize3d(hipfftHandle plan, int nx, int ny, int nz,
+                             hipfftType type, size_t *workSize);
 
-hipfftResult hipfftGetSizeMany(hipfftHandle plan, int rank, int *n, int *inembed,
-                                             int istride, int idist, int *onembed, int ostride,
-                                             int odist, hipfftType type, int batch, size_t *workSize);
+hipfftResult hipfftGetSizeMany(hipfftHandle plan, int rank, int *n,
+                               int *inembed, int istride, int idist,
+                               int *onembed, int ostride, int odist,
+                               hipfftType type, int batch, size_t *workSize);
 
-hipfftResult hipfftGetSizeMany64(hipfftHandle plan, int rank, long long int *n, 
-                                              long long int *inembed, long long int istride, long long int idist, 
-                                              long long int *onembed, long long int ostride, long long int odist, 
-                                              hipfftType type, long long int batch, size_t *workSize);
+hipfftResult hipfftGetSizeMany64(
+    hipfftHandle plan, int rank, long long int *n,
+    long long int *inembed, long long int istride,
+    long long int idist, long long int *onembed,
+    long long int ostride, long long int odist,
+    hipfftType type, long long int batch, size_t *workSize);
 
 hipfftResult hipfftGetSize(hipfftHandle plan, size_t *workSize);
 
@@ -115,26 +130,25 @@ hipfftResult hipfftSetAutoAllocation(hipfftHandle plan, int autoAllocate);
 
 hipfftResult hipfftSetWorkArea(hipfftHandle plan, void *workArea);
 
-
 /*hipFFT Execution*/
 
-hipfftResult hipfftExecC2C(hipfftHandle plan, hipfftComplex *idata, 
-                                         hipfftComplex *odata, int direction);
+hipfftResult hipfftExecC2C(hipfftHandle plan, hipfftComplex *idata,
+                           hipfftComplex *odata, int direction);
 
-hipfftResult hipfftExecZ2Z(hipfftHandle plan, hipfftDoubleComplex *idata, 
-                                         hipfftDoubleComplex *odata, int direction);
+hipfftResult hipfftExecZ2Z(hipfftHandle plan, hipfftDoubleComplex *idata,
+                           hipfftDoubleComplex *odata, int direction);
 
-hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal *idata, 
-                                         hipfftComplex *odata);
+hipfftResult hipfftExecR2C(hipfftHandle plan, hipfftReal *idata,
+                           hipfftComplex *odata);
 
-hipfftResult hipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal *idata, 
-                                         hipfftDoubleComplex *odata);
+hipfftResult hipfftExecD2Z(hipfftHandle plan, hipfftDoubleReal *idata,
+                           hipfftDoubleComplex *odata);
 
-hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex *idata, 
-                                         hipfftReal *odata);
+hipfftResult hipfftExecC2R(hipfftHandle plan, hipfftComplex *idata,
+                           hipfftReal *odata);
 
-hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex *idata, 
-                                         hipfftDoubleReal *odata);
+hipfftResult hipfftExecZ2D(hipfftHandle plan, hipfftDoubleComplex *idata,
+                           hipfftDoubleReal *odata);
 
 #ifdef __cplusplus
 }

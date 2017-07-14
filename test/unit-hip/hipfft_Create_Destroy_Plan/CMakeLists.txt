@@ -14,7 +14,7 @@ IF(${PLATFORM} MATCHES "hcc")
   execute_process(COMMAND ${HCC_CONFIG}  --install --ldflags
                           OUTPUT_VARIABLE HCC_LDFLAGS)
 
-  SET(HIPFFT_INCLUDE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include/")
+  SET(HIPFFT_INCLUDE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/")
   SET(HIPFFT_LIBRARY_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../build/lib/src")
 
   string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
@@ -27,14 +27,14 @@ IF(${PLATFORM} MATCHES "hcc")
 
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "bin/")
   FOREACH(test_file ${HIPSRCS})
-    SET_PROPERTY(SOURCE ${test_file} ../gtest_main.cpp ../gtest-all.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS} -DGTEST_HAS_TR1_TUPLE=0")
+    SET_PROPERTY(SOURCE ${test_file} ../gtest_main.cpp ../gtest-all.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " ${HCC_CXXFLAGS} -DGTEST_HAS_TR1_TUPLE=0 -D__HIP_PLATFORM_HCC__")
     get_filename_component (name_without_extension ${test_file} NAME_WE)
     ADD_EXECUTABLE(${name_without_extension} ${test_file} ../gtest-all.cpp ../gtest_main.cpp)
     SET_PROPERTY(TARGET ${name_without_extension} APPEND_STRING PROPERTY LINK_FLAGS " ${HCC_LDFLAGS} ${LINK}")
   ENDFOREACH()
 
 ELSEIF(${PLATFORM} MATCHES "nvcc")
-  SET(HIPFFT_INCLUDE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/include/")
+  SET(HIPFFT_INCLUDE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../lib/")
   SET(HIPFFT_LIBRARY_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../../build/lib/src")
 
   set (HIP_CXXFLAGS "${HIP_CXXFLAGS} -I${HIPFFT_INCLUDE_PATH} -I/usr/local/cuda/include/ -I${HIP_PATH}/include")
@@ -44,7 +44,7 @@ ELSEIF(${PLATFORM} MATCHES "nvcc")
 
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "bin/")
   FOREACH(test_file ${HIPSRCS})
-    SET_PROPERTY(SOURCE ${test_file} ../gtest_main.cpp ../gtest-all.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " ${HIP_CXXFLAGS} -DGTEST_HAS_TR1_TUPLE=0 ")
+    SET_PROPERTY(SOURCE ${test_file} ../gtest_main.cpp ../gtest-all.cpp APPEND_STRING PROPERTY COMPILE_FLAGS " ${HIP_CXXFLAGS} -DGTEST_HAS_TR1_TUPLE=0 -D__HIP_PLATFORM_NVCC__")
     get_filename_component (name_without_extension ${test_file} NAME_WE)
     ADD_EXECUTABLE(${name_without_extension} ../gtest-all.cpp ../gtest_main.cpp ${test_file})
     SET_PROPERTY(TARGET ${name_without_extension} APPEND_STRING PROPERTY LINK_FLAGS " ${HIP_LDFLAGS} ${LINK}")
