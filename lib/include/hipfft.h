@@ -35,6 +35,7 @@ THE SOFTWARE.
 #define LIB_INCLUDE_HIPFFT_H
 
 #pragma once
+#include <hip/hip_runtime_api.h>
 
 typedef enum hipfftType_t {
   HIPFFT_R2C = 0x2a,  // Real to complex (interleaved)
