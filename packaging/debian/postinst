@@ -3,6 +3,8 @@
 set -e
 
 do_ldconfig() {
+    ln -sfn /opt/rocm/hcfft/lib/libhipfft.so /opt/rocm/lib/libhipfft.so
+    ln -sfn /opt/rocm/hcfft/lib/libhcfft.so /opt/rocm/lib/libhcfft.so
     echo /opt/rocm/hcfft/lib > /etc/ld.so.conf.d/hcfft-rocm-dev.conf && ldconfig
 }
 
