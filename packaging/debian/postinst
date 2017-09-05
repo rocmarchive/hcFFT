@@ -1,15 +1,26 @@
 #/bin/bash
 
 set -e
+ROCM_PATH="/opt/rocm"
+INSTALL_PATH="${ROCM_PATH}/hcfft"
+LIBRARY_DIR="${INSTALL_PATH}/lib"
+COMMON_LIB="${ROCM_PATH}/lib"
+SYMLINK_DIR="${ROCM_PATH}/hipfft"
+
+do_symlink() {
+    ln -sfn ${LIBRARY_DIR}/libhipfft.so ${COMMON_LIB}/libhipfft.so
+    ln -sfn ${LIBRARY_DIR}/libhcfft.so ${COMMON_LIB}/libhcfft.so
+    ln -sfn  ${INSTALL_PATH} ${SYMLINK_DIR}
+}
 
 do_ldconfig() {
-    ln -sfn /opt/rocm/hcfft/lib/libhipfft.so /opt/rocm/lib/libhipfft.so
-    ln -sfn /opt/rocm/hcfft/lib/libhcfft.so /opt/rocm/lib/libhcfft.so
-    echo /opt/rocm/hcfft/lib > /etc/ld.so.conf.d/hcfft-rocm-dev.conf && ldconfig
+    echo ${LIBRARY_DIR} > /etc/ld.so.conf.d/hcfft-rocm-dev.conf && ldconfig
+    echo ${COMMON_LIB} >> /etc/ld.so.conf.d/hcfft-rocm-dev.conf && ldconfig
 }
 
 case "$1" in
    configure)
+       do_symlink
        do_ldconfig
    ;;
    abort-upgrade|abort-remove|abort-deconfigure)

@@ -247,7 +247,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle,
     WriteKernel(plHandle, gen, fftParams, fftPlan->filename, writeFlag);
     // Check if the default compiler path exists
     std::string execCmd;
-    char fname[256] = "/opt/rocm/hcc/bin/clang++";
+    char fname[256] = "/opt/rocm/hcc/bin/hcc";
 
     if (access(getenv("HCC_HOME"), F_OK) != -1) {
       // TODO(Neelakandan): This path shall be removed. User shall build from
@@ -257,7 +257,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle,
       char* compilerPath = getenv("HCC_HOME");
       std::string Path(compilerPath);
       Path.append("/bin/");
-      execCmd = Path + "clang++ `" + Path +
+      execCmd = Path + "hcc `" + Path +
                 "hcc-config --install --cxxflags --ldflags --shared` "
                 "-Wno-unused-command-line-argument -lhc_am " +
                 fftPlan->filename + " -o " + fftPlan->kernellib;
@@ -265,7 +265,7 @@ hcfftStatus CompileKernels(const hcfftPlanHandle plHandle,
       // compiler exists
       // install_mode = true;
       std::string Path = "/opt/rocm/hcc/bin/";
-      execCmd = Path + "clang++ `" + Path +
+      execCmd = Path + "hcc `" + Path +
                 "hcc-config --install --cxxflags --ldflags --shared` "
                 "-Wno-unused-command-line-argument " +
                 fftPlan->filename + " -o " + fftPlan->kernellib;

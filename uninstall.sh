@@ -1,6 +1,6 @@
 # bash script to uninstall the library
-
-sh clean.sh --deepclean
+sudo dpkg -r hcfft
+sh clean.sh 
 echo "Uninstallation of hcFFT done"
 
 
