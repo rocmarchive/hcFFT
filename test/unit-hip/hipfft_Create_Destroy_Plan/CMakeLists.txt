@@ -20,7 +20,7 @@ IF(${PLATFORM} MATCHES "hcc")
   string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
   string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
   set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -I${HIPFFT_INCLUDE_PATH}")
-  set (HCC_LDFLAGS "${HCC_LDFLAGS} -L${HIPFFT_LIBRARY_PATH} -L${HIP_PATH}/lib")
+  set (HCC_LDFLAGS "${HCC_LDFLAGS} -L${HIPFFT_LIBRARY_PATH} -L${HIP_PATH}/lib -amdgpu-target=gfx803 -amdgpu-target=gfx900")
   INCLUDE_DIRECTORIES(${HIP_PATH}/include)
   
   SET (LINK "-lhipfft -lm -lhip_hcc")

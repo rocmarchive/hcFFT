@@ -46,7 +46,7 @@ ELSE(WIN32)
   string(STRIP "${HCC_CXXFLAGS}" HCC_CXXFLAGS)
   set (HCC_CXXFLAGS "${HCC_CXXFLAGS} -I${HCFFT_INCLUDE_PATH}")
   string(STRIP "${HCC_LDFLAGS}" HCC_LDFLAGS)
-  set (HCC_LDFLAGS "${HCC_LDFLAGS} -L${HCFFT_LIBRARY_PATH}")
+  set (HCC_LDFLAGS "${HCC_LDFLAGS} -L${HCFFT_LIBRARY_PATH} -amdgpu-target=gfx803 -amdgpu-target=gfx900")
   SET (LINK "-lhcfft -lhc_am")
 
   FOREACH(test_file ${TESTSRCS})
