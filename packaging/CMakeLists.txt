@@ -15,7 +15,6 @@ EXECUTE_PROCESS(COMMAND ${HIP_PATH}/bin/hipconfig -P OUTPUT_VARIABLE PLATFORM)
 
 IF (${PLATFORM} MATCHES "hcc")
   SET( lib_so_link ${CMAKE_CURRENT_SOURCE_DIR}/../build/lib/src/libhipfft.so)
-  SET( hip_so_target ${CMAKE_CURRENT_SOURCE_DIR}/../build/lib/src/libhipfft.so)
   execute_process(COMMAND ln -s ${hip_so_target} ${lib_so_link})
   IF(DEFINED INSTALL_OPT)
     SET( lib_so_link ${CMAKE_INSTALL_PREFIX}/../lib/libhcfft.so)
