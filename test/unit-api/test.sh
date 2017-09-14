@@ -128,7 +128,6 @@ while read line; do
 #Input file
 done < $current_work_dir/Input2D.txt
 
-
 test_3d_transforms_file=($current_work_dir/hcfft_transforms/hcfft_3D_transform*.cpp)
 numtests=${#test_3d_transforms_file[@]}
 
@@ -149,7 +148,7 @@ while read line; do
     errlogdir="${working_dir1}/errlog"
 
     #Gtest functions
-    unittest="${working_dir1}/${test_3d_transforms} $N1 $N2"
+    unittest="${working_dir1}/${test_3d_transforms} $N1 $N2 $N3"
 
     runcmd1="$unittest >> gtestlog.txt"
     eval $runcmd1
