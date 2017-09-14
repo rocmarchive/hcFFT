@@ -3499,7 +3499,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
             if (fftPlan->tmpBufSize == 0) {
               fftPlan->tmpBufSize = Nt * length1 * fftPlan->batchSize * fftPlan->ElementSize();
 
-              for (size_t index = 2; index < fftPlan->length.size(); index++) {
+              for (size_t index = 3; index < fftPlan->length.size(); index++) {
                 fftPlan->tmpBufSize *= fftPlan->length[index];
               }
             }
@@ -4450,7 +4450,7 @@ hcfftStatus FFTPlan::hcfftBakePlanInternal(hcfftPlanHandle plHandle) {
           if (fftPlan->tmpBufSize == 0) {
             fftPlan->tmpBufSize = Nt * length1 * length2 * fftPlan->batchSize * fftPlan->ElementSize();
 
-            for (size_t index = 2; index < fftPlan->length.size(); index++) {
+            for (size_t index = 3; index < fftPlan->length.size(); index++) {
               fftPlan->tmpBufSize *= fftPlan->length[index];
             }
           }
