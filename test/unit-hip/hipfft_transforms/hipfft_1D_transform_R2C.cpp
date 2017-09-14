@@ -57,11 +57,11 @@ TEST(hipfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   { 
     //Check Real Outputs
     for (int i =0; i < Csize; i++) {
-      EXPECT_NEAR(out[i][0] , output[i].x, 0.01); 
+      ASSERT_NEAR(out[i][0] , output[i].x, 0.01); 
     }
     //Check Imaginary Outputs
     for (int i = 0; i < Csize; i++) {
-      EXPECT_NEAR(out[i][1] , output[i].y, 0.01); 
+      ASSERT_NEAR(out[i][1] , output[i].y, 0.01); 
     }
   }
 

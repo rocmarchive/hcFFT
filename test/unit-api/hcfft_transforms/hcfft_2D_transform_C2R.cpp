@@ -59,7 +59,7 @@ TEST(hcfft_2D_transform_test, func_correct_2D_transform_C2R_RTT) {
   EXPECT_EQ(status, HCFFT_SUCCESS);
   //Check Real Outputs
   for (int i =0; i < Rsize; i++) {
-    EXPECT_NEAR(outputC2R[i]/(Rsize), inputR2C[i], 1); 
+    ASSERT_NEAR(outputC2R[i]/(Rsize), inputR2C[i], 1); 
   }
   // Free up resources
   free(inputR2C);

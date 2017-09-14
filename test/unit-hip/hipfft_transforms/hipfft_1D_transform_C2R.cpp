@@ -57,7 +57,7 @@ TEST(hipfft_1D_transform_test, func_correct_1D_transform_C2R ) {
   if (JudgeRMSEAccuracyReal<float, hipfftReal>(fftw_out, output, Rsize)) {
     //Check Real Outputs
     for (int i =0; i < Rsize; i++) {
-      EXPECT_NEAR(fftw_out[i] , output[i], 0.1); 
+      ASSERT_NEAR(fftw_out[i] , output[i], 0.1); 
     }
   }
 

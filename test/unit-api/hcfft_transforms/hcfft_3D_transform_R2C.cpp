@@ -58,11 +58,11 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_R2C ) {
   { 
     //Check Real Outputs
     for (int i =0; i < Csize; i++) {
-      EXPECT_NEAR(out[i][0] , output[i].x, 0.1); 
+      ASSERT_NEAR(out[i][0] , output[i].x, 0.1); 
     }
     //Check Imaginary Outputs
     for (int i =0; i < Csize; i++) {
-      EXPECT_NEAR(out[i][1] , output[i].y, 0.1); 
+      ASSERT_NEAR(out[i][1] , output[i].y, 0.1); 
     }
   }
   //Free up resources

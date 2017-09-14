@@ -57,11 +57,11 @@ TEST(hcfft_1D_transform_double_test, func_correct_1D_transform_D2Z ) {
   if (JudgeRMSEAccuracyComplex<fftw_complex, hcfftDoubleComplex>(out, output, Csize)) {
     //Check Real Outputs
     for (int i =0; i < Csize; i++) {
-      EXPECT_NEAR(out[i][0] , output[i].x, 0.01); 
+      ASSERT_NEAR(out[i][0] , output[i].x, 0.01); 
     }
     //Check Imaginary Outputs
     for (int i = 0; i < Csize; i++) {
-      EXPECT_NEAR(out[i][1] , output[i].y, 0.01); 
+      ASSERT_NEAR(out[i][1] , output[i].y, 0.01); 
     }
   }
   //Free up resources

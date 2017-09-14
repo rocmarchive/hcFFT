@@ -65,7 +65,7 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_Z2D_RTT) {
   
   //Check Real Inputs and Outputs
   for (int i =0; i < Rsize; i++) {
-    EXPECT_NEAR(inputD2Z[i] , outputZ2D[i]/Rsize, 0.1); 
+    ASSERT_NEAR(inputD2Z[i] , outputZ2D[i]/Rsize, 0.1); 
   }
 
   // Free up resources

@@ -11,7 +11,8 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2R_RTT) {
   N3 = my_argc > 3 ? atoi(my_argv[3]) : 2;
   hcfftHandle plan;
   hcfftResult status  = hcfftPlan3d(&plan, N1, N2, N3, HCFFT_R2C);
-  EXPECT_EQ(status, HCFFT_SUCCESS);
+  std::cout << "plan R2C" << std::endl;
+  ASSERT_EQ(status, HCFFT_SUCCESS);
   int Rsize = N3 * N2 * N1;
   int Csize = N3 * N2 * (1 + N1 / 2);
   hcfftReal* inputR2C = (hcfftReal*)malloc(Rsize * sizeof(hcfftReal));
@@ -32,13 +33,16 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2R_RTT) {
   hcfftComplex* devOpR2C = hc::am_alloc(Csize * sizeof(hcfftComplex), accs[1], 0);
   accl_view.copy(outputR2C, devOpR2C, sizeof(hcfftComplex) * Csize);
   status = hcfftExecR2C(plan, devIpR2C, devOpR2C);
-  EXPECT_EQ(status, HCFFT_SUCCESS);
+  std::cout << "ExecR2C" << std::endl;
+  ASSERT_EQ(status, HCFFT_SUCCESS);
   accl_view.copy(devOpR2C, outputR2C, sizeof(hcfftComplex) * Csize);
   status =  hcfftDestroy(plan);
-  EXPECT_EQ(status, HCFFT_SUCCESS);
+  std::cout << "Destroy R2C" << std::endl;
+  ASSERT_EQ(status, HCFFT_SUCCESS);
   //plan = NULL;
   status  = hcfftPlan3d(&plan, N1, N2, N3, HCFFT_C2R);
-  EXPECT_EQ(status, HCFFT_SUCCESS);
+  std::cout << "plan C2R" << std::endl;
+  ASSERT_EQ(status, HCFFT_SUCCESS);
   hcfftComplex* inputC2R = (hcfftComplex*)malloc(Csize * sizeof(hcfftComplex));
   hcfftReal* outputC2R = (hcfftReal*)malloc(Rsize * sizeof(hcfftReal));
 
@@ -53,13 +57,15 @@ TEST(hcfft_3D_transform_test, func_correct_3D_transform_C2R_RTT) {
   hcfftReal* devOpC2R = hc::am_alloc(Rsize * sizeof(hcfftReal), accs[1], 0);
   accl_view.copy(outputC2R, devOpC2R, sizeof(hcfftReal) * Rsize);
   status = hcfftExecC2R(plan, devIpC2R, devOpC2R);
-  EXPECT_EQ(status, HCFFT_SUCCESS);
+  std::cout << "ExecC2R" << std::endl;
+  ASSERT_EQ(status, HCFFT_SUCCESS);
   accl_view.copy(devOpC2R, outputC2R, sizeof(hcfftReal) * Rsize);
   status =  hcfftDestroy(plan);
-  EXPECT_EQ(status, HCFFT_SUCCESS);
+  std::cout << "Destroy" << std::endl;
+  ASSERT_EQ(status, HCFFT_SUCCESS);
   //Check Real Inputs and  Outputs
   for (int i =0; i < Rsize; i++) {
-    EXPECT_NEAR(inputR2C[i] , outputC2R[i]/Rsize, 0.1); 
+    ASSERT_NEAR(inputR2C[i] , outputC2R[i]/Rsize, 0.1); 
   }
   // Free up resources
   free(inputC2R);

@@ -56,11 +56,11 @@ TEST(hipfft_2D_transform_test, func_correct_2D_transform_C2C ) {
   if (JudgeRMSEAccuracyComplex<fftwf_complex, hipfftComplex>(fftw_out, output, hSize)) {
     //Check Real Outputs
     for (int i =0; i < hSize; i++) {
-      EXPECT_NEAR(fftw_out[i][0] , output[i].x, 0.1); 
+      ASSERT_NEAR(fftw_out[i][0] , output[i].x, 0.1); 
     }
     //Check Imaginary Outputs
     for (int i =0; i < hSize; i++) {
-      EXPECT_NEAR(fftw_out[i][1] , output[i].y, 0.1); 
+      ASSERT_NEAR(fftw_out[i][1] , output[i].y, 0.1); 
     }
   }
 

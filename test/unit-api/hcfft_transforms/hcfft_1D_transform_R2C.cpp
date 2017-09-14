@@ -12,6 +12,7 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   // HCFFT work flow
   hcfftHandle plan;
   hcfftResult status  = hcfftPlan1d(&plan, N1, HCFFT_R2C);
+  std::cout << "plan1d" << std::endl;
   EXPECT_EQ(status, HCFFT_SUCCESS);
   int Rsize = N1;
   int Csize = (N1 / 2) + 1;
@@ -33,6 +34,7 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   hcfftComplex* odata = hc::am_alloc(Csize * sizeof(hcfftComplex), accs[1], 0);
   accl_view.copy(output, odata, sizeof(hcfftComplex) * Csize);
   status = hcfftExecR2C(plan, idata, odata);
+  std::cout << "ExecR2C" << std::endl;
   EXPECT_EQ(status, HCFFT_SUCCESS);
   accl_view.copy(odata, output, sizeof(hcfftComplex) * Csize);
   status =  hcfftDestroy(plan);
@@ -58,11 +60,11 @@ TEST(hcfft_1D_transform_test, func_correct_1D_transform_R2C ) {
   { 
     //Check Real Outputs
     for (int i =0; i < Csize; i++) {
-      EXPECT_NEAR(out[i][0] , output[i].x, 0.01); 
+      ASSERT_NEAR(out[i][0] , output[i].x, 0.01); 
     }
     //Check Imaginary Outputs
     for (int i = 0; i < Csize; i++) {
-      EXPECT_NEAR(out[i][1] , output[i].y, 0.01); 
+      ASSERT_NEAR(out[i][1] , output[i].y, 0.01); 
     }
   }
   //Free up resources

@@ -62,7 +62,7 @@ TEST(hipfft_3D_transform_test, func_correct_3D_transform_C2R_RTT) {
 
   //Check Real Inputs and  Outputs
   for (int i =0; i < Rsize; i++) {
-    EXPECT_NEAR(inputR2C[i] , outputC2R[i]/Rsize, 0.1); 
+    ASSERT_NEAR(inputR2C[i] , outputC2R[i]/Rsize, 0.1); 
   }
 
   // Free up resources
