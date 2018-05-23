@@ -1,3 +1,5 @@
+# hcFFT has been deprecated and has been replaced by [rocFFT](https://github.com/ROCmSoftwarePlatform/rocFFT)
+
 ## A. Introduction: ##
 
 This repository hosts the HCC based FFT Library, that targets GPU acceleration of FFT routines on AMD devices. To know what HCC compiler features, refer [here](https://github.com/RadeonOpenCompute/hcc).
